@@ -4,26 +4,42 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateCol
 export class User {
 
   @PrimaryGeneratedColumn({
-    name: "user_id"
+    name: "user_id",
+    type: "bigint"
   })
   id: number;
 
-  @Column({length: 40})
+  @Column({
+    type: 'char',
+    length: 40
+  })
   uuid: string;
 
-  @Column({length: 20})
+  @Column({
+    type: 'varchar',
+    length: 20
+  })
   name: string;
 
-  @Column({length: 100})
+  @Column({
+    type: 'varchar',
+    length: 100
+  })
   email: string;
 
-  @Column({length: 100})
-  password: string;
-  
-  @CreateDateColumn({
-    name:"last_login_date"
+  @Column({
+    type: 'varchar',
+    length: 100
   })
-  lastLoginDate: Date;
+  password: string;
+
+  @Column({
+    name:"last_login_date",
+    type: 'date',
+    nullable: true,
+    default: null
+  })
+  lastLoginDate:Date;
   
   @CreateDateColumn({
     name:"created_at"

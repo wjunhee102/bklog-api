@@ -4,7 +4,7 @@ import { UserRepository } from './user.repository';
 import { Register, UserInfo, LoginUserInfo, Login } from './user.type';
 import * as Bcrypt from 'bcryptjs';
 import { Token } from 'src/util/token.util';
-import { User } from 'src/entities/user.entity';
+import { User } from 'src/entities/user/user.entity';
 
 @Injectable()
 export class UserService {
@@ -38,11 +38,20 @@ export class UserService {
       }
     });
 
+    // const user: User[] = await this.userRepository.find({
+    //   where: {
+    //     id: loginUser.id,
+    //     email: loginUser.email
+    //   }
+    // })
+
     const passwordCheck = await Bcrypt.compare(loginUser.password, user.password);
 
     if(!passwordCheck){
       return null;
     }
+
+    console.log(user);
     
     user.lastLoginDate = new Date();
     
