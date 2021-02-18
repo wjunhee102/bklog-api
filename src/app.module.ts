@@ -3,22 +3,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
-import { User } from './entities/user.entity';
+import { BklogModule } from './bklog/bklog.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      "type": "mysql",
-      "host": "localhost",
-      "port": 3307,
-      "username": "junhee",
-      "password": "password",
-      "database": "test",
-      "entities": [User],
-      "logging": true,
-      "synchronize": true
-    }),
-    UserModule
+    TypeOrmModule.forRoot(),
+    UserModule,
+    BklogModule
   ],
   controllers: [AppController],
   providers: [AppService],
