@@ -19,5 +19,6 @@ export type LoginUserInfo = {
   uuid: string;
   email: string;
   name: string;
+  jwt: string;
   lastLogin: Date;
 }

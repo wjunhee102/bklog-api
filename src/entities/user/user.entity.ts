@@ -50,4 +50,12 @@ export class User {
     name:"updated_at"
   })
   updatedDate:Date;
+
+  @Column({
+    name: "is_active",
+    type: "tinyint",
+    width: 1,
+    default: 1
+  })
+  isAcrive: boolean
 }

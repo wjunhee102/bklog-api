@@ -6,8 +6,8 @@
   "password": "password",
   "database": "test",
   "entities": [
-    "dist/entities/*.entity{ .ts,.js}", 
-    "dist/entities/**/*.entity{ .ts,.js}"
+    "dist/src/entities/*.entity{ .ts,.js}", 
+    "dist/src/entities/**/*.entity{ .ts,.js}"
   ],
   "logging": true,
   "synchronize": true
