@@ -5,7 +5,7 @@ import * as Bcrypt from 'bcryptjs';
 import { Token } from 'src/util/token.util';
 import { User } from 'src/entities/user/user.entity';
 import { UserInfo, Register, LoginUserInfo, Login } from '../../types/user';
-import { ValidInfo, UsedEmail } from './user.type';
+import { ValidInfo, UsedEmail, ClientData } from './user.type';
 
 
 @Injectable()
@@ -60,7 +60,7 @@ export class UserService {
     return userInfo;
   }
 
-  public async login(loginUser: Login): Promise<LoginUserInfo>{
+  public async login(loginUser: ClientData): Promise<LoginUserInfo>{
     const user: User = await this.userRepository.findOne({
       where:{
         email: loginUser.email
@@ -77,9 +77,11 @@ export class UserService {
       return null;
     }
 
-    const payload = { username: user.name, sub: user.email }
+    const payload = { name: user.name, email: user.email, agent: loginUser.agent }
 
     const access_token = this.jwtService.sign(payload);
+    const decoding = this.jwtService.decode(access_token);
+    console.log("jwt: ", decoding);
     
     user.lastLoginDate = new Date();
     

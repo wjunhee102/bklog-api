@@ -6,3 +6,9 @@ export type ValidInfo = {
 export type UsedEmail = {
   emailUsed: boolean
 }
+
+export type ClientData = {
+  email: string,
+  password: string,
+  agent: any
+}

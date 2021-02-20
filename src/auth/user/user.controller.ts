@@ -38,8 +38,10 @@ export class UserController {
       Logger.error(error);
       return new ResponseMessage().error(999).body("Parameter Error").build();
     }
-
-    const user = await this.userService.login(value);
+    console.log("user-agent", req.headers["user-agent"])
+    const user = await this.userService.login(Object.assign({}, value, {
+      agent: req.headers["user-agent"]
+    }));
 
     if (!user) {
       return new ResponseMessage().error(999, "Login Error").build();
