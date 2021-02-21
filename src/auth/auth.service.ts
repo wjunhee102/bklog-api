@@ -41,8 +41,6 @@ export class AuthService {
     const userInfo: any = this.jwtService.decode(accessToken);
     const checkAgent: boolean = userInfo.agent === userAgent;
     const checkExpTime = (userInfo.exp * 1000) + (60 * 60) >= Date.now();
-    console.log("check", (userInfo.exp * 1000) + (60 * 60), Date.now());
-    console.log(userInfo.agent, userAgent);
 
     if(!checkAgent || !checkExpTime) {
       return {
