@@ -45,12 +45,16 @@ export class AuthController {
     res.send(new ResponseMessage().success().body(verifiedUser).build());
   }
 
-  @Get("test") 
+  @Get("test-access") 
   public async testAccessToken(@Req() req) {
     const accessToken = req.signedCookies.AC_CERT;
   
     const test = this.authService.validationAccessToken(accessToken, req.headers["user-agent"]);
-    
+
+    if(test) {
+      return new ResponseMessage().error(999).body(test).build();
+    }
+
     return new ResponseMessage().success().body(test).build();
   }
 

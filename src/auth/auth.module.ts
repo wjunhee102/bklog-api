@@ -15,6 +15,7 @@ import { jwtConstants, jwtSignOptions } from 'secret/constants';
     })
   ],
   controllers: [AuthController],
-  providers: [AuthService]
+  providers: [AuthService],
+  exports: [AuthService]
 })
 export class AuthModule {};

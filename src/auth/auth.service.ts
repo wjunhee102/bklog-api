@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { jwtExpTime } from 'secret/constants';
+import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
 import { JwtUserPayload, UserJwtTokens, DecodeJwt } from './auth.type';
 
 @Injectable()
@@ -37,10 +37,9 @@ export class AuthService {
     info: boolean,
     exp: boolean
   } | null {
-    
     const userInfo: any = this.jwtService.decode(accessToken);
     const checkAgent: boolean = userInfo.agent === userAgent;
-    const checkExpTime = (userInfo.exp * 1000) + (60 * 60) >= Date.now();
+    const checkExpTime = userInfo.exp * 1000 + accessExpTime >= Date.now();
 
     if(!checkAgent || !checkExpTime) {
       return {
@@ -51,4 +50,14 @@ export class AuthService {
 
     return null
   } 
+
+  public validationRefreshToken(refreshToken: string, userAgent: string) {
+    const userInfo: any = this.jwtService.decode(refreshToken);
+    const checkAgent: boolean = userInfo.agent === userAgent;
+    const checkExpTime = userInfo.exp * 1000 + refreshExpTime - Date.now();
+
+    
+
+  }
+
 }
