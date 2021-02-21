@@ -1,11 +1,12 @@
-import { Injectable, Res } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from './user.repository';
 import * as Bcrypt from 'bcryptjs';
 import { Token } from 'src/util/token.util';
 import { User } from 'src/entities/user/user.entity';
-import { UserInfo, Register, LoginUserInfo, Login } from '../../types/user';
-import { ValidInfo, UsedEmail, ClientData } from './user.type';
+import { ValidInfo, UsedEmail, ClientData, UserInfo, Register, LoginUserInfo, UnverifiedUser } from './user.type';
+import { jwtExpTime } from 'secret/constants';
+import { PublicUserInfo } from 'src/types/public';
 
 
 @Injectable()
@@ -76,25 +77,70 @@ export class UserService {
     if(!passwordCheck){
       return null;
     }
-
-    const payload = { name: user.name, email: user.email, agent: loginUser.agent }
-
-    const access_token = this.jwtService.sign(payload);
-    const decoding = this.jwtService.decode(access_token);
-    console.log("jwt: ", decoding);
     
     user.lastLoginDate = new Date();
     
-    await this.userRepository.save(user);;
+    await this.userRepository.save(user);
+
+    const payload = { 
+      name: user.name, 
+      email: user.email, 
+      agent: loginUser.agent
+    }
+
+    const access_token = this.jwtService.sign(payload, {
+      expiresIn: jwtExpTime.accessToken
+    });
+
+    const refresh_token = this.jwtService.sign(payload, {
+      expiresIn: jwtExpTime.refreshToken
+    })
+
+    const decoding:any = this.jwtService.decode(refresh_token);
+    console.log(access_token, decoding, Date.now(), new Date(decoding.exp * 1000) );
+    // const loginDate: number = Number(decoding.loginDate)
+    // console.log("jwt: ", loginDate, typeof loginDate,loginDate < Date.now());
 
     const userInfo: LoginUserInfo = {
       email: user.email,
       name: user.name,
       uuid: user.uuid,
       lastLogin: user.lastLoginDate,
-      jwt: access_token
+      jwt: {
+        access: access_token,
+        refresh: refresh_token
+      }
     };
     return userInfo;
+  }
+
+  public async identifyUser(
+    userInfo: UnverifiedUser
+  ): Promise<PublicUserInfo | null> {
+    const user: User = await this.userRepository.findOne({
+      where: {
+        email: userInfo.email
+      }
+    });
+
+    if(!user) {
+      return null;
+    }
+
+    const passwordCheck = await Bcrypt.compare(userInfo.password, user.password);
+
+    if(!passwordCheck) {
+      return null;
+    }
+
+    user.lastLoginDate = new Date();
+
+    await this.userRepository.save(user);
+
+    return {
+      name: user.name,
+      email: user.email
+    }
   }
 
   public async checkEmailAddress(email: string) {

@@ -1,15 +1,16 @@
 import { Body, Controller, Logger, Post, Res, Get, Req } from '@nestjs/common';
 import { ValidationError } from 'Joi';
 
-import { Response, ResponseMessage } from '../../util/response.util';
+import { Response, ResponseMessage } from '../util/response.util';
 import { loginSchema, registerSchema } from './user.schema';
 import { UserService } from './user.service';
-import { Login, Register, UserInfo } from '../../types/user';
+import { Register, UnverifiedUser } from './user.type';
+import { cookieExpTime, createCookieOption } from 'secret/constants';
 
 @Controller('auth/user')
 export class UserController {
 
-  constructor(private readonly userService: UserService) { }
+  constructor(private readonly userService: UserService){}
 
   @Post("register")
   public async addUser(@Body() register: Register): Promise<Response> {
@@ -31,8 +32,8 @@ export class UserController {
   }
 
   @Post('login')
-  public async login(@Req() req,@Res() res, @Body() login: Login): Promise<Response> {
-    const { value, error }: { value: Login, error?: ValidationError } = loginSchema.validate(login);
+  public async login(@Req() req,@Res() res, @Body() login: UnverifiedUser): Promise<Response> {
+    const { value, error }: { value: UnverifiedUser, error?: ValidationError } = loginSchema.validate(login);
 
     if (error) {
       Logger.error(error);
@@ -48,16 +49,10 @@ export class UserController {
     }
 
     console.log("cookie: ", req.cookies.test);
-    console.log("signedCookie: ", req.signedCookies.cert);
-    
-    const expiresDate = new Date(Date.now() + 60 * 60 * 1000 * 24 * 7);
-    console.log(expiresDate);
+    console.log("signedCookie: ", req.signedCookies.AC_CERT);
 
-    res.cookie("cert", user.jwt, {
-      httpOnly: true,
-      expires: expiresDate,
-      signed: true
-    });
+    res.cookie("AC_CERT", user.jwt.access, createCookieOption(cookieExpTime.access));
+    res.cookie("RF_CERT", user.jwt.refresh, createCookieOption(cookieExpTime.refresh));
 
     res.send(new ResponseMessage().success().body({
       email: user.email,
