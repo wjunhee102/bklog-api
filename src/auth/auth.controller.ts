@@ -1,12 +1,12 @@
 import { Controller, Post, Req, Res, Body, Logger, Get } from '@nestjs/common';
-import { UserService } from 'src/user/user.service';
 import { AuthService } from './auth.service';
-import { signInSchema } from './auth.schema';
-import { SignInUser, UserJwtTokens } from './auth.type';
+import { signInSchema, registerSchema } from './auth.schema';
+import { ResSignInUser, UserJwtokens, ResRegisterUser } from './auth.type';
 import { ResponseMessage } from 'src/util/response.util';
 import { ValidationData } from 'src/types/validation';
-import { PublicUserInfo } from 'src/types/public';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
+import { UserAuthInfo, RegiInfoUser } from 'src/user/user.type';
+import { UserService } from 'src/user/user.service';
 
 @Controller('auth')
 export class AuthController {
@@ -15,39 +15,118 @@ export class AuthController {
     private readonly userService: UserService
   ){}
 
-  @Post("sign-in") 
-  public async signInUser(@Req() req, @Res() res, @Body() signInUser: SignInUser) {
-    const { value, error }: ValidationData<SignInUser> = signInSchema.validate(signInUser);
-
-    if(error) {
-      Logger.error(error);
-      return new ResponseMessage().error(999).body("Parameter Error").build();
-    }
-
-    const verifiedUser: PublicUserInfo = await this.userService.identifyUser(value);
-    
-    const jwtTokens: UserJwtTokens = this.authService.issueTokensToUser({
-      name: verifiedUser.name,
-      email: verifiedUser.email,
-      agent: req.headers["user-agent"]
-    });
-
-    res.cookie(
-      "AC_CERT", 
-      jwtTokens.accessToken, 
-      createCookieOption(cookieExpTime.access)
-    );
-    res.cookie(
-      "RF_CERT", 
-      jwtTokens.accessToken, 
-      createCookieOption(cookieExpTime.access)
-    );
-    res.send(new ResponseMessage().success().body(verifiedUser).build());
+  private readonly jwtCookiesName = {
+    ACCESS: "AC_CERT",
+    REFRESH: "RF_CERT"
   }
 
-  @Get("test-access") 
+  private setParmeterError(error) {
+    Logger.error(error);
+    return new ResponseMessage()
+      .error(999)
+      .body("Parameter Error")
+      .build();
+  }
+
+  private setUserJwtCookies(@Res() res, jwtTokens: UserJwtokens) {
+    res.cookie(
+      this.jwtCookiesName.ACCESS, 
+      jwtTokens.accessToken, 
+      createCookieOption(cookieExpTime.access)
+    );
+    res.cookie(
+      this.jwtCookiesName.REFRESH, 
+      jwtTokens.refreshToken, 
+      createCookieOption(cookieExpTime.refresh)
+    );
+  }
+
+  private clearUserJwtCookie(@Res() res) {
+    res.clearCookie(this.jwtCookiesName.ACCESS);
+    res.clearCookie(this.jwtCookiesName.REFRESH);
+  }
+
+  @Post('sign-up')
+  public async signUpUser(@Body() regiInfoUser: RegiInfoUser) {
+    const { value, error }: ValidationData<RegiInfoUser> = registerSchema.validate(regiInfoUser);
+
+    if(error) {
+      return this.setParmeterError(error);
+    }
+
+    const resRegisterUser: ResRegisterUser = await this.userService.registerUser(value);
+
+    return new ResponseMessage().success().body(resRegisterUser).build();
+  } 
+
+  @Post('sign-in') 
+  public async signInUser(
+    @Req() req, 
+    @Res() res, 
+    @Body() 
+    userAuthInfo: UserAuthInfo
+  ) {
+    const { value, error }: ValidationData<UserAuthInfo> = signInSchema.validate(userAuthInfo);
+
+    if(error) {
+      return this.setParmeterError(error);
+    }
+
+    const verifiedUser: ResSignInUser = 
+      await this.authService.signInUser(value, req.headers["user-agent"]);
+    
+    if(!verifiedUser.success) {
+      Logger.error("Authentication failure");
+      console.log(verifiedUser)
+      
+      this.clearUserJwtCookie(res);
+      res.send(new ResponseMessage().error(999).body({
+          success: verifiedUser.success,
+          userInfo: verifiedUser.userInfo,
+          countFail: verifiedUser.countFail,
+          isActive: verifiedUser.isActive
+        }).build());
+
+    } else {
+
+      this.setUserJwtCookies(res, verifiedUser.jwt);
+      res.send(new ResponseMessage().success().body({
+        success: verifiedUser.success,
+        userInfo: verifiedUser.userInfo
+      }).build());
+    }
+  }
+
+  @Get('reissue-token') 
+  public async reissueTokensToUser(@Req() req, @Res() res) {
+    
+    const jwtTokens: UserJwtokens | null = 
+      await this.authService.reissueTokens(
+        req.signedCookies[this.jwtCookiesName.REFRESH],
+        req.headers["user-agent"]
+      )
+
+    if(!jwtTokens) {
+      this.clearUserJwtCookie(res);
+      res.send(new ResponseMessage().error(999).body({success: false}).build());
+    } else {
+
+      this.setUserJwtCookies(res, jwtTokens);
+
+      res.send(new ResponseMessage().success().body({success: true}).build());
+    }
+    
+  }
+
+  @Get('sign-out')
+  public signOutUser(@Res() res) {
+    this.clearUserJwtCookie(res);
+    res.send(new ResponseMessage().success().body({success: true}).build());
+  }
+
+  @Get('test-access') 
   public async testAccessToken(@Req() req) {
-    const accessToken = req.signedCookies.AC_CERT;
+    const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
   
     const test = this.authService.validationAccessToken(accessToken, req.headers["user-agent"]);
 

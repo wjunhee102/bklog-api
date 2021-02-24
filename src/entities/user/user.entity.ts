@@ -34,22 +34,30 @@ export class User {
   password: string;
 
   @Column({
-    name:"last_login_date",
+    name:"last_sign_in_date",
     type: 'date',
     nullable: true,
     default: null
   })
-  lastLoginDate:Date;
+  lastSignInDate: Date;
   
   @CreateDateColumn({
     name:"created_at"
   })
-  createdDate:Date;
+  createdDate: Date;
 
   @UpdateDateColumn({
     name:"updated_at"
   })
-  updatedDate:Date;
+  updatedDate: Date;
+
+  @Column({
+    name: "count_of_failures",
+    type: "tinyint",
+    width: 10,
+    default: 0
+  })
+  countOfFailures: number;
 
   @Column({
     name: "is_active",
@@ -57,5 +65,5 @@ export class User {
     width: 1,
     default: 1
   })
-  isAcrive: boolean
+  isActive: boolean
 }

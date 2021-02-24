@@ -2,7 +2,7 @@ import { PublicUserInfo } from "src/types/public";
 
 export type ValidInfo = {
   emailValid: boolean,
-  passwodValid: boolean
+  passwordValid: boolean
 }
 
 export type UsedEmail = {
@@ -15,34 +15,29 @@ export type ClientData = {
   agent: any
 }
 
-export type UnverifiedUser = {
+export type UserAuthInfo = {
   email: string;
   password: string;
 }
 
-export type Register = {
-  email: string;
+export type CountOfFailures = {
+  count: number
+}
+
+export interface RegiInfoUser extends UserAuthInfo {
   name: string;
-  password: string;
 }
 
-export type UserInfo = {
+export interface UserInfo extends PublicUserInfo {
   uuid: string;
-  email: string;
-  name: string;
 }
-
+// 위와 동일
 export interface BaseUserInfo extends PublicUserInfo {
   uuid: string;
 }
 
-export type LoginUserInfo = {
-  uuid: string;
-  email: string;
-  name: string;
-  jwt: {
-    access: string;
-    refresh: string;
-  };
-  lastLogin: Date;
+export type ResIdentifyUser = {
+  userInfo: UserInfo | null;
+  count: number;
+  isActive: boolean;
 }

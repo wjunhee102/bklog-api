@@ -1,43 +1,91 @@
 import { Injectable } from '@nestjs/common';
-import { JwtService } from '@nestjs/jwt';
 import { UserRepository } from './user.repository';
 import * as Bcrypt from 'bcryptjs';
 import { Token } from 'src/util/token.util';
 import { User } from 'src/entities/user/user.entity';
-import { ValidInfo, UsedEmail, ClientData, UserInfo, Register, LoginUserInfo, UnverifiedUser } from './user.type';
-import { jwtExpTime } from 'secret/constants';
-import { PublicUserInfo } from 'src/types/public';
+import { RegiInfoUser, ResIdentifyUser, UserAuthInfo } from './user.type';
+import { ResRegisterUser } from 'src/auth/auth.type';
+import { UserInfo } from 'src/user/user.type';
 
 
 @Injectable()
 export class UserService {
   constructor(
-    private readonly userRepository: UserRepository, 
-    private jwtService: JwtService
+    private readonly userRepository: UserRepository
   ){}
 
   private regEmail = new RegExp(/^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i);
   private regPassword = new RegExp(/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,16}$/);
 
-  public async registerUser(register: Register): Promise<UserInfo | ValidInfo | UsedEmail> {
+  /**
+   * return User
+   * @param email 
+   */
+  private async findOneUser(email: string): Promise<User | null> {
+    const user: User = await this.userRepository.findOne({
+      where: {
+        email
+      }
+    });
+
+    return user;
+  }
+
+  /**
+   * 
+   * @param uuid 
+   */
+  private async findOneUserUUID(uuid: string): Promise<User | null> {
+    const user: User = await this.userRepository.findOne({
+      where: {
+        uuid
+      }
+    });
+
+    return user;
+  }
+
+  /**
+   * return boolean
+   * @param user 
+   * @param isActive 
+   */
+  private async changeUserActiveState(user: User, isActive: boolean) {
+    user.isActive = isActive;
+
+    await this.userRepository.save(user);
+  }
+
+  private async deleteUser(user) {
+    return await this.userRepository.delete(user);
+  }
+
+  public async registerUser(regiInfoUser: RegiInfoUser): Promise<ResRegisterUser> {
     
-    const checkingEmail = this.regEmail.test(register.email);
-    const checkingPassword = this.regPassword.test(register.password);
+    const checkingEmail = this.regEmail.test(regiInfoUser.email);
+    const checkingPassword = this.regPassword.test(regiInfoUser.password);
 
     if(!checkingEmail || !checkingPassword) {
       return {
-        emailValid: checkingEmail,
-        passwodValid: checkingPassword
+        success: false,
+        error: {
+          emailValid: checkingEmail,
+          passwordValid: checkingPassword,
+          emailUsed: false
+        }
       }
     }
     
-    const registeredUser: User | undefined  = await this.userRepository.findOne({
-      email: register.email
-    });
+    const registeredUser: User | undefined  = await this.findOneUser(regiInfoUser.email);
 
     if(registeredUser) {
       return {
-        emailUsed: true
+        success: false,
+        error: {
+          emailValid: true,
+          passwordValid: true,
+          emailUsed: true
+        }
       }
     }
 
@@ -45,101 +93,122 @@ export class UserService {
 
     // Encode User Password
     const salt: string = await Bcrypt.genSalt(10);
-    const password: string = await Bcrypt.hash(register.password, salt);
+    const password: string = await Bcrypt.hash(regiInfoUser.password, salt);
     
-    registerUser.email = register.email;
-    registerUser.name = register.name;
+    registerUser.email = regiInfoUser.email;
+    registerUser.name = regiInfoUser.name;
     registerUser.uuid = Token.getUUID();
     registerUser.password = password;
     
-    const user = await this.userRepository.save(registerUser);
-    const userInfo: UserInfo = {
-      email: user.email,
-      name: user.name,
-      uuid: user.uuid,
+    await this.userRepository.save(registerUser);
+
+    return {
+      success: true,
+      error: null
     };
-    return userInfo;
   }
 
-  public async login(loginUser: ClientData): Promise<LoginUserInfo>{
-    const user: User = await this.userRepository.findOne({
-      where:{
-        email: loginUser.email
-      }
-    });
+  public async getSignInUser(
+    uuid: string
+  ): Promise<UserInfo | null> {
+    const user: User = await this.findOneUserUUID(uuid);
 
     if(!user) {
       return null;
     }
-
-    const passwordCheck = await Bcrypt.compare(loginUser.password, user.password);
-
-    if(!passwordCheck){
-      return null;
-    }
-    
-    user.lastLoginDate = new Date();
-    
-    await this.userRepository.save(user);
-
-    const payload = { 
-      name: user.name, 
-      email: user.email, 
-      agent: loginUser.agent
-    }
-
-    const access_token = this.jwtService.sign(payload, {
-      expiresIn: jwtExpTime.accessToken
-    });
-
-    const refresh_token = this.jwtService.sign(payload, {
-      expiresIn: jwtExpTime.refreshToken
-    })
-
-    const decoding:any = this.jwtService.decode(refresh_token);
-    console.log(access_token, decoding, Date.now(), new Date(decoding.exp * 1000) );
-    // const loginDate: number = Number(decoding.loginDate)
-    // console.log("jwt: ", loginDate, typeof loginDate,loginDate < Date.now());
-
-    const userInfo: LoginUserInfo = {
-      email: user.email,
-      name: user.name,
-      uuid: user.uuid,
-      lastLogin: user.lastLoginDate,
-      jwt: {
-        access: access_token,
-        refresh: refresh_token
-      }
-    };
-    return userInfo;
-  }
-
-  public async identifyUser(
-    userInfo: UnverifiedUser
-  ): Promise<PublicUserInfo | null> {
-    const user: User = await this.userRepository.findOne({
-      where: {
-        email: userInfo.email
-      }
-    });
-
-    if(!user) {
-      return null;
-    }
-
-    const passwordCheck = await Bcrypt.compare(userInfo.password, user.password);
-
-    if(!passwordCheck) {
-      return null;
-    }
-
-    user.lastLoginDate = new Date();
+    user.lastSignInDate = new Date();
 
     await this.userRepository.save(user);
 
     return {
       name: user.name,
-      email: user.email
+      email: user.email,
+      uuid: user.uuid
+    }
+
+  } 
+
+  public async identifyUser(
+    userInfo: UserAuthInfo
+  ): Promise<ResIdentifyUser> {
+    const user: User = await this.findOneUser(userInfo.email);
+
+    if(!user) {
+      return {
+        userInfo: null,
+        count: 0,
+        isActive: false
+      }
+    } else if(!user.isActive) {
+      return {
+        userInfo: null,
+        count: user.countOfFailures,
+        isActive: user.isActive
+      }
+    }
+
+    const passwordCheck = await Bcrypt.compare(userInfo.password, user.password);
+
+    if(!passwordCheck) {
+      user.countOfFailures += 1;
+      
+      if(user.countOfFailures >= 5) {
+        user.isActive = false
+      }
+
+      await this.userRepository.save(user);
+
+      return {
+        userInfo: null,
+        count: user.countOfFailures,
+        isActive: user.isActive
+      };
+    }
+
+    user.countOfFailures = 0;
+    user.lastSignInDate = new Date();
+
+    await this.userRepository.save(user);
+
+    return {
+      userInfo: {
+        name: user.name,
+        email: user.email,
+        uuid: user.uuid
+      },
+      count: user.countOfFailures,
+      isActive: user.isActive
+    }
+  }
+
+  public async deleteInactiveUser(uuid: string) {
+    const user: User = await this.findOneUserUUID(uuid);
+
+    if(!user) {
+      return {
+        success: false,
+        error: {
+          userInfo: false,
+          isActive: false
+        }
+      }
+    }
+
+    if(!user.isActive) {
+      return {
+        success: false,
+        error: {
+          userInfo: true,
+          isActive: false
+        }
+      }
+    }
+
+    await this.deleteUser(user);
+
+    return {
+      success: true,
+      error: null
     }
   }
 
@@ -153,12 +222,7 @@ export class UserService {
       }
     }
 
-    const user: User = await this.userRepository.findOne({
-      where: {
-        email: email,
-        isAcrive: true
-      }
-    });
+    const user: User = await this.findOneUser(email);
 
     return {
       valid: checkingEmail,
