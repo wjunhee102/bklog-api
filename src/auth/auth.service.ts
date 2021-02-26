@@ -12,6 +12,18 @@ export class AuthService {
     private userService: UserService
   ){}
 
+  private async checkEmailAddress(email: string) {
+    const regEmail = new RegExp(/^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i);
+
+    return regEmail.test(email);
+  }
+
+  private async checkPasswordAddress(password: string) {
+    const regPassword = new RegExp(/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,16}$/);
+
+    return regPassword.test(password);
+  }
+
   /**
    * return UserJwtTokens
    * @param VerifiedUser 

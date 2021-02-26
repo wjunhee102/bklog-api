@@ -24,9 +24,6 @@ export class PrivateUserService {
     private readonly userStatusRepository: UserStatusRepository
   ){}
 
-  private regEmail = new RegExp(/^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i);
-  private regPassword = new RegExp(/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,16}$/);
-
   private async findOneUser(email: string) {
     return this.userRepository.find({
       where: {
@@ -85,6 +82,8 @@ export class PrivateUserService {
 
   }
 
+  
+
   public async testRegisterUser() {
     const user: RequiredUserInfo = {
       profile: {
@@ -98,6 +97,6 @@ export class PrivateUserService {
     }
 
     await this.createUser(user);
-    
+
   }
 }

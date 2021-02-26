@@ -3,7 +3,7 @@ import { UserAuth } from "./user-auth.entity";
 import { UserProfile } from "src/entities/user/user-profile.entity";
 import { UserStatus } from "src/entities/user/user-status.entity";
 
-@Entity({name: "user-test"})
+@Entity({name: "user"})
 export class User {
 
   @PrimaryColumn({
