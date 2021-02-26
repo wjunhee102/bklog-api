@@ -17,6 +17,7 @@ import { UserStatusRepository } from 'src/user/repositories/user-status.reposito
       UserStatusRepository
     ])
   ],
-  providers: [PrivateUserService]
+  providers: [PrivateUserService],
+  exports: [PrivateUserService]
 })
 export class PrivateUserModule {}

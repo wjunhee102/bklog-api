@@ -37,7 +37,7 @@ export class PrivateUserService {
   
   private async createUser(userInfo: RequiredUserInfo) {
     try {
-      
+
       const status: UserStatus = await this.userStatusRepository.create();
 
       await this.userStatusRepository.save(status);
@@ -83,5 +83,21 @@ export class PrivateUserService {
       return false;
     }
 
+  }
+
+  public async testRegisterUser() {
+    const user: RequiredUserInfo = {
+      profile: {
+        name: "test"
+      },
+      name: "test",
+      auth: {
+        email: "test@test.com",
+        password: "test123!"
+      }
+    }
+
+    await this.createUser(user);
+    
   }
 }

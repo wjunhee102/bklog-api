@@ -7,12 +7,14 @@ import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
 import { UserAuthInfo, RegiInfoUser } from 'src/user/user.type';
 import { UserService } from 'src/user/user.service';
+import { PrivateUserService } from './private-user/private-user.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
+    private readonly privateUserService: PrivateUserService
   ){}
 
   private readonly jwtCookiesName = {
@@ -139,6 +141,12 @@ export class AuthController {
   @Post('withdrawal')
   public async withdrawalUser(@Body() userAuthInfo: UserAuthInfo) {
     
+  }
+
+  @Get('test-create')
+  public async testCreateUser() {
+    this.privateUserService.testRegisterUser();
+    return new ResponseMessage().success().body("success").build();
   }
 
 }
