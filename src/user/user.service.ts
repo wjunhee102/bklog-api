@@ -44,6 +44,37 @@ export class UserService {
 
     return user;
   }
+  
+  /**
+   * 
+   * @param userInfo 
+   */
+  private async identifyUser2( 
+    userInfo: UserAuthInfo
+  ): Promise<User | null> {
+    const user: User = await this.findOneUser(userInfo.email);
+
+    if(!user) {
+      return null;
+    }
+
+    const passwordCheck = await Bcrypt.compare(userInfo.password, user.password);
+
+    if(!passwordCheck) {
+      user.countOfFailures += 1;
+      
+      if(user.countOfFailures >= 5) {
+        user.isActive = false
+      }
+    } else {
+      user.countOfFailures = 0;
+      user.lastSignInDate = new Date();
+    }
+
+    await this.userRepository.save(user);
+
+    return  user;
+  }
 
   /**
    * return boolean
@@ -131,20 +162,18 @@ export class UserService {
   public async identifyUser(
     userInfo: UserAuthInfo
   ): Promise<ResIdentifyUser> {
+
+    const result:ResIdentifyUser = {
+      userInfo: null,
+      count: 0,
+      isActive: false,
+      isNotDormant: false
+    };
+
     const user: User = await this.findOneUser(userInfo.email);
 
     if(!user) {
-      return {
-        userInfo: null,
-        count: 0,
-        isActive: false
-      }
-    } else if(!user.isActive) {
-      return {
-        userInfo: null,
-        count: user.countOfFailures,
-        isActive: user.isActive
-      }
+      return result;
     }
 
     const passwordCheck = await Bcrypt.compare(userInfo.password, user.password);
@@ -158,15 +187,27 @@ export class UserService {
 
       await this.userRepository.save(user);
 
-      return {
-        userInfo: null,
+      return Object.assign({}, result, {
         count: user.countOfFailures,
         isActive: user.isActive
-      };
+      });
+    }
+
+    if(!user.isActive || !user.isNotDormant) {
+      user.isNotDormant = true;
+
+      this.userRepository.save(user);
+      return Object.assign({}, result, {
+        count: user.countOfFailures,
+        isActive: user.isActive,
+        isNotDormant: user.isNotDormant
+      });
     }
 
     user.countOfFailures = 0;
     user.lastSignInDate = new Date();
+
+    console.log(user);
 
     await this.userRepository.save(user);
 
@@ -177,7 +218,8 @@ export class UserService {
         uuid: user.uuid
       },
       count: user.countOfFailures,
-      isActive: user.isActive
+      isActive: user.isActive,
+      isNotDormant: user.isNotDormant
     }
   }
 
@@ -194,12 +236,12 @@ export class UserService {
       }
     }
 
-    if(!user.isActive) {
+    if(user.isActive) {
       return {
         success: false,
         error: {
           userInfo: true,
-          isActive: false
+          isActive: true
         }
       }
     }

@@ -60,10 +60,18 @@ export class User {
   countOfFailures: number;
 
   @Column({
+    name: "is_not_dormant",
+    type: "tinyint",
+    width: 1,
+    default: 1
+  })
+  isNotDormant: boolean;
+
+  @Column({
     name: "is_active",
     type: "tinyint",
     width: 1,
     default: 1
   })
-  isActive: boolean
+  isActive: boolean;
 }

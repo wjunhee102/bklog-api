@@ -6,7 +6,7 @@ export const registerSchema = Joi.object({
   password: Joi.string().required()
 });
 
-export const signInSchema = Joi.object({
+export const authInfoSchema = Joi.object({
   email: Joi.string().required(),
   password: Joi.string().required()
-})
+});

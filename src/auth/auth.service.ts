@@ -19,11 +19,11 @@ export class AuthService {
   private issueTokensToUser(VerifiedUser: JwtUserPayload): UserJwtokens {
     return {
       accessToken: this.jwtService.sign(
-        Object.assign({}, { type: "access" }, VerifiedUser), {
+        Object.assign({ type: "access" }, VerifiedUser), {
         expiresIn: jwtExpTime.accessToken
       }),
       refreshToken: this.jwtService.sign(
-        Object.assign({},{ type: "refresh" },VerifiedUser), {
+        Object.assign({ type: "refresh" },VerifiedUser), {
         expiresIn: jwtExpTime.refreshToken
       })
     }
@@ -159,5 +159,9 @@ export class AuthService {
     });
 
     return jwtTokens;
+  }
+
+  public async withdrawalUser(userInfo: UserAuthInfo) {
+    
   }
 }

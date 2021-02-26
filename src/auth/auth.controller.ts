@@ -1,6 +1,6 @@
 import { Controller, Post, Req, Res, Body, Logger, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { signInSchema, registerSchema } from './auth.schema';
+import { authInfoSchema, registerSchema } from './auth.schema';
 import { ResSignInUser, UserJwtokens, ResRegisterUser } from './auth.type';
 import { ResponseMessage } from 'src/util/response.util';
 import { ValidationData } from 'src/types/validation';
@@ -63,10 +63,9 @@ export class AuthController {
   public async signInUser(
     @Req() req, 
     @Res() res, 
-    @Body() 
-    userAuthInfo: UserAuthInfo
+    @Body() userAuthInfo: UserAuthInfo
   ) {
-    const { value, error }: ValidationData<UserAuthInfo> = signInSchema.validate(userAuthInfo);
+    const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
 
     if(error) {
       return this.setParmeterError(error);
@@ -135,6 +134,11 @@ export class AuthController {
     }
 
     return new ResponseMessage().success().body(test).build();
+  }
+
+  @Post('withdrawal')
+  public async withdrawalUser(@Body() userAuthInfo: UserAuthInfo) {
+    
   }
 
 }

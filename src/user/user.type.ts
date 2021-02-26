@@ -40,4 +40,9 @@ export type ResIdentifyUser = {
   userInfo: UserInfo | null;
   count: number;
   isActive: boolean;
+  isNotDormant: boolean;
+}
+
+export type UserProfileInfo = {
+  name: string;
 }
