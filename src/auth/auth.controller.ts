@@ -1,11 +1,11 @@
 import { Controller, Post, Req, Res, Body, Logger, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { authInfoSchema, registerSchema, requiredUserInfoSchema } from './auth.schema';
+import { authInfoSchema, registerSchema, requiredUserInfoSchema, activateUserSchema } from './auth.schema';
 import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser } from './auth.type';
 import { ResponseMessage } from 'src/util/response.util';
 import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
-import { UserAuthInfo, RequiredUserInfo, ResDeleteUser } from './private-user/types/private-user.type';
+import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-user.type';
 
 @Controller('auth')
 export class AuthController {
@@ -186,19 +186,25 @@ export class AuthController {
   public async activateUser(@Req() req, @Res() res, @Body() tagetUser: {
     email: string
   }) {
-    const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+    const { value, error }: ValidationData<{ email: string}> = activateUserSchema.validate(tagetUser);
 
-    const result = await this.authService.activateUser(
-      accessToken,
-      req.headers["user-agent"],
-      tagetUser.email
-    );
-
-    if(result.success) {
-      res.send(this.setResponseSuccess(result));
+    if(error) {
+      res.send(this.setResponseError(error));
     } else {
-      this.clearUserJwtCookie(res);
-      res.send(this.setResponseError("user-activation", result));
+      const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+
+      const result = await this.authService.activateUser(
+        accessToken,
+        req.headers["user-agent"],
+        value.email
+      );
+
+      if(result.success) {
+        res.send(this.setResponseSuccess(result));
+      } else {
+        this.clearUserJwtCookie(res);
+        res.send(this.setResponseError("user-activation", result));
+      }
     }
 
   }
