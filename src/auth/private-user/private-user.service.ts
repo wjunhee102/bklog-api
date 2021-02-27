@@ -1,12 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { UserPrivacyRepository } from './repositories/user-privacy.repository';
-import { UserAuthInfo } from 'src/user/user.type';
 import * as Bcrypt from 'bcryptjs';
 import { UserAuthRepository } from './repositories/user-auth.repository';
 import { UserRepository } from './repositories/user.repository';
 import { UserProfileRepository } from 'src/user/repositories/user-profile.repository';
 import { UserStatusRepository } from 'src/user/repositories/user-status.repository';
-import { RequiredUserInfo } from './types/private-user.type';
+import { UserAuthInfo, RequiredUserInfo, ResAuthenticatedUser, InfoToFindUser, ResDeleteUser } from './types/private-user.type';
 import { UserStatus } from 'src/entities/user/user-status.entity';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { User } from './entities/user.entity';
@@ -24,15 +23,48 @@ export class PrivateUserService {
     private readonly userStatusRepository: UserStatusRepository
   ){}
 
-  private async findOneUser(email: string) {
-    return this.userRepository.find({
-      where: {
-        email
-      }
+  /**
+   * user 정보 찾기
+   * @param email 
+   */
+  private async findOneUser(userInfo: InfoToFindUser) {
+    return await this.userRepository.findOne({
+      where: userInfo
     })
   };
+
+  /**
+   * 
+   * @param userId 
+   */
+  private async findOneUserAuth(userInfo: InfoToFindUser): Promise<User> {
+    return await this.userRepository
+    .createQueryBuilder("user")
+    .leftJoinAndSelect("user.userAuth", "user-auth")
+    .leftJoinAndSelect("user.userStatus", "user-status")
+    .where(userInfo)
+    .getOne();
+  }
+
+  /**
+   * password  비교
+   * @param password 
+   * @param encryptedPassword 
+   */
+  private async comparePassword(
+    password: string, 
+    encryptedPassword: string
+  ): Promise<boolean> {
+    const resCompare = await Bcrypt.compare(password, encryptedPassword);
+
+    return resCompare;
+  }
   
-  private async createUser(userInfo: RequiredUserInfo) {
+  /**
+   * user db table 생성및 초기 데이터 삽입
+   * @param userInfo 
+   */
+  private async createUser(userInfo: RequiredUserInfo): Promise<boolean> {
     try {
 
       const status: UserStatus = await this.userStatusRepository.create();
@@ -42,7 +74,7 @@ export class PrivateUserService {
       const profile: UserProfile = await this.userProfileRepository.create();
 
       profile.id = Token.getUUID();
-      profile.penName = userInfo.profile.name;
+      profile.penName = userInfo.penName;
       profile.userStatus = status;
 
       await this.userProfileRepository.save(profile);
@@ -54,7 +86,7 @@ export class PrivateUserService {
       const auth: UserAuth = await this.userAuthRepository.create();
 
       const salt: string = await Bcrypt.genSalt(10);
-      const password: string = await Bcrypt.hash(userInfo.auth.password, salt);
+      const password: string = await Bcrypt.hash(userInfo.password, salt);
 
       auth.password = password;
       auth.userPrivacy = privacy;
@@ -65,10 +97,10 @@ export class PrivateUserService {
 
       user.id = Token.getUUID();
       user.name = userInfo.name;
-      user.email = userInfo.auth.email;
+      user.email = userInfo.email;
       user.userAuth = auth;
       user.userProfile = profile;
-      user.UserStatus = status;
+      user.userStatus = status;
 
       await this.userRepository.save(user);
 
@@ -82,21 +114,271 @@ export class PrivateUserService {
 
   }
 
-  
+  /**
+   * user 데이터 삭제
+   * @param user 
+   */
+  private async deleteUser(user: User) {
+    const { userProfile, userAuth, userStatus } = user;
 
-  public async testRegisterUser() {
-    const user: RequiredUserInfo = {
-      profile: {
-        name: "test"
-      },
-      name: "test",
-      auth: {
-        email: "test@test.com",
-        password: "test123!"
+    if(userProfile && userAuth && userStatus ) {
+      const { userPrivacy } = userAuth;
+
+      if(userPrivacy) {
+        
+        await this.userRepository.remove(user);
+        await this.userAuthRepository.remove(userAuth);
+        await this.userPrivacyRepository.remove(userPrivacy);
+        await this.userProfileRepository.remove(userProfile);
+        await this.userStatusRepository.remove(userStatus);
+
+        return true;
       }
     }
 
-    await this.createUser(user);
-
+    return false;
   }
+
+  public async checkAdmin(id: string) {
+    const { name }: User = await this.findOneUser({ id });
+    
+    return name === "admin"? true : false;
+  }
+
+  /**
+   * 동일한 이메일을 사용하고 있는 지 확인
+   * @param email 
+   */
+  public async checkUsedEmailAddress(email: string): Promise<boolean> {
+    const user = await this.findOneUser({email});
+    return user? true : false;
+  }
+
+  /**
+   * 유저 등록 및 확인
+   * @param requiredUserInfo 
+   */
+  public async registerUser(requiredUserInfo: RequiredUserInfo): Promise<boolean> {
+    const resCreateUser = await this.createUser(requiredUserInfo);
+    if(!resCreateUser) {
+      return false;
+    } 
+
+    const user = await this.findOneUserAuth({email: requiredUserInfo.email});
+
+    if(requiredUserInfo.email !== user.email) {
+      return false;
+    }
+
+    const resComparePassword: boolean = await this.comparePassword(
+      requiredUserInfo.password,
+      user.userAuth.password
+    );
+
+    return resComparePassword;
+  }
+
+  public async authenticateUser(
+    userAuthInfo: UserAuthInfo
+  ): Promise<ResAuthenticatedUser> {
+    const result: ResAuthenticatedUser = {
+      userInfo: null,
+      countOfFail: 0,
+      isActive: false,
+      isNotDormant: false
+    }
+
+    const user = await this.userRepository
+      .createQueryBuilder("user")
+      .leftJoinAndSelect("user.userAuth", "user-auth")
+      .leftJoinAndSelect("user.userProfile", "user-profile")
+      .leftJoinAndSelect("user.userStatus", "user-status")
+      .where({
+        email: userAuthInfo.email
+      })
+      .getOne();
+
+    if(user) {
+      const comparedPassword = await Bcrypt.compare(
+        userAuthInfo.password,
+        user.userAuth.password
+      );
+    
+      if(!comparedPassword) {
+        user.userAuth.countOfFailures += 1;
+        result.countOfFail = user.userAuth.countOfFailures;
+
+        if(user.userAuth.countOfFailures >= 5) {
+          user.userStatus.isActive = false;
+          await this.userStatusRepository.save(user.userStatus);
+          result.isActive = user.userStatus.isActive;
+        }
+
+      } else {
+        if(user.userStatus.isActive && user.userStatus.isNotDormant) {
+          const date = new Date(Date.now());
+
+          user.userAuth.countOfFailures = 0;
+          user.lastSignInDate = date;
+          user.userStatus.lastAccessTime = date;
+
+          result.isActive = true;
+          result.isNotDormant = true;
+
+          result.userInfo = {
+            email: user.email,
+            name: user.name,
+            penName: user.userProfile.penName,
+            userId: user.id,
+            profileId: user.userProfile.id
+          }
+
+        } 
+        
+      }
+
+      await this.userStatusRepository.save(user.userStatus);
+      await this.userAuthRepository.save(user.userAuth);
+      await this.userRepository.save(user);
+    }
+
+    return result;
+  }
+
+  public async updateAccessTime(userId: string): Promise<boolean> {
+    const user: User = await this.userRepository
+      .createQueryBuilder("user")
+      .leftJoinAndSelect("user.userStatus", "user-status")
+      .where({
+        id: userId
+      })
+      .getOne();
+
+    if(user) {
+      user.userStatus.lastAccessTime = new Date(Date.now());
+
+      await this.userStatusRepository.save(user.userStatus);
+    }
+
+    return user? true : false;
+  }
+
+  /**
+   * token재발행을 위한 함수
+   * @param userId 
+   */
+  public async getAuthenticatedUser(
+    userId: string
+  ): Promise<string | null> {
+    const user: User = await this.findOneUserAuth({id: userId});
+
+    if(user) {
+      const date = new Date(Date.now());;
+      user.lastSignInDate = date;
+      user.userStatus.lastAccessTime = date;
+      user.userAuth.countOfFailures = 0;
+    
+      await this.userStatusRepository.save(user.userStatus);
+      await this.userAuthRepository.save(user.userAuth);
+      await this.userRepository.save(user);
+    }
+    
+    return user? user.id : null;
+  }
+
+  /**
+   * 회원 가입
+   * @param userAuthInfo 
+   */
+  public async withdrawalUser(userAuthInfo: UserAuthInfo & { id: string }): Promise<ResDeleteUser> {
+    const result: ResDeleteUser = {
+      success: false,
+      error: {
+        idValid: false,
+        emailValid: false,
+        passwordValid: false
+      }
+    }
+    const user: User = await this.findOneUserAuth({email: userAuthInfo.email});
+    if(user) {
+      result.error.emailValid = true;
+
+      if(user.id === userAuthInfo.id) {
+        result.error.idValid = true;
+
+        const comparedPassword = await Bcrypt.compare(
+          userAuthInfo.password,
+          user.userAuth.password
+        );
+
+        if(comparedPassword) {
+          result.error.passwordValid = true;
+
+          const { userProfile } = await this.userRepository
+            .createQueryBuilder("user")
+            .leftJoinAndSelect("user.userProfile", "user-profile")
+            .where({
+              id: user.id
+            })
+            .getOne();
+
+          const { userPrivacy } = await this.userAuthRepository
+            .createQueryBuilder("userAuth")
+            .leftJoinAndSelect("userAuth.userPrivacy", "user-privacy")
+            .where({
+              id: user.userAuth.id
+            })
+            .getOne();
+
+          user.userProfile = userProfile;
+          user.userAuth.userPrivacy = userPrivacy;
+          
+          result.success = await this.deleteUser(user);
+        }
+      } else {
+        Logger.error("Login information does not match.");
+
+        user.userStatus.lastAccessTime = new Date(Date.now());
+
+        await this.userStatusRepository.save(user.userStatus);
+      }
+
+    }
+
+    return result;
+  }
+
+  public async changeActivationUser(email: string, isActive: boolean) {
+    const result = {
+      success: false,
+      error: {
+        emailValid: false,
+        dataBase: null
+      }
+    }
+    const { userStatus }: User = await this.userRepository
+      .createQueryBuilder("user")
+      .leftJoinAndSelect("user.userStatus", "user-status")
+      .where({
+        email
+      })
+      .getOne();
+
+    if(userStatus) {
+      result.error.emailValid = true;
+      userStatus.isActive = isActive;
+
+      try {
+        await this.userStatusRepository.save(userStatus);
+
+        result.success = true;
+      } catch(e) {
+        result.error.dataBase = e;
+      }
+
+    }
+
+    return result;
+  } 
+
 }

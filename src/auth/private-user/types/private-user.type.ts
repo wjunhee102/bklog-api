@@ -1,8 +1,11 @@
-import { UserProfileInfo } from "src/user/user.type";
-
 export type UserAuthInfo = {
   email: string;
   password: string;
+}
+
+export type InfoToFindUser = {
+  email?: string;
+  id?: string; 
 }
 
 export type UserPrivacyInfo = {
@@ -13,9 +16,31 @@ export type UserPrivacyInfo = {
   phoneNumber?: string;
 }
 
-export type RequiredUserInfo = {
-  profile: UserProfileInfo,
-  auth: UserAuthInfo,
-  privacy?: UserPrivacyInfo,
-  name: string
+export type RequiredUserInfo = UserAuthInfo & {
+  penName: string;
+  name: string;
+}
+
+export type IdentifyUser = {
+  email: string;
+  name: string;
+  penName: string;
+  userId: string;
+  profileId: string;
+}
+
+export type ResAuthenticatedUser = {
+  userInfo: IdentifyUser | null;
+  countOfFail: number;
+  isActive: boolean;
+  isNotDormant: boolean;
+}
+
+export type ResDeleteUser = {
+  success: boolean;
+  error: {
+    idValid: boolean;
+    emailValid: boolean;
+    passwordValid: boolean;
+  };
 }

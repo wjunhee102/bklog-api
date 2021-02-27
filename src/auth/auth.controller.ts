@@ -1,32 +1,33 @@
 import { Controller, Post, Req, Res, Body, Logger, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { authInfoSchema, registerSchema } from './auth.schema';
-import { ResSignInUser, UserJwtokens, ResRegisterUser } from './auth.type';
+import { authInfoSchema, registerSchema, requiredUserInfoSchema } from './auth.schema';
+import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser } from './auth.type';
 import { ResponseMessage } from 'src/util/response.util';
 import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
-import { UserAuthInfo, RegiInfoUser } from 'src/user/user.type';
-import { UserService } from 'src/user/user.service';
-import { PrivateUserService } from './private-user/private-user.service';
+import { UserAuthInfo, RequiredUserInfo, ResDeleteUser } from './private-user/types/private-user.type';
 
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-    private readonly userService: UserService,
-    private readonly privateUserService: PrivateUserService
-  ){}
+  constructor(private readonly authService: AuthService){}
 
   private readonly jwtCookiesName = {
-    ACCESS: "AC_CERT",
-    REFRESH: "RF_CERT"
+    ACCESS: "AID",
+    REFRESH: "RID"
   }
 
-  private setParmeterError(error) {
+  private setResponseError(error, body: any = "Parameter Error") {
     Logger.error(error);
     return new ResponseMessage()
       .error(999)
-      .body("Parameter Error")
+      .body(body)
+      .build();
+  }
+
+  private setResponseSuccess(body) {
+    return new ResponseMessage()
+      .success()
+      .body(body)
       .build();
   }
 
@@ -49,17 +50,19 @@ export class AuthController {
   }
 
   @Post('sign-up')
-  public async signUpUser(@Body() regiInfoUser: RegiInfoUser) {
-    const { value, error }: ValidationData<RegiInfoUser> = registerSchema.validate(regiInfoUser);
+  public async signUpUser(@Body() requiredUserInfo: RequiredUserInfo) {
+    const { value, error }: ValidationData<RequiredUserInfo> = requiredUserInfoSchema.validate(requiredUserInfo);
 
     if(error) {
-      return this.setParmeterError(error);
+      return this.setResponseError(error);
     }
 
-    const resRegisterUser: ResRegisterUser = await this.userService.registerUser(value);
+    const resSignUpUser: ResSignUpUser = await this.authService.signUpUser(value);
 
-    return new ResponseMessage().success().body(resRegisterUser).build();
-  } 
+    return resSignUpUser.success? 
+      this.setResponseSuccess(resSignUpUser)
+      : this.setResponseError("vaildationError",resSignUpUser);
+  }
 
   @Post('sign-in') 
   public async signInUser(
@@ -70,31 +73,28 @@ export class AuthController {
     const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
 
     if(error) {
-      return this.setParmeterError(error);
+      return this.setResponseError(error);
     }
 
-    const verifiedUser: ResSignInUser = 
+    const resSignInUser: ResSignInUser = 
       await this.authService.signInUser(value, req.headers["user-agent"]);
     
-    if(!verifiedUser.success) {
+    if(!resSignInUser.success) {
       Logger.error("Authentication failure");
-      console.log(verifiedUser)
-      
+
       this.clearUserJwtCookie(res);
-      res.send(new ResponseMessage().error(999).body({
-          success: verifiedUser.success,
-          userInfo: verifiedUser.userInfo,
-          countFail: verifiedUser.countFail,
-          isActive: verifiedUser.isActive
-        }).build());
+      res.send(this.setResponseError("Authentication failure", {
+        success: false,
+        error: resSignInUser.error
+      }));
 
     } else {
 
-      this.setUserJwtCookies(res, verifiedUser.jwt);
-      res.send(new ResponseMessage().success().body({
-        success: verifiedUser.success,
-        userInfo: verifiedUser.userInfo
-      }).build());
+      this.setUserJwtCookies(res, resSignInUser.jwt);
+      res.send(this.setResponseSuccess({
+        success: resSignInUser.success,
+        userInfo: resSignInUser.userInfo
+      }));
     }
   }
 
@@ -120,33 +120,87 @@ export class AuthController {
   }
 
   @Get('sign-out')
-  public signOutUser(@Res() res) {
+  public async signOutUser(@Req() req, @Res() res) {
+    const refreshToken = req.signedCookies[this.jwtCookiesName.REFRESH];
+    const resSignOut = refreshToken? await this.authService.signOutUser(
+      refreshToken,
+      req.headers["user-agent"]
+    ) : false;
+
     this.clearUserJwtCookie(res);
-    res.send(new ResponseMessage().success().body({success: true}).build());
-  }
 
-  @Get('test-access') 
-  public async testAccessToken(@Req() req) {
-    const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
-  
-    const test = this.authService.validationAccessToken(accessToken, req.headers["user-agent"]);
-
-    if(test) {
-      return new ResponseMessage().error(999).body(test).build();
+    if(resSignOut) {
+      res.send(this.setResponseSuccess({success: true}));
+    } else {
+      res.send(this.setResponseError(
+          "Cookie information mismatch",
+          { error: "Cookie information mismatch" }
+        )
+      );
     }
-
-    return new ResponseMessage().success().body(test).build();
-  }
-
-  @Post('withdrawal')
-  public async withdrawalUser(@Body() userAuthInfo: UserAuthInfo) {
     
   }
 
-  @Get('test-create')
-  public async testCreateUser() {
-    this.privateUserService.testRegisterUser();
-    return new ResponseMessage().success().body("success").build();
+  @Post('withdrawal')
+  public async withdrawalUser(
+    @Req() req,
+    @Res() res,
+    @Body() userAuthInfo: UserAuthInfo
+  ) {
+    const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
+
+    if(error) {
+      res.send(this.setResponseError(error));
+    } else {
+      const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+      const refreshToken = req.signedCookies[this.jwtCookiesName.REFRESH];
+      
+      if(!refreshToken || !accessToken) {
+        this.clearUserJwtCookie(res);
+        res.send(this.setResponseError(
+          "Cookie information mismatch",
+          { error: "Cookie information mismatch" }
+        ));
+
+      } else {
+
+        const resWithdrawalUser: ResWithdrawalUser = await this.authService.withdrawalUser(
+          value, 
+          accessToken,
+          refreshToken,
+          req.headers["user-agent"]
+        );
+    
+        if(resWithdrawalUser.success) {
+          this.clearUserJwtCookie(res);
+          res.send(this.setResponseSuccess(resWithdrawalUser));
+        } else {
+          res.send(this.setResponseError("you entered an incorrect value", registerSchema));
+        }
+
+      }
+    }
+  }
+
+  @Post('user-activation')
+  public async activateUser(@Req() req, @Res() res, @Body() tagetUser: {
+    email: string
+  }) {
+    const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+
+    const result = await this.authService.activateUser(
+      accessToken,
+      req.headers["user-agent"],
+      tagetUser.email
+    );
+
+    if(result.success) {
+      res.send(this.setResponseSuccess(result));
+    } else {
+      this.clearUserJwtCookie(res);
+      res.send(this.setResponseError("user-activation", result));
+    }
+
   }
 
 }

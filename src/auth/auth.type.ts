@@ -1,5 +1,5 @@
 import { PublicUserInfo } from "src/types/public";
-import { UserInfo } from "src/user/user.type";
+import { IdentifyUser, ResDeleteUser } from "./private-user/types/private-user.type";
 
 export interface JwtUserPayload {
   uuid: string;
@@ -37,8 +37,53 @@ export type ResAuthToUser = {
 
 export type ResSignInUser = {
   success: boolean;
-  userInfo: UserInfo | null;
+  userInfo: IdentifyUser | null;
   jwt: UserJwtokens | null;
-  countFail: number;
-  isActive: boolean;
+  error: {
+    countOfFail: number;
+    isActive: boolean;
+    isNotDormant: boolean;
+  } | null;
+}
+
+export type ResSignUpUser = {
+  success: boolean;
+  error?: {
+    emailValid: boolean;
+    passwordValid: boolean;
+    penNameValid: boolean;
+    emailUsed: boolean;
+    penNameUsed: boolean;
+  }
+}
+
+export type ResWithdrawalUser = ResDeleteUser 
+| {
+  success: boolean;
+  error: TokenVailtionRes;
+} 
+| { 
+  success: boolean;
+  error: {
+    cookie: false;
+  } 
+};
+
+export type ResActivateUser = {
+  success: boolean;
+  error: {
+    accessToken: boolean;
+    emailValid: boolean;
+    database: boolean;
+  } | null;
+}
+
+export type ResValitionAccessToken = {
+  uuid: string | null;
+  error?: CookieAuthenticationFailure;
+}
+
+export type CookieAuthenticationFailure = {
+  info: boolean;
+  exp: boolean;
 }

@@ -19,18 +19,4 @@ export class UserController {
       .build();
   }
 
-  @Post('checkEmail')
-  public async checkEmail(@Body() email: {email: string}): Promise<Response> {
-    const { value, error }: ValidationData<{email: string}> = emailSchema.validate(email);
-    console.log(email);
-
-    if(error) {
-      return this.setParmeterError(error);
-    }
-
-    const validationRes = await this.userService.checkEmailAddress(value.email);
-
-    return new ResponseMessage().success().body(validationRes).build();
-  }
-
 }

@@ -9,7 +9,7 @@ export class UserStatus {
 
   @Column({
     name: "last_access_time",
-    type: "date",
+    type: "datetime",
     nullable: true,
     default: null
   })

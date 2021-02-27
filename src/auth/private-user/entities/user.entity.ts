@@ -36,7 +36,7 @@ export class User {
 
   @Column({
     name:"last_sign_in_date",
-    type: 'date',
+    type: "datetime",
     nullable: true,
     default: null
   })
@@ -52,6 +52,6 @@ export class User {
 
   @OneToOne(()=> UserStatus)
   @JoinColumn()
-  UserStatus: UserStatus;
+  userStatus: UserStatus;
   
 }
