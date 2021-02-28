@@ -41,10 +41,71 @@ export class PrivateUserService {
     return await this.userRepository
     .createQueryBuilder("user")
     .leftJoinAndSelect("user.userAuth", "user-auth")
+    .leftJoinAndSelect("user.userProfile", "user-profile")
     .leftJoinAndSelect("user.userStatus", "user-status")
     .where(userInfo)
     .getOne();
   }
+
+  private async saveUser(user: User) {
+    try {
+      await this.userRepository.save(user);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+
+  private async saveUserProfile(userProfile: UserProfile): Promise<boolean> {
+    try {
+      await this.userProfileRepository.save(userProfile);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+
+  private async saveUserAuth(userAuth: UserAuth): Promise<boolean> {
+    try {
+      await this.userAuthRepository.save(userAuth);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+
+  private async saveUserStatus(userStatus: UserStatus): Promise<boolean> {
+    try {
+      await this.userStatusRepository.save(userStatus);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+  
+  private async saveUserPrivacy(userPrivacy: UserPrivacy): Promise<boolean> {
+    try {
+      await this.userPrivacyRepository.save(userPrivacy);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  } 
 
   /**
    * password  비교
@@ -188,15 +249,7 @@ export class PrivateUserService {
       isNotDormant: false
     }
 
-    const user = await this.userRepository
-      .createQueryBuilder("user")
-      .leftJoinAndSelect("user.userAuth", "user-auth")
-      .leftJoinAndSelect("user.userProfile", "user-profile")
-      .leftJoinAndSelect("user.userStatus", "user-status")
-      .where({
-        email: userAuthInfo.email
-      })
-      .getOne();
+    const user = await this.findOneUserAuth({email: userAuthInfo.email});
 
     if(user) {
       const comparedPassword = await Bcrypt.compare(
@@ -237,9 +290,9 @@ export class PrivateUserService {
         
       }
 
-      await this.userStatusRepository.save(user.userStatus);
-      await this.userAuthRepository.save(user.userAuth);
-      await this.userRepository.save(user);
+      await this.saveUserStatus(user.userStatus);
+      await this.saveUserAuth(user.userAuth);
+      await this.saveUser(user);
     }
 
     return result;
@@ -257,7 +310,7 @@ export class PrivateUserService {
     if(user) {
       user.userStatus.lastAccessTime = new Date(Date.now());
 
-      await this.userStatusRepository.save(user.userStatus);
+      await this.saveUserStatus(user.userStatus);
     }
 
     return user? true : false;
@@ -278,9 +331,9 @@ export class PrivateUserService {
       user.userStatus.lastAccessTime = date;
       user.userAuth.countOfFailures = 0;
     
-      await this.userStatusRepository.save(user.userStatus);
-      await this.userAuthRepository.save(user.userAuth);
-      await this.userRepository.save(user);
+      await this.saveUserStatus(user.userStatus);
+      await this.saveUserAuth(user.userAuth);
+      await this.saveUser(user);
     }
     
     return user? user.id : null;
@@ -340,7 +393,7 @@ export class PrivateUserService {
 
         user.userStatus.lastAccessTime = new Date(Date.now());
 
-        await this.userStatusRepository.save(user.userStatus);
+        await this.saveUserStatus(user.userStatus);
       }
 
     }
@@ -359,9 +412,7 @@ export class PrivateUserService {
     const { userStatus }: User = await this.userRepository
       .createQueryBuilder("user")
       .leftJoinAndSelect("user.userStatus", "user-status")
-      .where({
-        email
-      })
+      .where({ email })
       .getOne();
 
     if(userStatus) {
@@ -369,7 +420,7 @@ export class PrivateUserService {
       userStatus.isActive = isActive;
 
       try {
-        await this.userStatusRepository.save(userStatus);
+        await this.saveUserStatus(userStatus);
 
         result.success = true;
       } catch(e) {
@@ -380,5 +431,37 @@ export class PrivateUserService {
 
     return result;
   } 
+
+  public async getUserInfo(id: string) {
+    const user = await this.findOneUserAuth({ id });
+
+    if(!user) {
+      return {
+        success: false,
+        userInfo: null,
+        error: "Authentication failure"
+      }
+    }
+    
+    const date = new Date(Date.now());
+    user.lastSignInDate = date;
+    user.userStatus.lastAccessTime = date;
+
+    await this.saveUserStatus(user.userStatus);
+    await this.saveUser(user);
+
+    return {
+      success: true,
+      userInfo: {
+        email: user.email,
+        name: user.name,
+        penName: user.userProfile.penName,
+        userId: user.id,
+        profileId: user.userProfile.id
+      },
+      error: null 
+    }
+
+  }
 
 }

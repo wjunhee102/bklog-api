@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res, Body, Logger, Get } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Logger, Get, Delete } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, registerSchema, requiredUserInfoSchema, activateUserSchema } from './auth.schema';
 import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser } from './auth.type';
@@ -47,6 +47,10 @@ export class AuthController {
   private clearUserJwtCookie(@Res() res) {
     res.clearCookie(this.jwtCookiesName.ACCESS);
     res.clearCookie(this.jwtCookiesName.REFRESH);
+  }
+
+  private clearUserJwtCookieAccess(@Res() res) {
+    res.clearCookie(this.jwtCookiesName.ACCESS);
   }
 
   @Post('sign-up')
@@ -141,7 +145,7 @@ export class AuthController {
     
   }
 
-  @Post('withdrawal')
+  @Delete('withdrawal')
   public async withdrawalUser(
     @Req() req,
     @Res() res,
@@ -192,21 +196,49 @@ export class AuthController {
       res.send(this.setResponseError(error));
     } else {
       const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+      
+      if(accessToken) {
+        const result = await this.authService.activateUser(
+          accessToken,
+          req.headers["user-agent"],
+          value.email
+        );
+  
+        if(result.success) {
+          res.send(this.setResponseSuccess(result));
+        } else {
+          this.clearUserJwtCookieAccess(res);
+          res.send(this.setResponseError("user-activation", result));
+        }
+      } else {
+        res.send(this.setResponseError("No cookies", {
+          success: false
+        }))
+      }
 
-      const result = await this.authService.activateUser(
-        accessToken,
-        req.headers["user-agent"],
-        value.email
-      );
+      
+    }
+
+  }
+
+  @Get('re-sign-in')
+  public async reSignIn(@Req() req, @Res() res) {
+    const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+    if(accessToken) {
+      const result = await this.authService.simpleSignInUser(accessToken, req.headers["user-agent"]);
 
       if(result.success) {
         res.send(this.setResponseSuccess(result));
       } else {
-        this.clearUserJwtCookie(res);
-        res.send(this.setResponseError("user-activation", result));
+        this.clearUserJwtCookieAccess(res);
+        res.send(this.setResponseError(result));
       }
-    }
 
+    } else {
+      res.send(this.setResponseError("No cookies", {
+        success: false
+      }));
+    }
   }
 
 }

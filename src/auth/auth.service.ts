@@ -349,4 +349,23 @@ export class AuthService {
 
     return result;
   }
+
+  public async simpleSignInUser (
+    accessToken: string,
+    userAgent: string
+  ) {
+    const decodingJwt = this.validateAccessTokenReturnId(accessToken, userAgent);
+
+    if(!decodingJwt.uuid) {
+      return {
+        success: false,
+        userInfo: null,
+        error: decodingJwt.error
+      }
+    }
+
+    const result = this.privateUserService.getUserInfo(decodingJwt.uuid);
+
+    return result;
+  }
 }
