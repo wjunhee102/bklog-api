@@ -1,6 +1,6 @@
 import { Controller, Post, Req, Res, Body, Logger, Get, Delete } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { authInfoSchema, registerSchema, requiredUserInfoSchema, activateUserSchema } from './auth.schema';
+import { authInfoSchema, registerSchema, requiredUserInfoSchema, activateUserSchema, reissueTokenSchema } from './auth.schema';
 import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser } from './auth.type';
 import { ResponseMessage } from 'src/util/response.util';
 import { ValidationData } from 'src/types/validation';
@@ -102,24 +102,35 @@ export class AuthController {
     }
   }
 
-  @Get('reissue-token') 
-  public async reissueTokensToUser(@Req() req, @Res() res) {
-    
-    const jwtTokens: UserJwtokens | null = 
-      await this.authService.reissueTokens(
-        req.signedCookies[this.jwtCookiesName.REFRESH],
-        req.headers["user-agent"]
-      )
+  @Post('reissue-token') 
+  public async reissueTokensToUser(@Req() req, @Res() res, @Body() user: {
+    userId: string;
+  }) {
+    const { value, error } = reissueTokenSchema.validate(user);
 
-    if(!jwtTokens) {
+    if(error) {
       this.clearUserJwtCookie(res);
-      res.send(new ResponseMessage().error(999).body({success: false}).build());
+      res.send(this.setResponseError(error));
     } else {
 
-      this.setUserJwtCookies(res, jwtTokens);
+      const jwtTokens: UserJwtokens | null = 
+        await this.authService.reissueTokens(
+          req.signedCookies[this.jwtCookiesName.REFRESH],
+          req.headers["user-agent"],
+          value
+        )
 
-      res.send(new ResponseMessage().success().body({success: true}).build());
+      if(!jwtTokens) {
+        this.clearUserJwtCookie(res);
+        res.send(this.setResponseError("Token does not exist"), {success: false});
+      } else {
+        this.setUserJwtCookies(res, jwtTokens);
+        res.send(this.setResponseSuccess({success: true}));
+      }
+
     }
+    
+    
     
   }
 
@@ -216,7 +227,6 @@ export class AuthController {
         }))
       }
 
-      
     }
 
   }

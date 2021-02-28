@@ -22,3 +22,7 @@ export const requiredUserInfoSchema: Joi.ObjectSchema<RequiredUserInfo> = Joi.ob
 export const activateUserSchema: Joi.ObjectSchema<{email: string}> = Joi.object({
   email: Joi.string().required()
 });
+
+export const reissueTokenSchema: Joi.ObjectSchema<{ userId: string }> = Joi.object({
+  userId: Joi.string()
+}) 
