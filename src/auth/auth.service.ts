@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
-import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken } from './auth.type';
+import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo } from './auth.type';
 import { UserAuthInfo } from './private-user/types/private-user.type';
 import { UserService } from 'src/user/user.service';
 import { RequiredUserInfo, ResAuthenticatedUser, ResDeleteUser } from './private-user/types/private-user.type';
@@ -240,9 +240,7 @@ export class AuthService {
   public async reissueTokens(
     refreshToken: string, 
     userAgent: string,
-    client: {
-      userId: string
-    }
+    client: ClientUserInfo
   ): Promise<UserJwtokens | null> {
 
     const tokenVailtionRes: { uuid: string } | null = this.validationRefreshToken(

@@ -1,5 +1,6 @@
 import * as Joi from 'joi';
 import { RequiredUserInfo, UserAuthInfo } from './private-user/types/private-user.type';
+import { TargetUser, ClientUserInfo } from './auth.type';
 
 export const registerSchema = Joi.object({
   email: Joi.string().required(),
@@ -19,10 +20,10 @@ export const requiredUserInfoSchema: Joi.ObjectSchema<RequiredUserInfo> = Joi.ob
   name: Joi.string().required()
 });
 
-export const activateUserSchema: Joi.ObjectSchema<{email: string}> = Joi.object({
+export const activateUserSchema: Joi.ObjectSchema<TargetUser> = Joi.object({
   email: Joi.string().required()
 });
 
-export const reissueTokenSchema: Joi.ObjectSchema<{ userId: string }> = Joi.object({
+export const reissueTokenSchema: Joi.ObjectSchema<ClientUserInfo> = Joi.object({
   userId: Joi.string()
 }) 

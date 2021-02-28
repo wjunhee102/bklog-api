@@ -87,3 +87,11 @@ export type CookieAuthenticationFailure = {
   info: boolean;
   exp: boolean;
 }
+
+export type ClientUserInfo = {
+  userId: string;
+}
+
+export type TargetUser = {
+  email: string;
+}

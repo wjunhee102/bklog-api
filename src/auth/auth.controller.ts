@@ -1,7 +1,7 @@
 import { Controller, Post, Req, Res, Body, Logger, Get, Delete } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, registerSchema, requiredUserInfoSchema, activateUserSchema, reissueTokenSchema } from './auth.schema';
-import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser } from './auth.type';
+import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ClientUserInfo, TargetUser } from './auth.type';
 import { ResponseMessage } from 'src/util/response.util';
 import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
@@ -103,11 +103,9 @@ export class AuthController {
   }
 
   @Post('reissue-token') 
-  public async reissueTokensToUser(@Req() req, @Res() res, @Body() client: {
-    userId: string;
-  }) {
-    const { value, error } = reissueTokenSchema.validate(client);
-    
+  public async reissueTokensToUser(@Req() req, @Res() res, @Body() client: ClientUserInfo) {
+    const { value, error }: ValidationData<ClientUserInfo> = reissueTokenSchema.validate(client);
+
     if(error) {
       this.clearUserJwtCookie(res);
       res.send(this.setResponseError(error));
@@ -198,10 +196,12 @@ export class AuthController {
   }
 
   @Post('user-activation')
-  public async activateUser(@Req() req, @Res() res, @Body() tagetUser: {
-    email: string
-  }) {
-    const { value, error }: ValidationData<{ email: string}> = activateUserSchema.validate(tagetUser);
+  public async activateUser(
+    @Req() req, 
+    @Res() res, 
+    @Body() tagetUser: TargetUser
+  ) {
+    const { value, error }: ValidationData<TargetUser> = activateUserSchema.validate(tagetUser);
 
     if(error) {
       res.send(this.setResponseError(error));
