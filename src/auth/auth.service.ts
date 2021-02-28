@@ -240,7 +240,7 @@ export class AuthService {
   public async reissueTokens(
     refreshToken: string, 
     userAgent: string,
-    user: {
+    client: {
       userId: string
     }
   ): Promise<UserJwtokens | null> {
@@ -256,7 +256,7 @@ export class AuthService {
 
     const userId: string | null = await this.privateUserService.getAuthenticatedUser(tokenVailtionRes.uuid);
 
-    if(!userId || userId !== user.userId) {
+    if(!userId || userId !== client.userId) {
       return null;
     }
 

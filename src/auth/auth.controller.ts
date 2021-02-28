@@ -103,11 +103,11 @@ export class AuthController {
   }
 
   @Post('reissue-token') 
-  public async reissueTokensToUser(@Req() req, @Res() res, @Body() user: {
+  public async reissueTokensToUser(@Req() req, @Res() res, @Body() client: {
     userId: string;
   }) {
-    const { value, error } = reissueTokenSchema.validate(user);
-
+    const { value, error } = reissueTokenSchema.validate(client);
+    
     if(error) {
       this.clearUserJwtCookie(res);
       res.send(this.setResponseError(error));
