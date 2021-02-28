@@ -235,7 +235,7 @@ export class AuthController {
 
   }
 
-  @Get('re-sign-in')
+  @Get('resign-in')
   public async reSignIn(@Req() req, @Res() res) {
     const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
     if(accessToken) {
