@@ -103,7 +103,11 @@ export class AuthController {
   }
 
   @Post('reissue-token') 
-  public async reissueTokensToUser(@Req() req, @Res() res, @Body() client: ClientUserInfo) {
+  public async reissueTokensToUser(
+    @Req() req, 
+    @Res() res, 
+    @Body() client: ClientUserInfo
+  ) {
     const { value, error }: ValidationData<ClientUserInfo> = reissueTokenSchema.validate(client);
 
     if(error) {
