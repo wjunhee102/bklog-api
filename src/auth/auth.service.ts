@@ -148,20 +148,15 @@ export class AuthService {
     resSignInUser.error = error;
 
     if(authenticatedUser.userInfo) {
-      const { name, email, penName, userId, profileId } = authenticatedUser.userInfo;
 
-      resSignInUser.userInfo = {
-        name,
-        email,
-        penName,
-        userId,
-        profileId
-      };
+      resSignInUser.userInfo = authenticatedUser.userInfo;
+
       resSignInUser.jwt = await this.issueTokensToUser({
-        uuid: userId,
+        uuid: authenticatedUser.userInfo.userId,
         agent: userAgent
       });
       resSignInUser.success = true;
+      resSignInUser.error = null;
     } 
 
     return resSignInUser;

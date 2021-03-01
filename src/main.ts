@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser = require('cookie-parser');
 import { cookieConstants } from 'secret/constants';
+import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   //undefined는 insomnia 때문
@@ -22,6 +23,11 @@ async function bootstrap() {
     methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
     credentials: true,
   });
+  // app.useGlobalPipes(new ValidationPipe({
+  //   whitelist: true,
+  //   forbidNonWhitelisted: true,
+  //   transform: true,
+  // }));
   app.use(cookieParser(cookieConstants));
   app.setGlobalPrefix('/v2');
 

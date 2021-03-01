@@ -1,42 +1,20 @@
-export class ResponseMessage {
-  private data: any | any[];
-  private code: number;
+import { Logger } from "@nestjs/common";
 
-  public success(): ResponseMessage {
-    this.code = 1;
-    return this;
+type ResultService<Data = any, Error = any> = Data & {
+  success: boolean;
+  error?: Error
+} | string;
+
+export function ResponseMessage(result: ResultService, errorMessage?: any) {
+  if(errorMessage) {
+    Logger.error(errorMessage);
   }
 
-  public error(code: number, message: string = "Error"): ResponseMessage {
-    this.code = code;
-    this.data = { message };
-    return this;
+  if(typeof result === "string") {
+    return {
+      success: false,
+      error: result
+    }
   }
-
-  public body(data: any | any[] = ''): ResponseMessage {
-    this.data = data;
-    return this;
-  }
-
-  get Data(): any | any[] {
-    return this.data;
-  }
-
-  get Code(): number {
-    return this.code;
-  }
-
-  public build(): Response{
-    return new Response(this);
-  }
-}
-
-export class Response {
-  data: any | any[];
-  code: number;
-
-  constructor(message: ResponseMessage) {
-    this.data = message.Data;
-    this.code = message.Code;
-  }
+  return result;
 }

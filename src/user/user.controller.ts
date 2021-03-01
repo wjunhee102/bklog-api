@@ -1,7 +1,7 @@
 import { Body, Controller, Logger, Post, Res, Get, Req } from '@nestjs/common';
 import { ValidationError } from 'Joi';
 
-import { Response, ResponseMessage } from '../util/response.util';
+import { ResponseMessage } from '../util/response.util';
 import { UserService } from './user.service';
 import { emailSchema } from './user.schema';
 import { ValidationData } from 'src/types/validation';
@@ -13,10 +13,7 @@ export class UserController {
 
   private setParmeterError(error) {
     Logger.error(error);
-    return new ResponseMessage()
-      .error(999)
-      .body("Parameter Error")
-      .build();
+    return ResponseMessage(error);
   }
 
 }

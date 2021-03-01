@@ -1,6 +1,6 @@
 import { Controller, Post, Req, Res, Body, Logger, Get, Delete } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { authInfoSchema, registerSchema, requiredUserInfoSchema, activateUserSchema, reissueTokenSchema } from './auth.schema';
+import { authInfoSchema, requiredUserInfoSchema, activateUserSchema, reissueTokenSchema } from './auth.schema';
 import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ClientUserInfo, TargetUser } from './auth.type';
 import { ResponseMessage } from 'src/util/response.util';
 import { ValidationData } from 'src/types/validation';
@@ -14,21 +14,6 @@ export class AuthController {
   private readonly jwtCookiesName = {
     ACCESS: "AID",
     REFRESH: "RID"
-  }
-
-  private setResponseError(error, body: any = "Parameter Error") {
-    Logger.error(error);
-    return new ResponseMessage()
-      .error(999)
-      .body(body)
-      .build();
-  }
-
-  private setResponseSuccess(body) {
-    return new ResponseMessage()
-      .success()
-      .body(body)
-      .build();
   }
 
   private setUserJwtCookies(@Res() res, jwtTokens: UserJwtokens) {
@@ -58,14 +43,14 @@ export class AuthController {
     const { value, error }: ValidationData<RequiredUserInfo> = requiredUserInfoSchema.validate(requiredUserInfo);
 
     if(error) {
-      return this.setResponseError(error);
+      return ResponseMessage(error);
     }
 
     const resSignUpUser: ResSignUpUser = await this.authService.signUpUser(value);
 
     return resSignUpUser.success? 
-      this.setResponseSuccess(resSignUpUser)
-      : this.setResponseError("vaildationError",resSignUpUser);
+      ResponseMessage(resSignUpUser) 
+      : ResponseMessage(resSignUpUser, "vaildationError");
   }
 
   @Post('sign-in') 
@@ -75,31 +60,27 @@ export class AuthController {
     @Body() userAuthInfo: UserAuthInfo
   ) {
     const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
-
+    console.log(value);
     if(error) {
-      return this.setResponseError(error);
-    }
-
-    const resSignInUser: ResSignInUser = 
+      res.send(ResponseMessage(error));
+    } else {
+      const resSignInUser: ResSignInUser = 
       await this.authService.signInUser(value, req.headers["user-agent"]);
     
-    if(!resSignInUser.success) {
-      Logger.error("Authentication failure");
+      if(!resSignInUser.success) {
+        Logger.error("Authentication failure");
+        this.clearUserJwtCookie(res);
+      } else {
+        this.setUserJwtCookies(res, resSignInUser.jwt);
+      }
 
-      this.clearUserJwtCookie(res);
-      res.send(this.setResponseError("Authentication failure", {
-        success: false,
-        error: resSignInUser.error
-      }));
-
-    } else {
-
-      this.setUserJwtCookies(res, resSignInUser.jwt);
-      res.send(this.setResponseSuccess({
-        success: resSignInUser.success,
-        userInfo: resSignInUser.userInfo
-      }));
+      const result = Object.assign({}, resSignInUser);
+      
+      delete result.jwt;
+      console.log(result);
+      res.send(ResponseMessage(result));
     }
+    
   }
 
   @Post('reissue-token') 
@@ -112,7 +93,7 @@ export class AuthController {
 
     if(error) {
       this.clearUserJwtCookie(res);
-      res.send(this.setResponseError(error));
+      res.send(ResponseMessage(error));
     } else {
 
       const jwtTokens: UserJwtokens | null = 
@@ -124,10 +105,10 @@ export class AuthController {
 
       if(!jwtTokens) {
         this.clearUserJwtCookie(res);
-        res.send(this.setResponseError("Token does not exist"), {success: false});
+        res.send(ResponseMessage({success: false}));
       } else {
         this.setUserJwtCookies(res, jwtTokens);
-        res.send(this.setResponseSuccess({success: true}));
+        res.send(ResponseMessage({success: true}));
       }
 
     }
@@ -147,13 +128,12 @@ export class AuthController {
     this.clearUserJwtCookie(res);
 
     if(resSignOut) {
-      res.send(this.setResponseSuccess({success: true}));
+      res.send(ResponseMessage({success: true}));
     } else {
-      res.send(this.setResponseError(
-          "Cookie information mismatch",
-          { error: "Cookie information mismatch" }
-        )
-      );
+      res.send(ResponseMessage({
+        success: false,
+        error: "Cookie information mismatch" 
+      }));
     }
     
   }
@@ -167,20 +147,15 @@ export class AuthController {
     const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
 
     if(error) {
-      res.send(this.setResponseError(error));
+      res.send(ResponseMessage(error));
     } else {
       const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
       const refreshToken = req.signedCookies[this.jwtCookiesName.REFRESH];
       
       if(!refreshToken || !accessToken) {
         this.clearUserJwtCookie(res);
-        res.send(this.setResponseError(
-          "Cookie information mismatch",
-          { error: "Cookie information mismatch" }
-        ));
-
+        res.send(ResponseMessage("Cookie information mismatch"));
       } else {
-
         const resWithdrawalUser: ResWithdrawalUser = await this.authService.withdrawalUser(
           value, 
           accessToken,
@@ -190,10 +165,9 @@ export class AuthController {
     
         if(resWithdrawalUser.success) {
           this.clearUserJwtCookie(res);
-          res.send(this.setResponseSuccess(resWithdrawalUser));
-        } else {
-          res.send(this.setResponseError("you entered an incorrect value", registerSchema));
-        }
+        } 
+
+        res.send(ResponseMessage(resWithdrawalUser));
 
       }
     }
@@ -208,7 +182,7 @@ export class AuthController {
     const { value, error }: ValidationData<TargetUser> = activateUserSchema.validate(tagetUser);
 
     if(error) {
-      res.send(this.setResponseError(error));
+      res.send(ResponseMessage(error));
     } else {
       const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
       
@@ -219,16 +193,12 @@ export class AuthController {
           value.email
         );
   
-        if(result.success) {
-          res.send(this.setResponseSuccess(result));
-        } else {
+        if(!result.success) {
           this.clearUserJwtCookieAccess(res);
-          res.send(this.setResponseError("user-activation", result));
-        }
+        } 
+        res.send(ResponseMessage(result));
       } else {
-        res.send(this.setResponseError("No cookies", {
-          success: false
-        }))
+        res.send(ResponseMessage("No cookies"));
       }
 
     }
@@ -241,17 +211,13 @@ export class AuthController {
     if(accessToken) {
       const result = await this.authService.simpleSignInUser(accessToken, req.headers["user-agent"]);
 
-      if(result.success) {
-        res.send(this.setResponseSuccess(result));
-      } else {
+      if(!result.success) {
         this.clearUserJwtCookieAccess(res);
-        res.send(this.setResponseError(result));
-      }
+      } 
+      res.send(ResponseMessage(result));
 
     } else {
-      res.send(this.setResponseError("No cookies", {
-        success: false
-      }));
+      res.send(ResponseMessage("No cookies"));
     }
   }
 

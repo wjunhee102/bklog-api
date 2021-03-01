@@ -27,6 +27,7 @@ export type IdentifyUser = {
   penName: string;
   userId: string;
   profileId: string;
+  userPhoto: string;
 }
 
 export type ResAuthenticatedUser = {
