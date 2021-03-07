@@ -30,6 +30,32 @@ export class UserProfile {
   })
   photo: string;
 
+  @Column({
+    type: "varchar",
+    length: 100,
+    nullable: true,
+    default: null
+  })
+  bio: string;
+
+  @Column({
+    name: "cover-color",
+    type: "varchar",
+    length: 20,
+    nullable: true,
+    default: null
+  })
+  coverColor: string;
+
+  @Column({
+    name: "cover-image",
+    type: "varchar",
+    length: 20,
+    nullable: true,
+    default: null
+  })
+  coverImage: string;
+
   @OneToOne(()=> UserStatus)
   @JoinColumn()
   userStatus: UserStatus

@@ -13,10 +13,18 @@ export class User {
   id: string;
 
   @Column({
+    name: "first-name",
     type: "varchar",
     length: 20
   })
-  name: string;
+  firstName: string;
+
+  @Column({
+    name: "last-name",
+    type: "varchar",
+    length: 20
+  })
+  lastName: string;
 
   @Column({
     type: "varchar",

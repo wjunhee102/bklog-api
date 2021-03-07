@@ -12,6 +12,7 @@ import { User } from './entities/user.entity';
 import { UserAuth } from './entities/user-auth.entity';
 import { UserPrivacy } from './entities/user-privacy.entity';
 import { Token } from 'src/util/token.util';
+import { ResSignInUser } from '../auth.type';
 
 @Injectable()
 export class PrivateUserService {
@@ -130,19 +131,20 @@ export class PrivateUserService {
 
       const status: UserStatus = await this.userStatusRepository.create();
 
-      await this.userStatusRepository.save(status);
+      await this.saveUserStatus(status);
 
       const profile: UserProfile = await this.userProfileRepository.create();
 
       profile.id = Token.getUUID();
       profile.penName = userInfo.penName;
       profile.userStatus = status;
+      profile.bio = userInfo.bio;
 
-      await this.userProfileRepository.save(profile);
+      await this.saveUserProfile(profile);
 
       const privacy: UserPrivacy = await this.userPrivacyRepository.create();
       
-      await this.userPrivacyRepository.save(privacy);
+      await this.saveUserPrivacy(privacy);
 
       const auth: UserAuth = await this.userAuthRepository.create();
 
@@ -152,18 +154,19 @@ export class PrivateUserService {
       auth.password = password;
       auth.userPrivacy = privacy;
 
-      await this.userAuthRepository.save(auth);
+      await this.saveUserAuth(auth);
 
       const user: User = await this.userRepository.create();
 
       user.id = Token.getUUID();
-      user.name = userInfo.name;
+      user.firstName = userInfo.firstName;
+      user.lastName = userInfo.lastName;
       user.email = userInfo.email;
       user.userAuth = auth;
       user.userProfile = profile;
       user.userStatus = status;
 
-      await this.userRepository.save(user);
+      await this.saveUser(user);
 
       return true;
   
@@ -201,9 +204,9 @@ export class PrivateUserService {
   }
 
   public async checkAdmin(id: string) {
-    const { name }: User = await this.findOneUser({ id });
+    const { firstName }: User = await this.findOneUser({ id });
     
-    return name === "admin"? true : false;
+    return firstName === "admin"? true : false;
   }
 
   /**
@@ -280,11 +283,13 @@ export class PrivateUserService {
 
           result.userInfo = {
             email: user.email,
-            name: user.name,
+            firstName: user.firstName,
+            lastName: user.lastName,
             penName: user.userProfile.penName,
             userId: user.id,
             profileId: user.userProfile.id,
-            userPhoto: user.userProfile.photo
+            userPhoto: user.userProfile.photo,
+            bio: user.userProfile.bio
           }
 
         } 
@@ -433,7 +438,7 @@ export class PrivateUserService {
     return result;
   } 
 
-  public async getUserInfo(id: string) {
+  public async getUserInfo(id: string): Promise<ResSignInUser> {
     const user = await this.findOneUserAuth({ id });
 
     if(!user) {
@@ -455,10 +460,13 @@ export class PrivateUserService {
       success: true,
       userInfo: {
         email: user.email,
-        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
         penName: user.userProfile.penName,
         userId: user.id,
-        profileId: user.userProfile.id
+        profileId: user.userProfile.id,
+        userPhoto: user.userProfile.photo,
+        bio: user.userProfile.bio
       },
       error: null 
     }

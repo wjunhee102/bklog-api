@@ -82,38 +82,63 @@ export class AuthController {
     }
     
   }
+  
+  @Get('check-token')
+  public async valudationAccessToken(
+    @Req() req,
+    @Res() res
+  ) {
+    const result = {
+      success: false,
+      userId: null,
+      error: null
+    }
+    const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+    if(!accessToken) {
+      result.error = "not cookie";
+    } else {
+      const resValitionAC = this.authService.validateAccessTokenReturnId(
+        accessToken,
+        req.headers["user-agent"]
+      );
+      
+      result.userId = resValitionAC.uuid;
+      if(resValitionAC.error) {
+        result.error = resValitionAC.error
+      } else {
+        result.success = true
+      }
+    
+    }
 
-  @Post('reissue-token') 
+    if(result.error) {
+      this.clearUserJwtCookie(res);
+    } else {
+      result.success = true;
+    }
+
+    res.send(ResponseMessage(result));
+  }
+
+  @Get('reissue-token') 
   public async reissueTokensToUser(
     @Req() req, 
-    @Res() res, 
-    @Body() client: ClientUserInfo
+    @Res() res
   ) {
-    const { value, error }: ValidationData<ClientUserInfo> = reissueTokenSchema.validate(client);
 
-    if(error) {
+    const jwtTokens: UserJwtokens | null = 
+      await this.authService.reissueTokens(
+        req.signedCookies[this.jwtCookiesName.REFRESH],
+        req.headers["user-agent"]
+      )
+
+    if(!jwtTokens) {
       this.clearUserJwtCookie(res);
-      res.send(ResponseMessage(error));
+      res.send(ResponseMessage({success: false}));
     } else {
-
-      const jwtTokens: UserJwtokens | null = 
-        await this.authService.reissueTokens(
-          req.signedCookies[this.jwtCookiesName.REFRESH],
-          req.headers["user-agent"],
-          value
-        )
-
-      if(!jwtTokens) {
-        this.clearUserJwtCookie(res);
-        res.send(ResponseMessage({success: false}));
-      } else {
-        this.setUserJwtCookies(res, jwtTokens);
-        res.send(ResponseMessage({success: true}));
-      }
-
+      this.setUserJwtCookies(res, jwtTokens);
+      res.send(ResponseMessage({success: true}));
     }
-    
-    
     
   }
 

@@ -1,3 +1,4 @@
-export type UserProfileInfo = {
+export interface UserProfileInfo {
   penName: string;
+  bio: string;
 }

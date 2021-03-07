@@ -1,14 +1,14 @@
-export type UserAuthInfo = {
+export interface UserAuthInfo {
   email: string;
   password: string;
 }
 
-export type InfoToFindUser = {
+export interface InfoToFindUser {
   email?: string;
   id?: string; 
 }
 
-export type UserPrivacyInfo = {
+export interface UserPrivacyInfo {
   country?: string;
   state?: string;
   city?: string;
@@ -16,28 +16,32 @@ export type UserPrivacyInfo = {
   phoneNumber?: string;
 }
 
-export type RequiredUserInfo = UserAuthInfo & {
+export interface RequiredUserInfo extends UserAuthInfo {
   penName: string;
-  name: string;
+  firstName: string;
+  lastName: string;
+  bio: string;
 }
 
-export type IdentifyUser = {
+export interface IdentifyUser {
   email: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   penName: string;
   userId: string;
   profileId: string;
   userPhoto: string;
+  bio: string;
 }
 
-export type ResAuthenticatedUser = {
+export interface ResAuthenticatedUser {
   userInfo: IdentifyUser | null;
   countOfFail: number;
   isActive: boolean;
   isNotDormant: boolean;
 }
 
-export type ResDeleteUser = {
+export interface ResDeleteUser {
   success: boolean;
   error: {
     idValid: boolean;

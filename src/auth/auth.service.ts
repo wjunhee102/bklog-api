@@ -4,7 +4,7 @@ import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
 import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo } from './auth.type';
 import { UserAuthInfo } from './private-user/types/private-user.type';
 import { UserService } from 'src/user/user.service';
-import { RequiredUserInfo, ResAuthenticatedUser, ResDeleteUser } from './private-user/types/private-user.type';
+import { RequiredUserInfo, ResAuthenticatedUser } from './private-user/types/private-user.type';
 import { PrivateUserService } from './private-user/private-user.service';
 
 @Injectable()
@@ -22,8 +22,9 @@ export class AuthService {
   }
 
   private async checkValidPassword(password: string) {
+    
     const regPassword = new RegExp(/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,16}$/);
-
+    console.log(regPassword.test(password),password);
     return regPassword.test(password);
   }
 
@@ -83,13 +84,15 @@ export class AuthService {
     const passwordValid: boolean = await this.checkValidPassword(requiredUserInfo.password);
     const penNameValid: boolean = await this.checkValidPenName(requiredUserInfo.penName);
 
+    console.log(emailValid, passwordValid, penNameValid);
+
     if(!emailValid || !passwordValid || !penNameValid) {
       return {
         success: false,
         error: {
-          emailValid,
-          passwordValid,
-          penNameValid,
+          emailValid: !emailValid,
+          passwordValid: !passwordValid,
+          penNameValid: !penNameValid,
           emailUsed: false,
           penNameUsed: false
         }
@@ -103,9 +106,9 @@ export class AuthService {
       return {
         success: false,
         error: {
-          emailValid,
-          passwordValid,
-          penNameValid,
+          emailValid: !emailValid,
+          passwordValid: !passwordValid,
+          penNameValid: !penNameValid,
           emailUsed,
           penNameUsed
         }
@@ -234,8 +237,7 @@ export class AuthService {
    */
   public async reissueTokens(
     refreshToken: string, 
-    userAgent: string,
-    client: ClientUserInfo
+    userAgent: string
   ): Promise<UserJwtokens | null> {
 
     const tokenVailtionRes: { uuid: string } | null = this.validationRefreshToken(
@@ -249,7 +251,7 @@ export class AuthService {
 
     const userId: string | null = await this.privateUserService.getAuthenticatedUser(tokenVailtionRes.uuid);
 
-    if(!userId || userId !== client.userId) {
+    if(!userId) {
       return null;
     }
 

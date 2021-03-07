@@ -6,7 +6,7 @@ export interface JwtUserPayload {
   agent: string;
 }
 
-export type UserJwtokens = {
+export interface UserJwtokens {
   accessToken: string;
   refreshToken: string; 
 }
@@ -21,7 +21,7 @@ export type TokenVailtionRes = {
   exp: boolean
 } | null;
 
-export type ResRegisterUser = {
+export interface ResRegisterUser {
   success: boolean;
   error: {
     emailValid: boolean;
@@ -30,23 +30,23 @@ export type ResRegisterUser = {
   } | null;
 }
 
-export type ResAuthToUser = {
+export interface ResAuthToUser {
   userInfo: PublicUserInfo,
   jwt: UserJwtokens
 };
 
-export type ResSignInUser = {
+export interface ResSignInUser {
   success: boolean;
   userInfo: IdentifyUser | null;
-  jwt: UserJwtokens | null;
+  jwt?: UserJwtokens | null;
   error: {
     countOfFail: number;
     isActive: boolean;
     isNotDormant: boolean;
-  } | null;
+  } | string | null;
 }
 
-export type ResSignUpUser = {
+export interface ResSignUpUser {
   success: boolean;
   error?: {
     emailValid: boolean;
@@ -78,20 +78,20 @@ export type ResActivateUser = {
   } | null;
 }
 
-export type ResValitionAccessToken = {
+export interface ResValitionAccessToken {
   uuid: string | null;
   error?: CookieAuthenticationFailure;
 }
 
-export type CookieAuthenticationFailure = {
+export interface CookieAuthenticationFailure {
   info: boolean;
   exp: boolean;
 }
 
-export type ClientUserInfo = {
+export interface ClientUserInfo {
   userId: string;
 }
 
-export type TargetUser = {
+export interface TargetUser {
   email: string;
 }

@@ -17,7 +17,8 @@ export const requiredUserInfoSchema: Joi.ObjectSchema<RequiredUserInfo> = Joi.ob
   penName: Joi.string().required(),
   email: Joi.string().required(),
   password: Joi.string().required(),
-  name: Joi.string().required()
+  firstName: Joi.string().required(),
+  lastName: Joi.string().required()
 });
 
 export const activateUserSchema: Joi.ObjectSchema<TargetUser> = Joi.object({
