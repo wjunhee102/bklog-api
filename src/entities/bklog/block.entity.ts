@@ -1,55 +1,50 @@
-import { PrimaryGeneratedColumn, Entity, Column } from "typeorm";
+import { Entity, Column, PrimaryColumn } from "typeorm";
 
 @Entity({name: "block"})
 export class Block {
-  @PrimaryGeneratedColumn({
-    name: "block_id"
-  })
-  id: number;
-
-  @Column({
-    name: "uuid",
-    type: "char",
-    length: 40
-  })
-  blockId: string;
-
-  @Column({
-    name: "page_uuid",
+  @PrimaryColumn({
+    name: "block_id",
     type: "varchar",
-    length: 40
+    width: 255
+  })
+  id: string;
+
+  @Column({
+    name: "page_id",
+    type: "varchar",
+    length: 255
   })
   pageId: string;
 
   @Column({
-    name: "preBlock_uuid",
+    name: "preBlock_id",
     type: "varchar",
-    length: 40,
+    length: 255,
     nullable: true,
     default: null
   })
-  preBlockId: string | null;
+  preBlockId: string;
 
   @Column({
-    name: "nextBlock_uuid",
+    name: "nextBlock_id",
     type: "varchar",
-    length: 40,
+    length: 255,
     nullable: true,
     default: null
   })
-  nextBlockId: string | null;
+  nextBlockId: string;
 
   @Column({
-    name: "parentBlock_uuid",
+    name: "parentBlock_id",
     type: "varchar",
-    length: 40,
+    length: 255,
     nullable: true,
     default: null
   })
-  parentBlockId: string | null;
+  parentBlockId: string;
 
   @Column({
-    name: "children_uuid",
+    name: "children_id",
     type: 'json',
     nullable: true,
     default: null
@@ -59,7 +54,7 @@ export class Block {
   @Column({
     type: "varchar",
     length: 20,
-    default: "block"
+    default: "text"
   })
   type: string;
 }

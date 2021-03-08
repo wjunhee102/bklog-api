@@ -18,6 +18,19 @@ export interface BlockTextProps {
 }
 
 /**
+ * text block types
+ */
+export type ContentType = ["b"] 
+  | ["i"] 
+  | ["_"] 
+  | ["a", string] 
+  | ["fc", string] 
+  | ["bc", string];
+
+
+export type TextContents = [string] | [string, ContentType[]];
+
+/**
  * type: "text" | "image" | "container"
  */
 export interface BlockData<Props = any> {

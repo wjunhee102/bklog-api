@@ -1,11 +1,15 @@
 import { Module } from '@nestjs/common';
 import { PageModule } from './page/page.module';
 import { BlockModule } from './block/block.module';
+import { BklogController } from './bklog.controller';
+import { BklogService } from './bklog.service';
 
 @Module({
   imports: [
     PageModule,
     BlockModule
-  ]
+  ],
+  controllers: [BklogController],
+  providers: [BklogService]
 })
 export class BklogModule {}

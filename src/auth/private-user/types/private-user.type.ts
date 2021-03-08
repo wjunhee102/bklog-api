@@ -49,3 +49,8 @@ export interface ResDeleteUser {
     passwordValid: boolean;
   };
 }
+
+export interface UserIdList {
+  profileId: string;
+  userId: string;
+}

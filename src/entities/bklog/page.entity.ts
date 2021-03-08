@@ -1,33 +1,76 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity({ name: "page" })
 export class Page {
 
-  @PrimaryGeneratedColumn({
+  @PrimaryColumn({
     name: "page_id",
-    type: "bigint"
+    type: "varchar",
+    width: 255
   })
-  id: number;
+  id: string;
 
   @Column({
-    name: "uuid",
-    type: "char",
-    length: 40
+    type: "varchar",
+    width: 100
   })
-  pageId: string;
+  title: string;
 
   @Column({
-    name: "author_uuid",
-    type: "char",
-    length: 40
+    name: "cover_image",
+    type: "varchar",
+    width: 255
   })
-  authorId: string;
+  coverImage: string;
 
   @Column({
-    name: "editor_list",
-    type: "json",
+    name: "cover_color",
+    type: "varchar",
+    width: 100
+  })
+  coverColor: string;
+
+  @CreateDateColumn({
+    name: "created_at"
+  })
+  createdDate: Date;
+
+  @UpdateDateColumn({
+    name: "updated_at"
+  })
+  updatedDate: Date;
+
+  @Column({
+    name: "last_access_date",
+    type: "datetime",
     nullable: true,
     default: null
   })
-  editorList: string[];
+  lastAccessDate: Date;
+
+  @Column({
+    type: "bigint",
+    default: 0
+  })
+  views: number;
+
+  @Column({
+    name: "profile_id",
+    type: "varchar",
+    width: 255
+  })
+  profileId: string;
+
+  @Column({
+    name: "user_id",
+    type: "varchar",
+    width: 255
+  })
+  userId: string;
+
+  @Column({
+    type: "tinyint"
+  })
+  private: number;
+
 }
