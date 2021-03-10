@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
-import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo } from './auth.type';
+import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo, ACCESS, REFRESH } from './auth.type';
 import { UserAuthInfo } from './private-user/types/private-user.type';
 import { UserService } from 'src/user/user.service';
 import { RequiredUserInfo, ResAuthenticatedUser } from './private-user/types/private-user.type';
@@ -22,9 +22,8 @@ export class AuthService {
   }
 
   private async checkValidPassword(password: string) {
-    
     const regPassword = new RegExp(/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,16}$/);
-    console.log(regPassword.test(password),password);
+
     return regPassword.test(password);
   }
 
@@ -38,14 +37,14 @@ export class AuthService {
    * return UserJwtTokens
    * @param VerifiedUser 
    */
-  private issueTokensToUser(VerifiedUser: JwtUserPayload): UserJwtokens {
+  private issueTokensToUser(verifiedUser: JwtUserPayload): UserJwtokens {
     return {
       accessToken: this.jwtService.sign(
-        Object.assign({ type: "access" }, VerifiedUser), {
+        Object.assign({ type: ACCESS }, verifiedUser), {
         expiresIn: jwtExpTime.accessToken
       }),
       refreshToken: this.jwtService.sign(
-        Object.assign({ type: "refresh" },VerifiedUser), {
+        Object.assign({ type: REFRESH },verifiedUser), {
         expiresIn: jwtExpTime.refreshToken
       })
     }
@@ -61,7 +60,7 @@ export class AuthService {
     userAgent: string
   ): { uuid: string } | null {
     const decodingUserJwt: any = this.jwtService.decode(refreshToken);
-    if(!decodingUserJwt || decodingUserJwt.type !== "refresh") {
+    if(!decodingUserJwt || decodingUserJwt.type !== REFRESH) {
       return null;
     }
 
@@ -176,10 +175,10 @@ export class AuthService {
   ): TokenVailtionRes | null {
     const decodingUserJwt: any = this.jwtService.decode(accessToken);
     
-    if(!decodingUserJwt || decodingUserJwt.type !== "access") {
+    if(!decodingUserJwt || decodingUserJwt.type !== ACCESS) {
       return {
-        info: false,
-        exp: false
+        infoFalse: true,
+        expFalse: true
       };
     }
 
@@ -188,8 +187,8 @@ export class AuthService {
 
     if(!checkAgent || !checkExpTime) {
       return {
-        info: checkAgent,
-        exp: checkExpTime
+        infoFalse: !checkAgent,
+        expFalse: !checkExpTime
       }
     } 
 
@@ -202,12 +201,12 @@ export class AuthService {
   ): ResValitionAccessToken {
     const decodingUserJwt: any = this.jwtService.decode(accessToken);
     
-    if(!decodingUserJwt || decodingUserJwt.type !== "access") {
+    if(!decodingUserJwt || decodingUserJwt.type !== ACCESS) {
       return {
         uuid: null,
         error: {
-          info: false,
-          exp: false
+          infoFalse: true,
+          expFalse: true
         }
       };
     }
@@ -219,8 +218,8 @@ export class AuthService {
       return {
         uuid: null,
         error: {
-          info: checkAgent,
-          exp: checkExpTime
+          infoFalse: !checkAgent,
+          expFalse: !checkExpTime
         }
       }
     } 

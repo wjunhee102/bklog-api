@@ -1,7 +1,7 @@
 import { Controller, Post, Req, Res, Body, Logger, Get, Delete } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import { authInfoSchema, requiredUserInfoSchema, activateUserSchema, reissueTokenSchema } from './auth.schema';
-import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ClientUserInfo, TargetUser } from './auth.type';
+import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './auth.schema';
+import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN } from './auth.type';
 import { ResponseMessage } from 'src/util/response.util';
 import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
@@ -11,31 +11,26 @@ import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-use
 export class AuthController {
   constructor(private readonly authService: AuthService){}
 
-  private readonly jwtCookiesName = {
-    ACCESS: "AID",
-    REFRESH: "RID"
-  }
-
   private setUserJwtCookies(@Res() res, jwtTokens: UserJwtokens) {
     res.cookie(
-      this.jwtCookiesName.ACCESS, 
+      ACCESS_TOKEN, 
       jwtTokens.accessToken, 
       createCookieOption(cookieExpTime.access)
     );
     res.cookie(
-      this.jwtCookiesName.REFRESH, 
+      REFRESH_TOKEN, 
       jwtTokens.refreshToken, 
       createCookieOption(cookieExpTime.refresh)
     );
   }
 
   private clearUserJwtCookie(@Res() res) {
-    res.clearCookie(this.jwtCookiesName.ACCESS);
-    res.clearCookie(this.jwtCookiesName.REFRESH);
+    res.clearCookie(ACCESS_TOKEN);
+    res.clearCookie(REFRESH_TOKEN);
   }
 
   private clearUserJwtCookieAccess(@Res() res) {
-    res.clearCookie(this.jwtCookiesName.ACCESS);
+    res.clearCookie(ACCESS_TOKEN);
   }
 
   @Post('sign-up')
@@ -93,7 +88,7 @@ export class AuthController {
       userId: null,
       error: null
     }
-    const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+    const accessToken = req.signedCookies[ACCESS_TOKEN];
     if(!accessToken) {
       result.error = "not cookie";
     } else {
@@ -128,7 +123,7 @@ export class AuthController {
 
     const jwtTokens: UserJwtokens | null = 
       await this.authService.reissueTokens(
-        req.signedCookies[this.jwtCookiesName.REFRESH],
+        req.signedCookies[REFRESH_TOKEN],
         req.headers["user-agent"]
       )
 
@@ -144,7 +139,7 @@ export class AuthController {
 
   @Get('sign-out')
   public async signOutUser(@Req() req, @Res() res) {
-    const refreshToken = req.signedCookies[this.jwtCookiesName.REFRESH];
+    const refreshToken = req.signedCookies[REFRESH_TOKEN];
     const resSignOut = refreshToken? await this.authService.signOutUser(
       refreshToken,
       req.headers["user-agent"]
@@ -174,8 +169,8 @@ export class AuthController {
     if(error) {
       res.send(ResponseMessage(error));
     } else {
-      const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
-      const refreshToken = req.signedCookies[this.jwtCookiesName.REFRESH];
+      const accessToken = req.signedCookies[ACCESS_TOKEN];
+      const refreshToken = req.signedCookies[REFRESH_TOKEN];
       
       if(!refreshToken || !accessToken) {
         this.clearUserJwtCookie(res);
@@ -209,7 +204,7 @@ export class AuthController {
     if(error) {
       res.send(ResponseMessage(error));
     } else {
-      const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+      const accessToken = req.signedCookies[ACCESS_TOKEN];
       
       if(accessToken) {
         const result = await this.authService.activateUser(
@@ -232,7 +227,7 @@ export class AuthController {
 
   @Get('resign-in')
   public async reSignIn(@Req() req, @Res() res) {
-    const accessToken = req.signedCookies[this.jwtCookiesName.ACCESS];
+    const accessToken = req.signedCookies[ACCESS_TOKEN];
     if(accessToken) {
       const result = await this.authService.simpleSignInUser(accessToken, req.headers["user-agent"]);
 

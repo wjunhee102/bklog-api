@@ -1,6 +1,12 @@
 import { PublicUserInfo } from "src/types/public";
 import { IdentifyUser, ResDeleteUser } from "./private-user/types/private-user.type";
 
+export const ACCESS_TOKEN = "AID" as const;
+export const REFRESH_TOKEN = "RID" as const;
+
+export const ACCESS = "AC";
+export const REFRESH = "RF";
+
 export interface JwtUserPayload {
   uuid: string;
   agent: string;
@@ -17,8 +23,8 @@ export interface DecodeJwt extends JwtUserPayload {
 }
 
 export type TokenVailtionRes = {
-  info: boolean,
-  exp: boolean
+  infoFalse: boolean,
+  expFalse: boolean
 } | null;
 
 export interface ResRegisterUser {
@@ -84,8 +90,8 @@ export interface ResValitionAccessToken {
 }
 
 export interface CookieAuthenticationFailure {
-  info: boolean;
-  exp: boolean;
+  infoFalse: boolean;
+  expFalse: boolean;
 }
 
 export interface ClientUserInfo {
