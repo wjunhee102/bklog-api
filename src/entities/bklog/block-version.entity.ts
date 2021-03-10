@@ -2,13 +2,13 @@ import { Entity, Column, PrimaryColumn, CreateDateColumn} from "typeorm";
 import { BlockData } from "src/bklog/block/block.type";
 
 @Entity({name: "block-version"})
-export class PageVersion {
+export class BlockVersion {
   @PrimaryColumn({
     name: "page_version_id",
     type: "varchar",
     width: 255
   })
-  id: number;
+  id: string;
 
   @Column({
     name: "page_id",
@@ -36,5 +36,4 @@ export class PageVersion {
     type: "json"
   })
   blockDataList: BlockData[];
-
 }

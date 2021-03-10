@@ -1,4 +1,5 @@
 import { Entity, Column, PrimaryColumn } from "typeorm";
+import { BlockTypes } from "src/bklog/block/block.type";
 
 @Entity({name: "block"})
 export class Block {
@@ -45,9 +46,7 @@ export class Block {
 
   @Column({
     name: "children_id",
-    type: 'json',
-    nullable: true,
-    default: null
+    type: 'json'
   })
   children: string[] | null;
 
@@ -56,5 +55,5 @@ export class Block {
     length: 20,
     default: "text"
   })
-  type: string;
+  type: BlockTypes;
 }

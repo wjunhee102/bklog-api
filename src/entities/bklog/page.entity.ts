@@ -19,14 +19,18 @@ export class Page {
   @Column({
     name: "cover_image",
     type: "varchar",
-    width: 255
+    width: 255,
+    nullable: true,
+    default: null
   })
   coverImage: string;
 
   @Column({
     name: "cover_color",
     type: "varchar",
-    width: 100
+    width: 100,
+    nullable: true,
+    default: null
   })
   coverColor: string;
 
@@ -69,7 +73,8 @@ export class Page {
   userId: string;
 
   @Column({
-    type: "tinyint"
+    type: "tinyint",
+    default: 4
   })
   private: number;
 

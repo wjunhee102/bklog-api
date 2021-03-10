@@ -23,16 +23,12 @@ export class BlockTextProperty {
   type: string;
 
   @Column({
-    type: "json",
-    nullable: true,
-    default: null
+    type: "json"
   })
   style: TextStyle | null;
 
   @Column({
-    type: "json",
-    nullable: true,
-    default: null
+    type: "json"
   })
   contents: TextContents[];
 }

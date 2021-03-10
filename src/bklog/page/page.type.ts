@@ -9,4 +9,10 @@ export interface InfoToFindPage {
 
 export interface RequiredPageInfo extends UserIdList {
   title: string;
+  private: number;// 0, 1, 2, 3, 4
+}
+
+export interface PageInfoList {
+  pageId: string;
+  title: string;
 }
