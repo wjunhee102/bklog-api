@@ -1,18 +1,24 @@
 import { UserIdList } from "src/auth/private-user/types/private-user.type";
+import { UserProfile } from "src/entities/user/user-profile.entity";
 
 export interface InfoToFindPage {
   id?: string;
   profileId?: string;
   userId?: string;
-  private?: number;
+  disclosureScope?: number;
 }
 
-export interface RequiredPageInfo extends UserIdList {
+export interface RequiredBklogInfo extends UserIdList {
   title: string;
-  private: number;// 0, 1, 2, 3, 4
+  disclosureScope: number;// 0: 개인, 1: following, 2: org, 3: following || org, 4: public
+}
+
+export interface RequiredPageInfo extends RequiredBklogInfo {
+  userProfile: UserProfile;
 }
 
 export interface PageInfoList {
   pageId: string;
   title: string;
+  disclosureScope: number;
 }

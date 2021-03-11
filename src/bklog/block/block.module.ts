@@ -4,14 +4,18 @@ import { BlockService } from './block.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BlockRepository } from './repositories/block.repository';
 import { TextPropertyRepository } from './repositories/text-property.repository';
-import { BlockVersionRepository } from './repositories/block-version.repository';
+import { PageVersionRepository } from '../repositories/page-version.repository';
+import { BlockCommentRepository } from './repositories/block-comment.repository';
+import { BlockPropertyRepository } from './repositories/block-property.repository';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       BlockRepository,
+      BlockPropertyRepository,
+      BlockCommentRepository,
       TextPropertyRepository,
-      BlockVersionRepository
+      PageVersionRepository
     ])
   ],
   controllers: [BlockController],

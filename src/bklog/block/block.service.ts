@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BlockRepository } from './repositories/block.repository';
 import { TextPropertyRepository } from './repositories/text-property.repository';
-import { InfoToFindBlock, BlockProperties, BaseBlockInfo, BasePropsInfo, TYPE_TEXT, BaseBlockDataInfo, PropsInfo, ResCreateBlockDate } from './block.type';
+import { InfoToFindBlock, BlockProperties, BaseBlockInfo, BasePropsInfo, TYPE_TEXT, BaseBlockDataInfo, ResCreateBlockDate } from './block.type';
 import { BlockTextProperty } from 'src/entities/bklog/text-property.entity';
 import { Block } from 'src/entities/bklog/block.entity';
 import { Token } from 'src/util/token.util';

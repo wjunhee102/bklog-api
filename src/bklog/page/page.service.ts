@@ -3,13 +3,13 @@ import { PageRepository } from './repositories/page.repository';
 import { InfoToFindPage, RequiredPageInfo, PageInfoList } from './page.type';
 import { Page } from 'src/entities/bklog/page.entity';
 import { Token } from 'src/util/token.util';
-import { UserService } from 'src/user/user.service';
+import { MoreThan, MoreThanOrEqual, Like } from 'typeorm';
+import { UserProfile } from 'src/entities/user/user-profile.entity';
 
 @Injectable()
 export class PageService {
   constructor(
-    private readonly pageRepository: PageRepository,
-    private readonly userService: UserService
+    private readonly pageRepository: PageRepository
   ){}
 
   /**
@@ -45,10 +45,10 @@ export class PageService {
       const page: Page = await this.pageRepository.create();
 
       page.id = Token.getUUID();
-      page.profileId = requiredPageInfo.profileId;
+      page.userProfile = requiredPageInfo.userProfile;
       page.userId = requiredPageInfo.userId;
       page.title = requiredPageInfo.title;
-      page.private = requiredPageInfo.private;
+      page.disclosureScope = requiredPageInfo.disclosureScope;
 
       this.savePage(page);
       console.log(page);
@@ -95,17 +95,32 @@ export class PageService {
     return false;
   }
 
-  public async findPublicPageList(penName: string): Promise<PageInfoList[]> {
-    const profileId = await this.userService.findUserProfileId(penName);
+  public async findPublicPageList(profileId, scope:number = 4): Promise<PageInfoList[]> {
+    if(!scope) {
+      console.log(scope);
+      return null;
+    }
 
-    if(profileId) {
-      const pageList: Page[] = await this.findPage({ profileId, private: 4 });
+    if(profileId) { 
+      const pageList: Page[] = await this.pageRepository.find({
+        where: {
+          profileId,
+          disclosureScope: MoreThanOrEqual(4),
+        },
+        order: {
+          disclosureScope: "ASC",
+          title: "ASC"
+        }
+      });
+
+      console.log(pageList);
 
       if(pageList[0]) {
         return pageList.map((page) => {
           return {
             pageId: page.id,
-            title: page.title
+            title: page.title,
+            disclosureScope: page.disclosureScope
           }
         });
       }

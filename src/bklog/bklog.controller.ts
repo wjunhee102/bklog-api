@@ -1,6 +1,6 @@
 import { Controller, Post, Req, Res, Body, Get, Param, Query } from '@nestjs/common';
 import { BklogService } from './bklog.service';
-import { RequiredPageInfo } from './page/page.type';
+import { RequiredPageInfo, PageInfoList, RequiredBklogInfo } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
 import { ACCESS_TOKEN } from 'src/auth/auth.type';
 import { ResponseMessage } from 'src/util/response.util';
@@ -25,21 +25,25 @@ export class BklogController {
 
   @Get('list/:penName')
   async getPageList(@Req() req, @Param('penName') penName, @Query('id') id) {
-    const resCheckCookie = this.validationAccessToken(req);
+    const accessToken = req.signedCookies[ACCESS_TOKEN];
 
-    if(resCheckCookie) {
-      return this.responseReissueToken(resCheckCookie);
-    }
+    if(accessToken) {
+      const resCheckCookie = this.validationAccessToken(req);
 
-    
+      if(resCheckCookie) {
+        return this.responseReissueToken(resCheckCookie);
+      }
+    } 
 
-    return "success"
+    const pageInfoList = await this.bklogService.findPageList(penName, id);
+
+    return ResponseMessage(pageInfoList);
   }
 
   @Post('create-page')
   public async createPage(
     @Req() req, 
-    @Body() requiredPageInfo: RequiredPageInfo
+    @Body() requiredBklogInfo: RequiredBklogInfo
   ) {
 
     const resCheckCookie = this.validationAccessToken(req);
@@ -47,7 +51,7 @@ export class BklogController {
     if(resCheckCookie) {
       return this.responseReissueToken(resCheckCookie);
     } 
-    const pageId = await this.bklogService.createBklog(requiredPageInfo);
+    const pageId = await this.bklogService.createBklog(requiredBklogInfo);
     
     return ResponseMessage({
       success: true,

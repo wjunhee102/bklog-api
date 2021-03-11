@@ -7,3 +7,9 @@ export interface InfoToFindUserProfile {
   id?: string;
   penName?: string;
 }
+
+export interface UserStatusData {
+  lastAccessTime: Date;
+  isNotDormant: boolean;
+  isActive: boolean;
+}

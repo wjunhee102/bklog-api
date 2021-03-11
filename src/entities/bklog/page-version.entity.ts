@@ -1,21 +1,15 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn} from "typeorm";
+import { Entity, Column, PrimaryColumn, CreateDateColumn, ManyToOne} from "typeorm";
 import { BlockData } from "src/bklog/block/block.type";
+import { Page } from "./page.entity";
 
 @Entity({name: "block-version"})
-export class BlockVersion {
+export class PageVersion {
   @PrimaryColumn({
     name: "page_version_id",
     type: "varchar",
     width: 255
   })
   id: string;
-
-  @Column({
-    name: "page_id",
-    type: "varchar",
-    width: 255
-  })
-  pageId: string;
 
   @Column({
     name: "pre_version_id",
@@ -36,4 +30,7 @@ export class BlockVersion {
     type: "json"
   })
   blockDataList: BlockData[];
+
+  @ManyToOne(() => Page)
+  page: Page;
 }

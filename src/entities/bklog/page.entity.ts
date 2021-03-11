@@ -1,4 +1,8 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from 'typeorm';
+import { UserProfile } from '../user/user-profile.entity';
+import { PageStar } from './page-star.entity';
+import { PageVersion } from './Page-version.entity';
+import { Block } from './block.entity';
 
 @Entity({ name: "page" })
 export class Page {
@@ -59,13 +63,6 @@ export class Page {
   views: number;
 
   @Column({
-    name: "profile_id",
-    type: "varchar",
-    width: 255
-  })
-  profileId: string;
-
-  @Column({
     name: "user_id",
     type: "varchar",
     width: 255
@@ -73,9 +70,22 @@ export class Page {
   userId: string;
 
   @Column({
+    name: "disclosure-scope",
     type: "tinyint",
     default: 4
   })
-  private: number;
+  disclosureScope: number;
+
+  @ManyToOne(() => UserProfile)
+  userProfile: UserProfile;
+
+  @OneToMany(() => Block, block => block.page)
+  blockList: Block[];
+
+  @OneToMany(() => PageStar, pageStar => pageStar.page)
+  pageStar: PageStar[];
+
+  @OneToMany(() => PageVersion, blockVersion => blockVersion.page)
+  versionList: PageVersion[];
 
 }

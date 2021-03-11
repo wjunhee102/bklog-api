@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from "typeorm";
+import { UserProfile } from "./user-profile.entity";
 
 @Entity({name: "user-follower"})
 export class UserFollower {
@@ -8,15 +9,11 @@ export class UserFollower {
   })
   id: number;
 
-  @Column({
-    name: "profile-id"
-  })
-  profileId: string;
+  @ManyToOne(() => UserProfile)
+  userProfile: UserProfile;
 
-  @Column({
-    name: "relative-id"
-  })
-  relativeId: string;
+  @ManyToOne(() => UserProfile)
+  relativeProfile: UserProfile;
 
   @CreateDateColumn({
     name: "created_at"

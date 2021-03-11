@@ -1,5 +1,10 @@
-import { Entity, Column, PrimaryColumn, OneToOne, JoinColumn } from "typeorm";
+import { Entity, Column, PrimaryColumn, OneToOne, JoinColumn, OneToMany } from "typeorm";
 import { UserStatus } from "./user-status.entity";
+import { PageComment } from "../bklog/page-comment.entity";
+import { PageStar } from "../bklog/page-star.entity";
+import { UserFollower } from "./user-follower.entity";
+import { UserFollowing } from "./user-following.entity";
+import { Page } from "../bklog/page.entity";
 
 /**
  * id는 uuid
@@ -56,8 +61,21 @@ export class UserProfile {
   })
   coverImage: string;
 
-  @OneToOne(()=> UserStatus)
+  @OneToOne(() => UserStatus)
   @JoinColumn()
-  userStatus: UserStatus
+  userStatus: UserStatus;
+
+  @OneToMany(() => Page, page => page.userProfile)
+  page: Page[];
+
+  @OneToMany(() => UserFollowing, userFollowing => userFollowing.userProfile)
+  userFollowing: UserFollowing[];
+
+  @OneToMany(() => UserFollower, userFollower => userFollower.userProfile)
+  userFollower: UserFollower[];
+
+  @OneToMany(() => PageComment, pageComment => pageComment.userProfile)
+  pageComments: PageComment[];
+
 
 }

@@ -1,5 +1,8 @@
-import { Entity, Column, PrimaryColumn } from "typeorm";
+import { Entity, Column, PrimaryColumn, OneToOne, ManyToOne, OneToMany, JoinColumn } from "typeorm";
 import { BlockTypes } from "src/bklog/block/block.type";
+import { Page } from "./page.entity";
+import { BlockComment } from "./block-comment.entity";
+import { BlockProperty } from "./block-property.entity";
 
 @Entity({name: "block"})
 export class Block {
@@ -9,13 +12,6 @@ export class Block {
     width: 255
   })
   id: string;
-
-  @Column({
-    name: "page_id",
-    type: "varchar",
-    length: 255
-  })
-  pageId: string;
 
   @Column({
     name: "preBlock_id",
@@ -56,4 +52,15 @@ export class Block {
     default: "text"
   })
   type: BlockTypes;
+
+  @OneToOne(() => BlockProperty)
+  @JoinColumn()
+  property: BlockProperty;
+
+  @ManyToOne(() => Page)
+  page: Page;
+
+  @OneToMany(() => BlockComment, blockComment => blockComment.block)
+  blockComment: BlockComment;
+  
 }
