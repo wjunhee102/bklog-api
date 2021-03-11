@@ -5,9 +5,14 @@ import { BklogController } from './bklog.controller';
 import { BklogService } from './bklog.service';
 import { AuthModule } from 'src/auth/auth.module';
 import { UserModule } from 'src/user/user.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { PageVersionRepository } from './repositories/page-version.repository';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([
+      PageVersionRepository
+    ]),
     PageModule,
     BlockModule,
     AuthModule,
