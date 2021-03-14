@@ -13,6 +13,7 @@ import { UserAuth } from './entities/user-auth.entity';
 import { UserPrivacy } from './entities/user-privacy.entity';
 import { Token } from 'src/util/token.util';
 import { ResSignInUser } from '../auth.type';
+import { InfoToFindUserProfile } from 'src/user/user.type';
 
 @Injectable()
 export class PrivateUserService {
@@ -47,6 +48,19 @@ export class PrivateUserService {
     .where(userInfo)
     .getOne();
   }
+
+   /**
+   * profile 찾기
+   * @param penName 
+   */
+  private async findOneUserProfile(infoToFindUserProfile : InfoToFindUserProfile): Promise<UserProfile | null> {
+    const userProfile: UserProfile | null = await this.userProfileRepository.findOne({
+      where: infoToFindUserProfile
+    });
+
+    return userProfile;
+  }
+ 
 
   private async saveUser(user: User) {
     try {
@@ -203,10 +217,24 @@ export class PrivateUserService {
     return false;
   }
 
+  /**
+   * 
+   * @param id 
+   */
   public async checkAdmin(id: string) {
     const { firstName }: User = await this.findOneUser({ id });
     
     return firstName === "admin"? true : false;
+  }
+
+  /**
+   * 중복 유무 확인
+   * @param penName 
+   */
+  public async checkPenName(penName: string): Promise<boolean> {
+    const userProfile: UserProfile | null = await this.findOneUserProfile({ penName });
+
+    return userProfile? true : false;
   }
 
   /**

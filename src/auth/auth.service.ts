@@ -3,7 +3,6 @@ import { JwtService } from '@nestjs/jwt';
 import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
 import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo, ACCESS, REFRESH } from './auth.type';
 import { UserAuthInfo } from './private-user/types/private-user.type';
-import { UserService } from 'src/user/user.service';
 import { RequiredUserInfo, ResAuthenticatedUser } from './private-user/types/private-user.type';
 import { PrivateUserService } from './private-user/private-user.service';
 
@@ -11,7 +10,6 @@ import { PrivateUserService } from './private-user/private-user.service';
 export class AuthService {
   constructor(
     private jwtService: JwtService,
-    private userService: UserService,
     private privateUserService: PrivateUserService
   ){}
 
@@ -99,7 +97,7 @@ export class AuthService {
     } 
     
     const emailUsed: boolean = await this.privateUserService.checkUsedEmailAddress(requiredUserInfo.email);
-    const penNameUsed: boolean = await this.userService.checkPenName(requiredUserInfo.penName);
+    const penNameUsed: boolean = await this.privateUserService.checkPenName(requiredUserInfo.penName);
     
     if(emailUsed || penNameUsed) {
       return {

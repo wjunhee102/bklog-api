@@ -9,8 +9,8 @@ import { UserModule } from './user/user.module';
 @Module({
   imports: [
     TypeOrmModule.forRoot(),
-    BklogModule,
     AuthModule,
+    BklogModule,
     UserModule
   ],
   controllers: [AppController],
