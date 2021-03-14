@@ -1,14 +1,10 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from "typeorm";
 import { UserProfile } from "../user/user-profile.entity";
 import { Page } from "./page.entity";
+import { SubTable } from "../base/sub-table";
 
 @Entity({ name: "page-star" })
-export class PageStar {
-
-  @PrimaryGeneratedColumn({
-    type: "bigint"
-  })
-  id: number;
+export class PageStar extends SubTable {
 
   @CreateDateColumn({
     name: "created_at"

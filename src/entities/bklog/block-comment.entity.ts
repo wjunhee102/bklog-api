@@ -2,32 +2,10 @@ import { Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, Col
 import { UserProfile } from "../user/user-profile.entity";
 import { Block } from "./block.entity";
 import { Page } from "./page.entity";
+import { CommentTable } from "../base/comment-table";
 
 @Entity({ name: "block-comment" })
-export class BlockComment {
-  @PrimaryGeneratedColumn({
-    type: "bigint"
-  })
-  id: number;
-
-  @CreateDateColumn({
-    name: "create_at"
-  })
-  createdDate: Date;
-
-  @UpdateDateColumn({
-    name: "updated_at"
-  })
-  updatedDate: Date;
-
-  @Column({
-    type: "varchar",
-    width: 255
-  })
-  comment: string;
-
-  @ManyToOne(() =>  UserProfile)
-  userProfile: UserProfile;
+export class BlockComment extends CommentTable {
 
   @ManyToOne(() => Block)
   block: Block;

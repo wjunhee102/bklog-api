@@ -1,10 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, Column } from "typeorm";
+import { SubTable } from "../base/sub-table";
 
 @Entity({ name: "block-property" })
-export class BlockProperty {
-  @PrimaryGeneratedColumn({
-    type: "bigint"
-  })
+export class BlockProperty extends SubTable {
 
   @Column({
     type: "varchar",
@@ -21,4 +19,5 @@ export class BlockProperty {
     type: "json"
   })
   contents: any[];
+
 }

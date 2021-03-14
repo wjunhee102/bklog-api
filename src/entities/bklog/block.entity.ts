@@ -6,15 +6,15 @@ import { BlockProperty } from "./block-property.entity";
 
 @Entity({name: "block"})
 export class Block {
+  
   @PrimaryColumn({
-    name: "block_id",
     type: "varchar",
     width: 255
   })
   id: string;
 
   @Column({
-    name: "preBlock_id",
+    name: "pre_block_id",
     type: "varchar",
     length: 255,
     nullable: true,
@@ -23,7 +23,7 @@ export class Block {
   preBlockId: string;
 
   @Column({
-    name: "nextBlock_id",
+    name: "next_block_id",
     type: "varchar",
     length: 255,
     nullable: true,
@@ -32,7 +32,7 @@ export class Block {
   nextBlockId: string;
 
   @Column({
-    name: "parentBlock_id",
+    name: "parent_block_id",
     type: "varchar",
     length: 255,
     nullable: true,
@@ -41,7 +41,6 @@ export class Block {
   parentBlockId: string;
 
   @Column({
-    name: "children_id",
     type: 'json'
   })
   children: string[] | null;

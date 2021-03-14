@@ -2,25 +2,20 @@ import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneT
 import { UserAuth } from "./user-auth.entity";
 import { UserProfile } from "src/entities/user/user-profile.entity";
 import { UserStatus } from "src/entities/user/user-status.entity";
+import { MainTable } from "src/entities/base/main-table";
 
 @Entity({name: "user"})
-export class User {
-
-  @PrimaryColumn({
-    type: "varchar",
-    length: 255
-  })
-  id: string;
+export class User extends MainTable {
 
   @Column({
-    name: "first-name",
+    name: "first_name",
     type: "varchar",
     length: 20
   })
   firstName: string;
 
   @Column({
-    name: "last-name",
+    name: "last_name",
     type: "varchar",
     length: 20
   })
@@ -31,16 +26,6 @@ export class User {
     length: 100
   })
   email: string;
-
-  @CreateDateColumn({
-    name:"created_at"
-  })
-  createdDate: Date;
-
-  @UpdateDateColumn({
-    name:"updated_at"
-  })
-  updatedDate: Date;
 
   @Column({
     name:"last_sign_in_date",

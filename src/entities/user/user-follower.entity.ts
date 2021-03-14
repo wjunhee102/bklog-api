@@ -16,7 +16,7 @@ export class UserFollower {
   relativeProfile: UserProfile;
 
   @CreateDateColumn({
-    name: "created_at"
+    name: "created-at"
   })
   createdDate: Date;
 

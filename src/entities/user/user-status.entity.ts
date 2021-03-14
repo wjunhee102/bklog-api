@@ -8,7 +8,7 @@ export class UserStatus {
   id: number;
 
   @Column({
-    name: "last_access_time",
+    name: "last-access-time",
     type: "datetime",
     nullable: true,
     default: null
@@ -16,7 +16,7 @@ export class UserStatus {
   lastAccessTime: Date;
 
   @Column({
-    name: "is_not_dormant",
+    name: "is-not-dormant",
     type: "tinyint",
     width: 1,
     default: 1
@@ -24,7 +24,7 @@ export class UserStatus {
   isNotDormant: boolean;
 
   @Column({
-    name: "is_active",
+    name: "is-active",
     type: "tinyint",
     width: 1,
     default: 1

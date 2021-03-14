@@ -14,14 +14,14 @@ import { Page } from "../bklog/page.entity";
 export class UserProfile {
 
   @PrimaryColumn({
-    name: "user_profile_id",
+    name: "user-profile-id",
     type: "varchar",
     width: 255
   })
   id: string;
 
   @Column({
-    name: "pen_name",
+    name: "pen-name",
     type: "varchar",
     length: 100
   })

@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from 'typeorm';
 import { UserProfile } from '../user/user-profile.entity';
 import { PageStar } from './page-star.entity';
-import { PageVersion } from './Page-version.entity';
+import { PageVersion } from './page-version.entity';
 import { Block } from './block.entity';
 
 @Entity({ name: "page" })
@@ -85,7 +85,7 @@ export class Page {
   @OneToMany(() => PageStar, pageStar => pageStar.page)
   pageStar: PageStar[];
 
-  @OneToMany(() => PageVersion, blockVersion => blockVersion.page)
+  @OneToMany(() => PageVersion, pageVersion => pageVersion.page)
   versionList: PageVersion[];
 
 }

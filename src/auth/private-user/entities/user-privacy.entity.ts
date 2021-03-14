@@ -1,12 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn } from "typeorm";
+import { SubTable } from "src/entities/base/sub-table";
 
 @Entity({name:"user-privacy"})
-export class UserPrivacy {
-
-  @PrimaryGeneratedColumn({
-    type: "bigint"
-  })
-  id: number;
+export class UserPrivacy extends SubTable {
 
   @Column({
     name: "social_security_number_f",
@@ -70,4 +66,5 @@ export class UserPrivacy {
     name: "update_at"
   })
   updatedDate: Date;
+  
 }

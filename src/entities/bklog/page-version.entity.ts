@@ -2,10 +2,9 @@ import { Entity, Column, PrimaryColumn, CreateDateColumn, ManyToOne} from "typeo
 import { BlockData } from "src/bklog/block/block.type";
 import { Page } from "./page.entity";
 
-@Entity({name: "block-version"})
+@Entity({name: "page-version"})
 export class PageVersion {
   @PrimaryColumn({
-    name: "page_version_id",
     type: "varchar",
     width: 255
   })
