@@ -8,6 +8,12 @@ export interface InfoToFindPage {
   disclosureScope?: number;
 }
 
+export interface ReqCreatePage {
+  profileId: string;
+  title: string;
+  disclosureScope: number;
+}
+
 export interface RequiredBklogInfo extends UserIdList {
   title: string;
   disclosureScope: number;// 0: 개인, 1: following, 2: org, 3: following || org, 4: public
@@ -18,7 +24,12 @@ export interface RequiredPageInfo extends RequiredBklogInfo {
 }
 
 export interface PageInfoList {
-  pageId: string;
+  id: string;
   title: string;
   disclosureScope: number;
+}
+
+export interface PageUserInfo {
+  penName?: string;
+  id?: string;
 }

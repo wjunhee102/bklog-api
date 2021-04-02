@@ -13,18 +13,30 @@ export class AuthService {
     private privateUserService: PrivateUserService
   ){}
 
+  /**
+   * 
+   * @param email 
+   */
   private async checkValidEmailAddress(email: string) {
     const regEmail = new RegExp(/^[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}$/i);
 
     return regEmail.test(email);
   }
 
+  /**
+   * 
+   * @param password 
+   */
   private async checkValidPassword(password: string) {
     const regPassword = new RegExp(/^(?=.*[a-zA-Z])(?=.*[!@#$%^*+=-])(?=.*[0-9]).{8,16}$/);
 
     return regPassword.test(password);
   }
 
+  /**
+   * 
+   * @param penName 
+   */
   private async checkValidPenName(penName: string) {
     const regPenName = new RegExp(/^[a-zA-Z0-9].{3,12}$/);
 
@@ -74,6 +86,10 @@ export class AuthService {
     }
   } 
 
+  /**
+   * 
+   * @param requiredUserInfo 
+   */
   public async signUpUser(
     requiredUserInfo: RequiredUserInfo
   ): Promise<ResSignUpUser> {
@@ -193,6 +209,11 @@ export class AuthService {
     return null;
   } 
 
+  /**
+   * 
+   * @param accessToken 
+   * @param userAgent 
+   */
   public validateAccessTokenReturnId(
     accessToken: string,
     userAgent: string
@@ -260,6 +281,11 @@ export class AuthService {
     return jwtTokens;
   }
 
+  /**
+   * 
+   * @param refreshToken 
+   * @param userAgent 
+   */
   public async signOutUser(
     refreshToken: string,
     userAgent: string
@@ -279,6 +305,13 @@ export class AuthService {
     return resUpdateAccessTime;
   }
 
+  /**
+   * 
+   * @param userInfo 
+   * @param accessToken 
+   * @param refreshToken 
+   * @param userAgent 
+   */
   public async withdrawalUser(
     userInfo: UserAuthInfo, 
     accessToken: string, 
@@ -313,6 +346,12 @@ export class AuthService {
     }
   }
 
+  /**
+   * 
+   * @param accessToken 
+   * @param userAgent 
+   * @param targetEmail 
+   */
   public async activateUser (
     accessToken: string, 
     userAgent: string, 
@@ -345,6 +384,11 @@ export class AuthService {
     return result;
   }
 
+  /**
+   * 
+   * @param accessToken 
+   * @param userAgent 
+   */
   public async simpleSignInUser (
     accessToken: string,
     userAgent: string

@@ -1,82 +1,63 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BlockRepository } from './repositories/block.repository';
-import { TextPropertyRepository } from './repositories/text-property.repository';
-import { InfoToFindBlock, BlockProperties, BaseBlockInfo, BasePropsInfo, TYPE_TEXT, BaseBlockDataInfo, ResCreateBlockDate } from './block.type';
-import { BlockTextProperty } from 'src/entities/bklog/text-property.entity';
+import { RequiredBlock, RequiredBlockProperty, BlockData, BlockUpdateProps, PropertyUpdateProps } from './block.type';
 import { Block } from 'src/entities/bklog/block.entity';
 import { Token } from 'src/util/token.util';
-import { BlockData } from './block.type';
-import { BlockVersion } from 'src/entities/bklog/block-version.entity';
-import { BlockVersionRepository } from './repositories/block-version.repository';
+import { BlockPropertyRepository } from './repositories/block-property.repository';
+import { BlockProperty } from 'src/entities/bklog/block-property.entity';
+import { Page } from 'src/entities/bklog/page.entity';
+import { In } from 'typeorm';
+import { BlockCommentRepository } from './repositories/block-comment.repository';
+import { ModifySet, ParamModifyBlock } from '../bklog.type';
 
 @Injectable()
 export class BlockService {
   constructor(
-    private readonly blockRepository : BlockRepository,
-    private readonly textPropsRepository: TextPropertyRepository,
-    private readonly versionRepository: BlockVersionRepository
+    private readonly blockRepository   : BlockRepository,
+    private readonly propertyRepository: BlockPropertyRepository,
+    private readonly blockCommentRepository: BlockCommentRepository
   ){}
 
-  private async findOneProperty(type: string, blockId: string): Promise<BlockProperties>{
-    switch(type) {
-      case "text": 
-        return await this.textPropsRepository.findOne({
-          where: {
-            blockId
-          }
-        });
-      default:
-        return null;
-    }
-  }
-
-  private async findOneBlock(blockInfo: InfoToFindBlock): Promise<Block> {
+  /**
+   * block id
+   * @param id 
+   */
+  private async findOneBlock(id: string): Promise<Block> {
     return await this.blockRepository.findOne({
-      where: blockInfo
+      relations: ["property"],
+      where: { id }
     });
   }
+  
+  /**
+   * block property id
+   * @param id 
+   */
+  private async findOneProperty(id: string): Promise<BlockProperty> {
+    const block: Block = await this.blockRepository
+      .createQueryBuilder("block")
+      .leftJoinAndSelect(
+        "block.property",
+        "block-property"
+      )
+      .where({ id })
+      .select("block.property")
+      .getOne()
 
-  private async findBlock(blockInfo: InfoToFindBlock): Promise<Block[]> {
-    return await this.blockRepository.find({
-      where: blockInfo
-    });
-  }
-
-  private async saveBlock(blocks: Block[]): Promise<boolean> {
-    try {
-      await this.blockRepository.save(blocks);
-
-      return true;
-    } catch(e) {
-      Logger.error(e);
-
-      return false;
-    }
-  }
-
-  private async saveProperty(type: string, property: BlockProperties): Promise<boolean> {
-    try {
-
-      switch(type) {
-        case TYPE_TEXT: 
-          await this.textPropsRepository.save(property);
-          console.log(property);
-          return true;
-
-        default:
-          return false;
-      }
-
-    } catch(e) {
-      Logger.error(e);
-      return false;
+    if(!block) {
+      return null;
     }
     
+    return block.property
   }
 
-  private async saveVersion(blockVersion: BlockVersion): Promise<boolean> {
+  /**
+   * 
+   * @param blockList 
+   */
+  private async saveBlock(blockList: Block[]): Promise<boolean> {
     try {
-      await this.versionRepository.save(blockVersion);
+      await this.blockRepository.save(blockList);
 
       return true;
     } catch(e) {
@@ -86,196 +67,254 @@ export class BlockService {
     }
   }
 
-  private async insertBlock(baseBlockInfo: BaseBlockInfo): Promise<Block> {
+  /**
+   * 
+   * @param propertyList 
+   */
+  private async saveProperty(propertyList: BlockProperty[]): Promise<boolean> {
     try {
-      const defaultBlockInfo = Object.assign({}, baseBlockInfo);
+      await this.propertyRepository.save(propertyList);
 
-      if(!baseBlockInfo.children) {
-        defaultBlockInfo.children = [];
-      }
+      return true;
+    } catch(e) {
+      Logger.error(e);
 
-      const block: Block = await this.blockRepository.create(defaultBlockInfo);
+      return false;
+    }
+  }
+
+  /**
+   * 
+   * @param requiredBlock 
+   */
+  private async insertBlock(requiredBlock: RequiredBlock): Promise<Block> {
+    const block: Block = await this.blockRepository.create(requiredBlock);
+
+    if(!requiredBlock.id) {
       block.id = Token.getUUID();
+    }
 
-      const result = await this.saveBlock([block]);
-      console.log(result);
-      if(!result) {
-        return null;
+    await this.saveBlock([block]);
+
+    return await this.findOneBlock(block.id);
+  }
+
+  /**
+   * 
+   * @param requiredProperty 
+   */
+  private async insertProperty(requiredProperty: RequiredBlockProperty): Promise<BlockProperty> {
+    const property: BlockProperty = await this.propertyRepository.create(requiredProperty);
+    
+    await this.saveProperty([property]);
+
+    return await this.propertyRepository.findOne({
+      where: {
+        id: property.id
       }
-
-      return block;
-    } catch(e) {
-      Logger.error(e);
-
-      return null;
-    }
+    });
   }
 
-  private async insertProps(basePropsInfo: BasePropsInfo, blockId: string): Promise<BlockProperties> {
+  /**
+   * 
+   * @param block 
+   */
+  private async deleteBlock(block: Block): Promise<boolean> {
     try {
-      switch(basePropsInfo.type) {
-        case TYPE_TEXT: 
-          const textDefaultProperty = {
-            blockId,
-            contents: [],
-            style: {
-              color: null,
-              backgroundColor: null
-            }
-          }
+      await this.blockRepository.delete(block);
 
-          const textProps: BlockTextProperty = await this.textPropsRepository.create(Object.assign({}, textDefaultProperty, basePropsInfo.info)); 
-          textProps.blockId = blockId;
-
-          const result = await this.saveProperty(TYPE_TEXT, textProps);
-
-          if(!result) {
-            return null;
-          }
-
-          return textProps;
-        
-        default: 
-          return null;
-        
-      }
-    } catch (e) {
-      Logger.error(e);
-      return null;
-    }
-  }
-
-  private async insertVersion(blockDataList: BlockData[], pageId: string,preVersionId?: string): Promise<string> {
-    try {
-      const blockVersion: BlockVersion = await this.versionRepository.create({preVersionId});
-      
-      blockVersion.id = Token.getUUID();
-      blockVersion.pageId = pageId;
-      blockVersion.blockDataList = blockDataList;
-      
-      await this.saveVersion(blockVersion);
-
-      return blockVersion.id;
-    } catch(e) {
-      Logger.error(e);
-
-      return null;
-    }
-  }
-
-  private async deleteBlock(block: Block[]): Promise<boolean> {
-    try {
-      await this.blockRepository.remove(block);
       return true;
     } catch(e) {
       Logger.error(e);
+
       return false;
     }
   }
 
-  private async deleteProps(props: BlockProperties, type: string = TYPE_TEXT): Promise<boolean> {
+  /**
+   * 
+   * @param property 
+   */
+  private async deleteProperty(property: BlockProperty): Promise<boolean> {
     try {
-      switch(type) {
-        case TYPE_TEXT: 
-          await this.textPropsRepository.remove(props);
-          return true;
-        
-        default: 
-          return false;
-      } 
-    } catch(e) {
-      Logger.error(e);
-      return false;
-    }
-  }
+      await this.propertyRepository.delete(property);
 
-  private async deleteVersion(blockVersion: BlockVersion) { 
-    try {
-      await this.versionRepository.delete(blockVersion);
       return true;
     } catch(e) {
       Logger.error(e);
+
       return false;
     }
   }
 
-  public async createBlockData(baseBlockDataInfo: BaseBlockDataInfo): Promise<BlockData> {
-    const block: Block = await this.insertBlock(baseBlockDataInfo.block);
-    const props: BlockProperties = await this.insertProps(baseBlockDataInfo.props, block.id);
+  /**
+   * 
+   * @param blockUpdateProps 
+   */
+  private async updateBlock(blockUpdateProps: BlockUpdateProps): Promise<boolean> {
+    const block: Block = await this.findOneBlock(blockUpdateProps.id);
 
-    if(block && props) {
-      const blockData = Object.assign({}, block, {
-        property: props
+    if(!block) {
+      return false;
+    }
+
+    for(const [key, value] of Object.entries(blockUpdateProps)) {
+      if(key !== "id") {
+        block[key] = value;
+      }
+    }
+
+    await this.saveBlock([block]);
+
+    return true;
+  }
+
+  /**
+   * 
+   * @param propertyUpdateProps 
+   */
+  private async updateProperty(propertyUpdateProps: PropertyUpdateProps): Promise<boolean> {
+    const property: BlockProperty = await this.findOneProperty(propertyUpdateProps.blockId);
+    if(!property) {
+      return false;
+    }
+
+    for(const [key, value] of Object.entries(propertyUpdateProps)) {
+      if(key !== "blockid") {
+        property[key] = value;
+      }
+    }
+
+    await this.saveProperty([property]);
+
+    return true;
+  }
+
+  /**
+   * 
+   * @param page 
+   */
+  public async createBlockData(page: Page): Promise<BlockData> {
+    const property: BlockProperty | null = await this.insertProperty({
+      type: "bk-h1",
+      style: {
+        color: null,
+        backgroundColor: null
+      },
+      contents: []
+    });
+
+    if(!property) {
+      return null;
+    }
+
+    const block: Block | null = await this.insertBlock({
+      page,
+      property,
+      children: []
+    });
+
+    if(!block) {
+      this.deleteProperty(property);
+      return null;
+    }
+
+    const blockData: BlockData = Object.assign({}, block, {
+      blockComment: undefined,
+      page: undefined,
+      property: Object.assign({}, property, {
+        id: undefined
+      })
+    });
+
+    return blockData;
+  }
+
+  /**
+   * 
+   * @param blockIdList 
+   */
+  public async removeBlockData(blockIdList: string[]): Promise<boolean> {
+    try {
+      const blockList = await this.blockRepository.find({
+        relations: ["property", "blockComment"],
+        where: {
+          id: In(blockIdList)
+        }
+      });
+  
+      blockList.forEach(async (block)=> {
+        if(block.blockComment[0]) {
+          block.blockComment.forEach(async (comment)=> {
+            await this.blockCommentRepository.delete(comment);
+          });
+        }
+
+        await this.deleteBlock(block);
+        await this.deleteProperty(block.property);
       });
 
-      delete blockData.pageId;
-      delete blockData.property.id;
-      delete blockData.property.blockId;
-  
-      return blockData;
-
-    } else if(block){
-      await this.deleteBlock([block]);
-    } 
-
-    return null;
-  }
-
-  public async createFirstBlock(baseBlockInfo: BaseBlockInfo): Promise<ResCreateBlockDate> {
-    const blockData: BlockData | null = await this.createBlockData({
-      block: baseBlockInfo,
-      props: {
-        type: "text",
-        info: {
-          type: "bk-h1"
-        }
-      }
-    });
-
-    if(blockData) {
-      const versionId: string = await this.insertVersion([blockData], baseBlockInfo.pageId);
-
-      if(versionId) {
-        return {
-          blockData,
-          versionId
-        };
-      }
-      
-    }
-    
-    return null;    
-  }
-
-  public async insertBlockData(blockData: BlockData, pageId: string): Promise<boolean> {
-    const blockProperty: BlockProperties = Object.assign({}, blockData.property, {
-      blockId: blockData.id,
-      type: "text"
-    });
-    const block = Object.assign({}, blockData, {
-      pageId
-    });
-
-    delete block.property;
-
-    const resProps: boolean = await this.saveProperty(
-      "text",
-      blockProperty
-    );
-
-    const resBlock: boolean = await this.saveBlock([block]);
-
-    if(resProps && resBlock) {
       return true;
-    } else {
-      if(resProps) {
-        await this.deleteProps(blockProperty);
-      } else {
-        await this.deleteBlock([block]);
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+
+  /**
+   * 
+   * @param paramModifyBlockList 
+   */
+  public async createData(paramModifyBlockList: ParamModifyBlock[]): Promise<boolean> {
+  
+    return true;
+  }
+
+  /**
+   * 
+   * @param paramModifyBlockList 
+   */
+  public async updateData(paramModifyBlockList: ParamModifyBlock[]): Promise<boolean> {
+    const idList = paramModifyBlockList.map((param) => {
+      return param.blockId
+    });
+
+    try {
+
+      const blockList: Block[] = await this.blockRepository.find({
+        relations: ["property"],
+        where: In(idList)
+      });
+  
+      if(blockList[0]) {
+        return false;
       }
+
+      paramModifyBlockList.forEach(async (param) => {
+        const idx = blockList.findIndex((block) => block.id === param.blockId);
+     
+      })
+
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
     }
 
-    return false;
+    return true;
+  }
+
+  /**
+   * 
+   * @param paramModifyBlockList 
+   */
+  public async deleteData(paramModifyBlockList: ParamModifyBlock[]): Promise<boolean> {
+    const idList = paramModifyBlockList.map((param) => {
+      return param.blockId
+    });
+
+    return await this.removeBlockData(idList);
   }
 
 }

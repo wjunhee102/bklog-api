@@ -1,28 +1,53 @@
 import { BlockTextProperty } from "src/entities/bklog/text-property.entity";
 import { TextStyle, TextContents } from "src/types/bklog";
-import { actionTextProps } from "./utils";
+import { Page } from "src/entities/bklog/page.entity";
+import { BlockProperty } from "src/entities/bklog/block-property.entity";
 
 export const TYPE_TEXT = "text" as const;
 
 // export type BlockTypes = "text" | "container" | "image";
 export type BlockTypes = "text" | "container";
 
-export type BlockProperties = BlockTextProperty | null;
+export type BlockProperties = any | BlockTextProperty | null;
 
-export interface InfoToFindBlock {
-  id?: string;
-  pageId?: string;
-}
-
-export interface BaseBlockInfo {
-  pageId: string;
-  type:  BlockTypes;
+export interface ReqBlockProps {
+  type?: BlockTypes;
   parentBlockId?: string;
   preBlockId?: string;
   nextBlockId?: string;
   children?: string[];
 }
 
+export interface BlockUpdateProps extends ReqBlockProps {
+  id: string;
+}
+
+export interface RequiredBlock extends ReqBlockProps {
+  page: Page;
+  property: BlockProperty;
+  id?: string;
+}
+
+export interface PropertyUpdateProps {
+  blockId: string;
+  type?: string;
+  style?: string;
+  contents?: any[];
+}
+
+export interface RequiredBlockProperty {
+  type: string;
+  style: any;
+  contents: any[]; 
+}
+
+export interface InfoToFindBlock {
+  id?: string;
+  parentBlockId?: string;
+  preBlockId?: string;
+  nextBlockId?: string;
+  page?: Page;
+}
 
 export interface TextPropsInfo {
   type: string;
@@ -30,29 +55,10 @@ export interface TextPropsInfo {
   contents?: TextContents[];
 }
 
-export interface BaseTextPropsInfo {
-  type: "text";
-  info: TextPropsInfo;
-}
-
-export interface BaseContainerPropsInfo {
-  type: "container";
-  info: null
-}
-
 export interface PropsInfo {
   type: BlockTypes;
   info: TextPropsInfo | null;
 } 
-
-export type BasePropsInfo = BaseTextPropsInfo | BaseContainerPropsInfo;
-
-export interface BaseBlockDataInfo {
-  block: BaseBlockInfo,
-  props: BasePropsInfo
-}
-
-export type PropsActionsType = ReturnType<typeof actionTextProps>;
 
 export interface BlockData {
   id: string;

@@ -3,16 +3,10 @@ import { UserProfile } from '../user/user-profile.entity';
 import { PageStar } from './page-star.entity';
 import { PageVersion } from './page-version.entity';
 import { Block } from './block.entity';
+import { MainTable } from '../base/main-table';
 
 @Entity({ name: "page" })
-export class Page {
-
-  @PrimaryColumn({
-    name: "page_id",
-    type: "varchar",
-    width: 255
-  })
-  id: string;
+export class Page extends MainTable {
 
   @Column({
     type: "varchar",
@@ -37,16 +31,6 @@ export class Page {
     default: null
   })
   coverColor: string;
-
-  @CreateDateColumn({
-    name: "created_at"
-  })
-  createdDate: Date;
-
-  @UpdateDateColumn({
-    name: "updated_at"
-  })
-  updatedDate: Date;
 
   @Column({
     name: "last_access_date",

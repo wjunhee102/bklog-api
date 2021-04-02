@@ -3,7 +3,7 @@ import { PageRepository } from './repositories/page.repository';
 import { InfoToFindPage, RequiredPageInfo, PageInfoList, PageUserInfo } from './page.type';
 import { Page } from 'src/entities/bklog/page.entity';
 import { Token } from 'src/util/token.util';
-import { MoreThanOrEqual } from 'typeorm';
+import { Brackets } from 'typeorm';
 
 @Injectable()
 export class PageService {
@@ -99,20 +99,14 @@ export class PageService {
    * @param id 
    */
   public async getPage(id: string): Promise<Page> {
-
-    console.log(id);
     const page: Page = await this.pageRepository
       .createQueryBuilder("page")
-      .where({
-        id
-      })
+      .where({ id })
       .leftJoinAndSelect("page.userProfile", "user-profile")
       .leftJoinAndSelect("page.blockList", "block")
       .leftJoinAndSelect("page.versionList", "page-version")
       .leftJoinAndSelect("block.property","block-property")
       .getOne();
-  
-    console.log("asdasd", page);
 
     if(!page) {
       return null
@@ -148,29 +142,12 @@ export class PageService {
    * @param profileId 
    * @param scope 
    */
-  public async findPublicPageList({ id, penName }: PageUserInfo, scope:number = 4): Promise<PageInfoList[]> {
-    if(!scope) {
-      console.log(scope);
-      return null;
-    }
+  public async findPublicPageList(
+    { id, penName }: PageUserInfo, 
+    scope:number = 4
+  ): Promise<PageInfoList[]> {
 
     if(id || penName) { 
-      // const pageList: Page[] = await this.pageRepository.find({
-      //   relations: ["userProfile"],
-      //   where: {
-      //     userProfile: {
-      //       id: pageUserInfo.id,
-      //       penName: pageUserInfo.penName
-      //     },
-      //     disclosureScope: MoreThanOrEqual(0),
-      //   },
-      //   order: {
-      //     disclosureScope: "ASC",
-      //     title: "ASC"
-      //   }
-      // });
-
-      
 
       const pageList: Page[] = await this.pageRepository
         .createQueryBuilder("page")
@@ -178,21 +155,24 @@ export class PageService {
           "page.userProfile", 
           "user-profile"
         )
-        .where("user-profile.penName = :penName OR user-profile.id = :id", 
-          { 
-            penName, 
-            id
-          }
-        )
-        .andWhere("page.disclosureScope >= :scope", { scope: 0 })
-        .select("page.id")
-        .addSelect("page.title")
-        .addSelect("page.disclosureScope")
+        .where("page.disclosureScope >= :scope", { scope: 0 })
+        .andWhere(new Brackets(qb => {
+          qb.where("user-profile.id = :id", { id })
+            .orWhere("user-profile.penName = :penName", { penName })
+        }))
+        .select([
+          "page.id",
+          "page.title",
+          "page.disclosureScope"
+        ])
+        .orderBy("page.disclosureScope", "DESC")
+        .addOrderBy("page.title", "ASC")
         .getMany();
 
       if(pageList[0]) {
         return pageList;
       }
+
     } 
 
     return null;
