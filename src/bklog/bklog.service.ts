@@ -170,6 +170,44 @@ export class BklogService {
       : null;
   }
 
+  public async modifyBlock(modifyBlockDataList: ModifyBlockType, pageId: string) {
+    const page: Page = await this.pageService.getPage(pageId);
+
+    for(const [key, value] of Object.entries(modifyBlockDataList)) {
+      switch(key) {
+        case "create":
+          const resCreate: boolean = await this.blockService.createData(value, page);
+          
+          if(!resCreate) {
+            return false;
+          }
+
+          break;
+
+        case "update":
+          const resUpdate: boolean = await this.blockService.updateData(value);
+
+          if(!resUpdate) {
+            return false;
+          }
+
+          break;
+        
+        case "delete": 
+          const resDelete: boolean = await this.blockService.deleteData(value);
+
+          if(!resDelete) {
+            return false;
+          }
+
+          break;
+        
+        default: 
+          return false;
+      }
+    }
+  }
+
   // private async modifyBlock(modifyBlockDataList: ModifyBlockType[]) {
 
   //   const param = modifyBlockDataList.reduce((acc, currentValue)=>{

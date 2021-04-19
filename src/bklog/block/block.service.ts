@@ -6,9 +6,10 @@ import { Token } from 'src/util/token.util';
 import { BlockPropertyRepository } from './repositories/block-property.repository';
 import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';
-import { In } from 'typeorm';
+import { In, Any } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
 import { ModifySet, ParamModifyBlock } from '../bklog.type';
+import { async } from 'rxjs';
 
 @Injectable()
 export class BlockService {
@@ -151,12 +152,7 @@ export class BlockService {
    * 
    * @param blockUpdateProps 
    */
-  private async updateBlock(blockUpdateProps: BlockUpdateProps): Promise<boolean> {
-    const block: Block = await this.findOneBlock(blockUpdateProps.id);
-
-    if(!block) {
-      return false;
-    }
+  private async updateBlock(block: Block, blockUpdateProps: BlockUpdateProps): Promise<boolean> {
 
     for(const [key, value] of Object.entries(blockUpdateProps)) {
       if(key !== "id") {
@@ -173,11 +169,7 @@ export class BlockService {
    * 
    * @param propertyUpdateProps 
    */
-  private async updateProperty(propertyUpdateProps: PropertyUpdateProps): Promise<boolean> {
-    const property: BlockProperty = await this.findOneProperty(propertyUpdateProps.blockId);
-    if(!property) {
-      return false;
-    }
+  private async updateProperty(property: BlockProperty, propertyUpdateProps: PropertyUpdateProps): Promise<boolean> {
 
     for(const [key, value] of Object.entries(propertyUpdateProps)) {
       if(key !== "blockid") {
@@ -190,6 +182,21 @@ export class BlockService {
     return true;
   }
 
+  private async insertBlockData(blockData: BlockData, page: Page): Promise<boolean> {
+    const property: BlockProperty = await this.insertProperty(blockData.property);
+
+    console.log(property);
+
+    const block: Block = await this.insertBlock(Object.assign({}, blockData, {
+      page,
+      property
+    }));
+
+    console.log(block);
+
+    return block? true : false;
+  }
+
   /**
    * 
    * @param page 
@@ -197,7 +204,7 @@ export class BlockService {
   public async createBlockData(page: Page): Promise<BlockData> {
     const property: BlockProperty | null = await this.insertProperty({
       type: "bk-h1",
-      style: {
+      styles: {
         color: null,
         backgroundColor: null
       },
@@ -266,8 +273,26 @@ export class BlockService {
    * 
    * @param paramModifyBlockList 
    */
-  public async createData(paramModifyBlockList: ParamModifyBlock[]): Promise<boolean> {
-  
+  public async createData(paramModifyBlockList: ParamModifyBlock[], page: Page): Promise<boolean> {
+    paramModifyBlockList.forEach(async ({blockId, set, payload}) => {
+      switch(set) {
+        case "block":
+          const resBlock: boolean = await this.insertBlockData(payload, page);
+
+          if(!resBlock) {
+            return false;
+          }
+
+          break;
+        
+        case "comment":
+          console.log(blockId);
+
+        default: 
+          return false;
+      }
+    });
+
     return true;
   }
 
@@ -280,21 +305,55 @@ export class BlockService {
       return param.blockId
     });
 
+    console.log(idList);
+
     try {
 
       const blockList: Block[] = await this.blockRepository.find({
         relations: ["property"],
-        where: In(idList)
+        where: {
+          id: In(idList)
+        }
       });
+
+      console.log(blockList);
   
-      if(blockList[0]) {
+      if(!blockList[0]) {
         return false;
       }
 
-      paramModifyBlockList.forEach(async (param) => {
-        const idx = blockList.findIndex((block) => block.id === param.blockId);
-     
-      })
+      const data = {
+        block: [],
+        property: []
+      };
+
+      paramModifyBlockList.forEach(async ({blockId, set, payload}) => {
+        const idx = blockList.findIndex((block) => block.id === blockId);
+        console.log({blockId, set, payload}, idx);
+
+        switch(set) {
+          case "block":
+            const resBlock: boolean = await this.saveBlock([Object.assign({}, blockList[idx], payload)]);
+
+            if(!resBlock) {
+              return false;
+            }
+          break;
+          
+          case "property":
+            console.log(Object.assign({}, blockList[idx].property, payload));
+            const resProperty: boolean = await this.saveProperty([Object.assign({}, blockList[idx].property, payload)]);
+
+            if(!resProperty) {
+              return false;
+            }
+          break;
+
+          default: 
+            return false;
+        }
+
+      });
 
     } catch(e) {
       Logger.error(e);

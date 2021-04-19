@@ -11,9 +11,11 @@ export class BlockProperty extends SubTable {
   type: string;
 
   @Column({
-    type: "json"
+    type: "json",
+    nullable: true,
+    default: null
   })
-  style: any;
+  styles: any;
 
   @Column({
     type: "json"

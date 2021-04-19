@@ -114,4 +114,14 @@ export class BklogController {
     });
   }
 
+  @Post('test')
+  public async modifyBlock(@Req() req, @Body() data: any) {
+    const res: boolean = await this.bklogService.modifyBlock(data.data, data.pageId);
+
+    return ResponseMessage({
+      success: res,
+      data: "ok"
+    })
+  }
+
 }

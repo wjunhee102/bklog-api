@@ -35,7 +35,7 @@ export interface ParamGetPageList {
 
 
 export type ModifyCommand = "update" | "create" | "delete";
-export type ModifySet = "block" | "property"; 
+export type ModifySet = "block" | "property" | "comment"; 
 
 // export interface ModifyBlockType {
 //   command: ModifyCommand;

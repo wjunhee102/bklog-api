@@ -31,13 +31,13 @@ export interface RequiredBlock extends ReqBlockProps {
 export interface PropertyUpdateProps {
   blockId: string;
   type?: string;
-  style?: string;
+  styles?: string;
   contents?: any[];
 }
 
 export interface RequiredBlockProperty {
   type: string;
-  style: any;
+  styles: any;
   contents: any[]; 
 }
 
