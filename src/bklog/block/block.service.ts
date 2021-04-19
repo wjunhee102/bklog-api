@@ -6,10 +6,9 @@ import { Token } from 'src/util/token.util';
 import { BlockPropertyRepository } from './repositories/block-property.repository';
 import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';
-import { In, Any } from 'typeorm';
+import { In } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
 import { ModifySet, ParamModifyBlock } from '../bklog.type';
-import { async } from 'rxjs';
 
 @Injectable()
 export class BlockService {
@@ -182,19 +181,15 @@ export class BlockService {
     return true;
   }
 
-  private async insertBlockData(blockData: BlockData, page: Page): Promise<boolean> {
+  private async insertBlockData(blockData: BlockData, page: Page): Promise<Block> {
     const property: BlockProperty = await this.insertProperty(blockData.property);
 
-    console.log(property);
-
-    const block: Block = await this.insertBlock(Object.assign({}, blockData, {
+    const block: Block = await this.blockRepository.create(Object.assign({}, blockData, {
       page,
       property
     }));
 
-    console.log(block);
-
-    return block? true : false;
+    return block;
   }
 
   /**
@@ -274,25 +269,42 @@ export class BlockService {
    * @param paramModifyBlockList 
    */
   public async createData(paramModifyBlockList: ParamModifyBlock[], page: Page): Promise<boolean> {
-    paramModifyBlockList.forEach(async ({blockId, set, payload}) => {
-      switch(set) {
-        case "block":
-          const resBlock: boolean = await this.insertBlockData(payload, page);
+    try {
 
-          if(!resBlock) {
+      const data = {
+        block: [],
+        comment: []
+      };
+
+      for(const {blockId, set, payload} of paramModifyBlockList) {
+        switch(set) {
+          case "block":
+            const block: Block = await this.insertBlockData(payload, page);
+            data.block.push(block);
+            break;
+          
+          case "comment":
+  
+            break;
+  
+          default: 
             return false;
-          }
-
-          break;
-        
-        case "comment":
-          console.log(blockId);
-
-        default: 
-          return false;
+        }
       }
-    });
 
+      if(data.block[0]) {
+        const res: boolean = await this.saveBlock(data.block);
+
+        if(!res) return false;
+      }
+
+
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+    
     return true;
   }
 
@@ -305,8 +317,6 @@ export class BlockService {
       return param.blockId
     });
 
-    console.log(idList);
-
     try {
 
       const blockList: Block[] = await this.blockRepository.find({
@@ -315,8 +325,6 @@ export class BlockService {
           id: In(idList)
         }
       });
-
-      console.log(blockList);
   
       if(!blockList[0]) {
         return false;
@@ -327,33 +335,34 @@ export class BlockService {
         property: []
       };
 
-      paramModifyBlockList.forEach(async ({blockId, set, payload}) => {
+      for(const {blockId, set, payload} of paramModifyBlockList) {
         const idx = blockList.findIndex((block) => block.id === blockId);
-        console.log({blockId, set, payload}, idx);
 
         switch(set) {
           case "block":
-            const resBlock: boolean = await this.saveBlock([Object.assign({}, blockList[idx], payload)]);
-
-            if(!resBlock) {
-              return false;
-            }
+            data.block.push(Object.assign({}, blockList[idx], payload));
           break;
           
           case "property":
-            console.log(Object.assign({}, blockList[idx].property, payload));
-            const resProperty: boolean = await this.saveProperty([Object.assign({}, blockList[idx].property, payload)]);
-
-            if(!resProperty) {
-              return false;
-            }
+            data.property.push(Object.assign({}, blockList[idx].property, payload))
           break;
 
           default: 
             return false;
         }
+      }
 
-      });
+      if(data.block[0]) {
+        const res: boolean = await this.saveBlock(data.block);
+
+        if(!res) return false;
+      }
+
+      if(data.property[0]) {
+        const res: boolean = await this.saveProperty(data.property);
+
+        if(!res) return false;
+      }
 
     } catch(e) {
       Logger.error(e);
