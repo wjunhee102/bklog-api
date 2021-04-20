@@ -12,6 +12,11 @@ export interface InfoToFindPageVersion {
   preVersionId?: string;
 }
 
+export interface RequiredPageVersionIdList {
+  id: string;
+  preVersionId: string;
+}
+
 export interface ResGetPage {
   id: string;
   title: string;
@@ -53,4 +58,18 @@ export interface ModifyBlockType {
   create?: ParamModifyBlock[];
   update?: ParamModifyBlock[];
   delete?: ParamModifyBlock[];
+}
+
+export interface PageVersions {
+  current: string;
+  next: string;
+}
+
+export interface ResModifyBlock {
+  success: boolean,
+  error?: {
+    notEditable: boolean,
+    notCurrentVersion: boolean,
+    dataBaseError: boolean
+  }
 }

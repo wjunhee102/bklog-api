@@ -14,7 +14,7 @@ import { PageStar } from 'src/entities/bklog/page-star.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageVersionRepository } from './repositories/page-version.repository';
 import { Token } from 'src/util/token.util';
-import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet } from './bklog.type';
+import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList } from './bklog.type';
 
 @Injectable()
 export class BklogService {
@@ -43,11 +43,12 @@ export class BklogService {
    * 
    * @param page 
    */
-  private async insertPageVersion(page: Page, blockDataList: BlockData[]): Promise<PageVersion> {
+  private async insertPageVersion(page: Page, modifyDataList: ModifyBlockType, RequiredIdList?: RequiredPageVersionIdList): Promise<PageVersion> {
     const pageVersion: PageVersion = this.pageVersionRepository.create({
-      id: Token.getUUID(),
+      id: RequiredIdList.id? RequiredIdList.id : Token.getUUID(),
+      preVersionId: RequiredIdList.preVersionId? RequiredIdList.preVersionId : null,
       page,
-      blockDataList
+      modifyDataList
     });
 
     await this.pageVersionRepository.save(pageVersion);
@@ -86,10 +87,33 @@ export class BklogService {
     }
   }
 
+  /**
+   * 
+   * @param id 
+   */
+  private async checkCurrentPageVersion(id: string): Promise<boolean> {
+    const pageVersionList: PageVersion[] = await this.pageVersionRepository.find({
+      where: {
+        id,
+        preVersionId: id
+      }
+    });
+
+    if(!pageVersionList[0] || pageVersionList[1]) {
+      return false;
+    } 
+
+    return false;
+  }
+
   private async insertPageComment() {
     
   }
 
+  /**
+   * 
+   * @param requiredBklogInfo 
+   */
   public async createBklog(requiredBklogInfo: RequiredBklogInfo): Promise<string> {
     const userProfile: UserProfile | null = await this.userService.getUserProfile(requiredBklogInfo.profileId);
     
@@ -115,7 +139,15 @@ export class BklogService {
     }
     
     // pageversion update;
-    const pageVersion: PageVersion = await this.insertPageVersion(page, [blockData]);
+    const pageVersion: PageVersion = await this.insertPageVersion(page, {
+      create: [
+        {
+          blockId: blockData.id,
+          set: "block",
+          payload: blockData
+        }
+      ]
+    });
 
     if(!pageVersion) {
       await this.blockService.removeBlockData([blockData.id]);
@@ -126,6 +158,10 @@ export class BklogService {
     return page.id;
   }
 
+  /**
+   * 
+   * @param factorGetPageList 
+   */
   public async findPageList(factorGetPageList: ParamGetPageList) {
     let scope = 4;
 
@@ -170,8 +206,34 @@ export class BklogService {
       : null;
   }
 
-  public async modifyBlock(modifyBlockDataList: ModifyBlockType, pageId: string) {
+  public async modifyBlock(modifyBlockDataList: ModifyBlockType, pageId: string, userId: string, pageVersions: PageVersions): Promise<ResModifyBlock> {
+
     const page: Page = await this.pageService.getPage(pageId);
+
+    if(page.userId !== userId) {
+      return {
+        success: false,
+        error: {
+          notEditable: true,
+          notCurrentVersion: false,
+          dataBaseError: false
+        }
+      }
+    }
+
+    // page version의 가장 최근을 찾아야 함.
+    const  resCheckCurrentVersion: boolean = await this.checkCurrentPageVersion(pageVersions.current);
+
+    if(!resCheckCurrentVersion) {
+      return {
+        success: false,
+        error: {
+          notEditable: false,
+          notCurrentVersion: true,
+          dataBaseError: false
+        }
+      }
+    }
 
     for(const [key, value] of Object.entries(modifyBlockDataList)) {
       switch(key) {
@@ -179,7 +241,14 @@ export class BklogService {
           const resCreate: boolean = await this.blockService.createData(value, page);
           
           if(!resCreate) {
-            return false;
+            return {
+              success: false,
+              error: {
+                notEditable: false,
+                notCurrentVersion: false,
+                dataBaseError: true
+              }
+            };
           }
 
           break;
@@ -188,7 +257,14 @@ export class BklogService {
           const resUpdate: boolean = await this.blockService.updateData(value);
 
           if(!resUpdate) {
-            return false;
+            return {
+              success: false,
+              error: {
+                notEditable: false,
+                notCurrentVersion: false,
+                dataBaseError: true
+              }
+            };
           }
 
           break;
@@ -197,14 +273,47 @@ export class BklogService {
           const resDelete: boolean = await this.blockService.deleteData(value);
 
           if(!resDelete) {
-            return false;
+            return {
+              success: false,
+              error: {
+                notEditable: false,
+                notCurrentVersion: false,
+                dataBaseError: true
+              }
+            };
           }
 
           break;
         
         default: 
-          return false;
+          return {
+            success: false,
+            error: {
+              notEditable: false,
+              notCurrentVersion: false,
+              dataBaseError: true
+            }
+          };
       }
+    }
+
+    const resVerion = await this.insertPageVersion(page, modifyBlockDataList, { id: pageVersions.next, preVersionId: pageVersions.next })
+
+    if(!resVerion) {
+      // rollback
+
+      return {
+        success: false,
+        error: {
+          notEditable: false,
+          notCurrentVersion: false,
+          dataBaseError: true
+        }
+      };
+    }
+
+    return {
+      success: true
     }
   }
 

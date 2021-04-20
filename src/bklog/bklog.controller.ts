@@ -4,7 +4,7 @@ import { RequiredPageInfo, PageInfoList, RequiredBklogInfo, ReqCreatePage } from
 import { AuthService } from 'src/auth/auth.service';
 import { ACCESS_TOKEN, ResValitionAccessToken } from 'src/auth/auth.type';
 import { ResponseMessage } from 'src/util/response.util';
-import { ParamGetPageList } from './bklog.type';
+import { ParamGetPageList, ResModifyBlock } from './bklog.type';
 
 @Controller('bklog')
 export class BklogController {
@@ -114,14 +114,19 @@ export class BklogController {
     });
   }
 
-  @Post('test')
+  @Post('modify')
   public async modifyBlock(@Req() req, @Body() data: any) {
-    const res: boolean = await this.bklogService.modifyBlock(data.data, data.pageId);
+    const resCheckCookie = this.validationAccessToken(req);
 
-    return ResponseMessage({
-      success: res,
-      data: "ok"
-    })
+    if(!resCheckCookie.uuid) {
+      return this.responseReissueToken(resCheckCookie.error);
+    } 
+
+    const res: ResModifyBlock = await this.bklogService.modifyBlock(data.data, data.pageId, resCheckCookie.uuid, data.pageVersions);
+  
+    console.log(res);
+
+    return ResponseMessage(res);
   }
 
 }

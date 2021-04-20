@@ -238,10 +238,6 @@ export class BlockService {
    */
   public async removeBlockData(blockIdList: string[]): Promise<boolean> {
     try {
-      const data = {
-        property: [],
-        comment: []
-      };
 
       const blockList = await this.blockRepository.find({
         relations: ["property", "blockComment"],
@@ -250,16 +246,17 @@ export class BlockService {
         }
       });
   
-      blockList.forEach(async (block)=> {
+      for(const block of blockList) {
+
         if(block.blockComment[0]) {
-          block.blockComment.forEach(async (comment)=> {
+          for(const comment of block.blockComment) {
             await this.blockCommentRepository.delete(comment);
-          });
+          }
         }
 
         await this.deleteBlock(block);
         await this.deleteProperty(block.property);
-      });
+      }
 
       return true;
     } catch(e) {
@@ -281,7 +278,7 @@ export class BlockService {
         comment: []
       };
 
-      for(const {blockId, set, payload} of paramModifyBlockList) {
+      for(const { blockId, set, payload } of paramModifyBlockList) {
         switch(set) {
           case "block":
             const block: Block = await this.insertBlockData(payload, page);
