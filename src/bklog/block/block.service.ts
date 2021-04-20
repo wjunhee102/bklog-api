@@ -8,7 +8,7 @@ import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';
 import { In } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
-import { ModifySet, ParamModifyBlock } from '../bklog.type';
+import { ParamModifyBlock } from '../bklog.type';
 
 @Injectable()
 export class BlockService {
@@ -147,39 +147,39 @@ export class BlockService {
     }
   }
 
-  /**
-   * 
-   * @param blockUpdateProps 
-   */
-  private async updateBlock(block: Block, blockUpdateProps: BlockUpdateProps): Promise<boolean> {
+  // /**
+  //  * 
+  //  * @param blockUpdateProps 
+  //  */
+  // private async updateBlock(block: Block, blockUpdateProps: BlockUpdateProps): Promise<boolean> {
 
-    for(const [key, value] of Object.entries(blockUpdateProps)) {
-      if(key !== "id") {
-        block[key] = value;
-      }
-    }
+  //   for(const [key, value] of Object.entries(blockUpdateProps)) {
+  //     if(key !== "id") {
+  //       block[key] = value;
+  //     }
+  //   }
 
-    await this.saveBlock([block]);
+  //   await this.saveBlock([block]);
 
-    return true;
-  }
+  //   return true;
+  // }
 
-  /**
-   * 
-   * @param propertyUpdateProps 
-   */
-  private async updateProperty(property: BlockProperty, propertyUpdateProps: PropertyUpdateProps): Promise<boolean> {
+  // /**
+  //  * 
+  //  * @param propertyUpdateProps 
+  //  */
+  // private async updateProperty(property: BlockProperty, propertyUpdateProps: PropertyUpdateProps): Promise<boolean> {
 
-    for(const [key, value] of Object.entries(propertyUpdateProps)) {
-      if(key !== "blockid") {
-        property[key] = value;
-      }
-    }
+  //   for(const [key, value] of Object.entries(propertyUpdateProps)) {
+  //     if(key !== "blockid") {
+  //       property[key] = value;
+  //     }
+  //   }
 
-    await this.saveProperty([property]);
+  //   await this.saveProperty([property]);
 
-    return true;
-  }
+  //   return true;
+  // }
 
   private async insertBlockData(blockData: BlockData, page: Page): Promise<Block> {
     const property: BlockProperty = await this.insertProperty(blockData.property);
@@ -238,6 +238,11 @@ export class BlockService {
    */
   public async removeBlockData(blockIdList: string[]): Promise<boolean> {
     try {
+      const data = {
+        property: [],
+        comment: []
+      };
+
       const blockList = await this.blockRepository.find({
         relations: ["property", "blockComment"],
         where: {
