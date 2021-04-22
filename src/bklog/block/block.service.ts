@@ -121,6 +121,7 @@ export class BlockService {
    */
   private async deleteBlock(block: Block): Promise<boolean> {
     try {
+      console.log("1");
       await this.blockRepository.delete(block);
 
       return true;
@@ -137,6 +138,7 @@ export class BlockService {
    */
   private async deleteProperty(property: BlockProperty): Promise<boolean> {
     try {
+      console.log("2");
       await this.propertyRepository.delete(property);
 
       return true;
@@ -240,22 +242,24 @@ export class BlockService {
     try {
 
       const blockList = await this.blockRepository.find({
-        relations: ["property", "blockComment"],
         where: {
           id: In(blockIdList)
         }
       });
+
+      console.log(blockList);
   
       for(const block of blockList) {
+        console.log(block);
 
-        if(block.blockComment[0]) {
-          for(const comment of block.blockComment) {
-            await this.blockCommentRepository.delete(comment);
-          }
-        }
+        // if(block.blockComment[0]) {
+        //   for(const comment of block.blockComment) {
+        //     await this.blockCommentRepository.delete(comment);
+        //   }
+        // }
 
         await this.deleteBlock(block);
-        await this.deleteProperty(block.property);
+        // await this.deleteProperty(block.property);
       }
 
       return true;

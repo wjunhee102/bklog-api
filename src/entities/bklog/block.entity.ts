@@ -41,16 +41,16 @@ export class Block {
   parentBlockId: string;
 
   @Column({
-    type: 'json'
-  })
-  children: string[] | null;
-
-  @Column({
     type: "varchar",
     length: 20,
     default: "text"
   })
   type: BlockTypes;
+
+  @Column({
+    type: 'json'
+  })
+  children: string[] | null;
 
   @OneToOne(() => BlockProperty)
   @JoinColumn()

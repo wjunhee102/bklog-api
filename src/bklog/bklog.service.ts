@@ -43,6 +43,21 @@ export class BklogService {
    * 
    * @param page 
    */
+  private async findOneCurrentPageVersion(page: Page) {
+    return await this.pageVersionRepository.findOne({
+      where: {
+        page
+      },
+      order: {
+        createdDate: "DESC"
+      }
+    });
+  }
+
+  /**
+   * 
+   * @param page 
+   */
   private async insertPageVersion(page: Page, modifyDataList: ModifyBlockType, RequiredIdList?: RequiredPageVersionIdList): Promise<PageVersion> {
     const pageVersion: PageVersion = this.pageVersionRepository.create({
       id: RequiredIdList.id? RequiredIdList.id : Token.getUUID(),
@@ -91,19 +106,14 @@ export class BklogService {
    * 
    * @param id 
    */
-  private async checkCurrentPageVersion(id: string): Promise<boolean> {
-    const pageVersionList: PageVersion[] = await this.pageVersionRepository.find({
-      where: {
-        id,
-        preVersionId: id
-      }
-    });
+  private async checkCurrentPageVersion(id: string, page: Page): Promise<boolean> {
+    const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
 
-    if(!pageVersionList[0] || pageVersionList[1]) {
+    if(!pageVersion || pageVersion.id !== id) {
       return false;
     } 
 
-    return false;
+    return true;
   }
 
   private async insertPageComment() {
@@ -184,6 +194,7 @@ export class BklogService {
 
   public async getPage(pageId: string, userId?: string): Promise<ResGetPage> {
     const page: Page | null = await this.pageService.getPage(pageId);
+    const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
     
     return page? 
       Object.assign({}, page, {
@@ -196,8 +207,7 @@ export class BklogService {
             })
           })
         }),
-        versionList: undefined,
-        version: page.versionList[0].id,
+        version: pageVersion.id,
         userProfile: undefined,
         profileId: page.userProfile.id,
         userId: undefined,
@@ -222,7 +232,9 @@ export class BklogService {
     }
 
     // page version의 가장 최근을 찾아야 함.
-    const  resCheckCurrentVersion: boolean = await this.checkCurrentPageVersion(pageVersions.current);
+    const  resCheckCurrentVersion: boolean = await this.checkCurrentPageVersion(pageVersions.current, page);
+
+    console.log(modifyBlockDataList);
 
     if(!resCheckCurrentVersion) {
       return {

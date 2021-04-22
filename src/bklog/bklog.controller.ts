@@ -116,13 +116,13 @@ export class BklogController {
 
   @Post('modify')
   public async modifyBlock(@Req() req, @Body() data: any) {
-    const resCheckCookie = this.validationAccessToken(req);
+    // const resCheckCookie = this.validationAccessToken(req);
 
-    if(!resCheckCookie.uuid) {
-      return this.responseReissueToken(resCheckCookie.error);
-    } 
+    // if(!resCheckCookie.uuid) {
+    //   return this.responseReissueToken(resCheckCookie.error);
+    // } 
 
-    const res: ResModifyBlock = await this.bklogService.modifyBlock(data.data, data.pageId, resCheckCookie.uuid, data.pageVersions);
+    const res: ResModifyBlock = await this.bklogService.modifyBlock(data.data, data.pageId, "4087b8662b988ca2a405c9a6030703a0", data.pageVersions);
   
     console.log(res);
 

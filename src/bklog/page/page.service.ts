@@ -104,7 +104,6 @@ export class PageService {
       .where({ id })
       .leftJoinAndSelect("page.userProfile", "user-profile")
       .leftJoinAndSelect("page.blockList", "block")
-      .leftJoinAndSelect("page.versionList", "page-version")
       .leftJoinAndSelect("block.property","block-property")
       .getOne();
 
