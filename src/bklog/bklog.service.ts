@@ -386,8 +386,6 @@ export class BklogService {
             }
           }
 
-          await queryRunner.manager.delete(Block, deleteData.blockIdList);
-          await queryRunner.manager.delete(BlockProperty, propertyIdList);
         }
 
         if(deleteData.commentIdList) {
@@ -395,6 +393,11 @@ export class BklogService {
         }
         
         if(commentIdList[0]) await queryRunner.manager.delete(BlockComment, commentIdList);
+        
+        if(deleteData.blockIdList) {
+          await queryRunner.manager.delete(Block, deleteData.blockIdList);
+          await queryRunner.manager.delete(BlockProperty, propertyIdList);
+        };
         
       }
 
