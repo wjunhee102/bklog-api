@@ -326,48 +326,9 @@ export class BlockService {
   /**
    * 
    * @param paramModifyBlockList 
+   * @param page 
    */
-  public async createData(paramModifyBlockList: ParamModifyBlock[], page: Page): Promise<boolean> {
-    try {
-
-      const data = {
-        block: [],
-        comment: []
-      };
-
-      for(const { blockId, set, payload } of paramModifyBlockList) {
-        switch(set) {
-          case "block":
-            const block: Block = await this.insertBlockData(payload, page);
-            data.block.push(block);
-            break;
-          
-          case "comment":
-  
-            break;
-  
-          default: 
-            return false;
-        }
-      }
-
-      if(data.block[0]) {
-        const res: boolean = await this.saveBlock(data.block);
-
-        if(!res) return false;
-      }
-
-
-    } catch(e) {
-      Logger.error(e);
-
-      return false;
-    }
-    
-    return true;
-  }
-
-  public async createData2(paramModifyBlockList: ParamCreateModifyBlock[], page: Page): Promise<ModifyData | null> {
+  public async createData(paramModifyBlockList: ParamCreateModifyBlock[], page: Page): Promise<ModifyData | null> {
     try {
 
       const data = {
@@ -431,72 +392,12 @@ export class BlockService {
     }
   }
 
+
   /**
    * 
    * @param paramModifyBlockList 
    */
-  public async updateData(paramModifyBlockList: ParamModifyBlock[]): Promise<boolean> {
-    const idList = paramModifyBlockList.map((param) => {
-      return param.blockId
-    });
-
-    try {
-
-      const blockList: Block[] = await this.blockRepository.find({
-        relations: ["property"],
-        where: {
-          id: In(idList)
-        }
-      });
-  
-      if(!blockList[0]) {
-        return false;
-      }
-
-      const data = {
-        block: [],
-        property: []
-      };
-
-      for(const { blockId, set, payload } of paramModifyBlockList) {
-        const idx = blockList.findIndex((block) => block.id === blockId);
-
-        switch(set) {
-          case "block":
-            data.block.push(Object.assign({}, blockList[idx], payload));
-          break;
-          
-          case "property":
-            data.property.push(Object.assign({}, blockList[idx].property, payload))
-          break;
-
-          default: 
-            return false;
-        }
-      }
-
-      if(data.block[0]) {
-        const res: boolean = await this.saveBlock(data.block);
-
-        if(!res) return false;
-      }
-
-      if(data.property[0]) {
-        const res: boolean = await this.saveProperty(data.property);
-
-        if(!res) return false;
-      }
-
-    } catch(e) {
-      Logger.error(e);
-
-      return false;
-    }
-
-    return true;
-  }
-
-  public async updateData2(paramModifyBlockList: ParamModifyBlock[]): Promise<ModifyData | null> {
+  public async updateData(paramModifyBlockList: ParamModifyBlock[]): Promise<ModifyData | null> {
     const idList = paramModifyBlockList.map((param) => {
       return param.blockId
     });

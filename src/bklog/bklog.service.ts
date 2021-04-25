@@ -247,128 +247,14 @@ export class BklogService {
       : null;
   }
 
-  // public async modifyBlock(modifyBlockDataList: ModifyBlockType, pageId: string, userId: string, pageVersions: PageVersions): Promise<ResModifyBlock> {
-
-  //   const page: Page = await this.pageService.getPage(pageId);
-
-  //   if(page.userId !== userId) {
-  //     return {
-  //       success: false,
-  //       pageVersion: r
-  //       error: {
-  //         notEditable: true,
-  //         notCurrentVersion: false,
-  //         dataBaseError: false
-  //       }
-  //     }
-  //   }
-
-  //   // page version의 가장 최근을 찾아야 함.
-  //   const  resCheckCurrentVersion: boolean = await this.checkCurrentPageVersion(pageVersions.current, page);
-
-  //   console.log(modifyBlockDataList);
-
-  //   if(!resCheckCurrentVersion) {
-  //     return {
-  //       success: false,
-  //       error: {
-  //         notEditable: false,
-  //         notCurrentVersion: true,
-  //         dataBaseError: false
-  //       }
-  //     }
-  //   }
-
-  //   for(const [key, value] of Object.entries(modifyBlockDataList)) {
-  //     switch(key) {
-  //       case "create":
-  //         const resCreate: boolean = await this.blockService.createData(value, page);
-          
-  //         if(!resCreate) {
-  //           return {
-  //             success: false,
-  //             error: {
-  //               notEditable: false,
-  //               notCurrentVersion: false,
-  //               dataBaseError: true
-  //             }
-  //           };
-  //         }
-
-  //         break;
-
-  //       case "update":
-  //         const resUpdate: boolean = await this.blockService.updateData(value);
-
-  //         if(!resUpdate) {
-  //           return {
-  //             success: false,
-  //             error: {
-  //               notEditable: false,
-  //               notCurrentVersion: false,
-  //               dataBaseError: true
-  //             }
-  //           };
-  //         }
-
-  //         break;
-        
-  //       case "delete": 
-  //         const resDelete: boolean = await this.blockService.deleteData(value);
-
-  //         if(!resDelete) {
-  //           return {
-  //             success: false,
-  //             error: {
-  //               notEditable: false,
-  //               notCurrentVersion: false,
-  //               dataBaseError: true
-  //             }
-  //           };
-  //         }
-
-  //         break;
-        
-  //       default: 
-  //         return {
-  //           success: false,
-  //           error: {
-  //             notEditable: false,
-  //             notCurrentVersion: false,
-  //             dataBaseError: true
-  //           }
-  //         };
-  //     }
-  //   }
-
-  //   const resVerion = await this.insertPageVersion(
-  //     page, 
-  //     modifyBlockDataList, 
-  //     { 
-  //       id: pageVersions.next, 
-  //       preVersionId: pageVersions.current 
-  //     }
-  //   );
-
-  //   if(!resVerion) {
-  //     // rollback
-
-  //     return {
-  //       success: false,
-  //       error: {
-  //         notEditable: false,
-  //         notCurrentVersion: false,
-  //         dataBaseError: true
-  //       }
-  //     };
-  //   }
-
-  //   return {
-  //     success: true
-  //   }
-  // }
-
-  public async modifyBlock2(modifyBlockDataList: ModifyBlockType, pageId: string, userId: string, pageVersions: PageVersions): Promise<ResModifyBlock> {
+  /**
+   * 
+   * @param modifyBlockDataList 
+   * @param pageId 
+   * @param userId 
+   * @param pageVersions 
+   */
+  public async modifyBlock(modifyBlockDataList: ModifyBlockType, pageId: string, userId: string, pageVersions: PageVersions): Promise<ResModifyBlock> {
 
     const page: Page = await this.pageService.getPage(pageId);
 
@@ -386,8 +272,6 @@ export class BklogService {
 
     // page version의 가장 최근을 찾아야 함.
     const  resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
-
-    console.log(modifyBlockDataList);
 
     if(!resCheckCurrentVersion.success) {
       return {
@@ -409,9 +293,7 @@ export class BklogService {
 
     for(const [key, value] of Object.entries(modifyBlockDataList)) {
       if(key === "create") {
-        const resCreate: ModifyData | null = await this.blockService.createData2(value, page);
-
-        console.log(resCreate);
+        const resCreate: ModifyData | null = await this.blockService.createData(value, page);
 
         if(!resCreate) {
           return {
@@ -439,7 +321,7 @@ export class BklogService {
       }
 
       if(key === "update") {
-        const resUpdate: ModifyData | null = await this.blockService.updateData2(value);
+        const resUpdate: ModifyData | null = await this.blockService.updateData(value);
 
         if(!resUpdate) {
           return {
@@ -473,8 +355,6 @@ export class BklogService {
     await queryRunner.startTransaction();
 
     try {
-
-      console.log(data);
       
       if(data.property) await queryRunner.manager.save(data.property);
       if(data.block) await queryRunner.manager.save(data.block);
