@@ -1,8 +1,13 @@
-import { Entity, Column } from "typeorm";
-import { SubTable } from "../base/sub-table";
+import { Entity, Column, PrimaryColumn } from "typeorm";
 
 @Entity({ name: "block-property" })
-export class BlockProperty extends SubTable {
+export class BlockProperty {
+
+  @PrimaryColumn({
+    type: "varchar",
+    width: 255
+  })
+  id: string;
 
   @Column({
     type: "varchar",

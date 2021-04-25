@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RequiredPageInfo, PageInfoList, RequiredBklogInfo } from './page/page.type';
 import { PageService } from './page/page.service';
 import { BlockService } from './block/block.service';
-import { BlockData } from './block/block.type';
+import { BlockData, ModifyData } from './block/block.type';
 import { UserService } from 'src/user/user.service';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { PageStarRepository } from './page/repositories/page-star.repository';
@@ -15,7 +15,11 @@ import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageVersionRepository } from './repositories/page-version.repository';
 import { Token } from 'src/util/token.util';
 import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList } from './bklog.type';
-import { Connection } from 'typeorm';
+import { Connection, In } from 'typeorm';
+import { BlockComment } from 'src/entities/bklog/block-comment.entity';
+import { Block } from 'src/entities/bklog/block.entity';
+import { BlockProperty } from 'src/entities/bklog/block-property.entity';
+import { BlockRepository } from './block/repositories/block.repository';
 
 @Injectable()
 export class BklogService {
@@ -122,16 +126,25 @@ export class BklogService {
    * 
    * @param id 
    */
-  private async checkCurrentPageVersion(id: string, page: Page): Promise<boolean> {
+  private async checkCurrentPageVersion(id: string, page: Page): Promise<{
+    success: boolean,
+    pageVersion: string
+  }> {
     const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
 
     console.log(pageVersion, id);
 
     if(!pageVersion || pageVersion.id !== id) {
-      return false;
+      return {
+        success: false,
+        pageVersion: null
+      };
     } 
 
-    return true;
+    return {
+      success: true,
+      pageVersion: pageVersion.id
+    };
   }
 
   private async insertPageComment() {
@@ -234,13 +247,135 @@ export class BklogService {
       : null;
   }
 
-  public async modifyBlock(modifyBlockDataList: ModifyBlockType, pageId: string, userId: string, pageVersions: PageVersions): Promise<ResModifyBlock> {
+  // public async modifyBlock(modifyBlockDataList: ModifyBlockType, pageId: string, userId: string, pageVersions: PageVersions): Promise<ResModifyBlock> {
+
+  //   const page: Page = await this.pageService.getPage(pageId);
+
+  //   if(page.userId !== userId) {
+  //     return {
+  //       success: false,
+  //       pageVersion: r
+  //       error: {
+  //         notEditable: true,
+  //         notCurrentVersion: false,
+  //         dataBaseError: false
+  //       }
+  //     }
+  //   }
+
+  //   // page version의 가장 최근을 찾아야 함.
+  //   const  resCheckCurrentVersion: boolean = await this.checkCurrentPageVersion(pageVersions.current, page);
+
+  //   console.log(modifyBlockDataList);
+
+  //   if(!resCheckCurrentVersion) {
+  //     return {
+  //       success: false,
+  //       error: {
+  //         notEditable: false,
+  //         notCurrentVersion: true,
+  //         dataBaseError: false
+  //       }
+  //     }
+  //   }
+
+  //   for(const [key, value] of Object.entries(modifyBlockDataList)) {
+  //     switch(key) {
+  //       case "create":
+  //         const resCreate: boolean = await this.blockService.createData(value, page);
+          
+  //         if(!resCreate) {
+  //           return {
+  //             success: false,
+  //             error: {
+  //               notEditable: false,
+  //               notCurrentVersion: false,
+  //               dataBaseError: true
+  //             }
+  //           };
+  //         }
+
+  //         break;
+
+  //       case "update":
+  //         const resUpdate: boolean = await this.blockService.updateData(value);
+
+  //         if(!resUpdate) {
+  //           return {
+  //             success: false,
+  //             error: {
+  //               notEditable: false,
+  //               notCurrentVersion: false,
+  //               dataBaseError: true
+  //             }
+  //           };
+  //         }
+
+  //         break;
+        
+  //       case "delete": 
+  //         const resDelete: boolean = await this.blockService.deleteData(value);
+
+  //         if(!resDelete) {
+  //           return {
+  //             success: false,
+  //             error: {
+  //               notEditable: false,
+  //               notCurrentVersion: false,
+  //               dataBaseError: true
+  //             }
+  //           };
+  //         }
+
+  //         break;
+        
+  //       default: 
+  //         return {
+  //           success: false,
+  //           error: {
+  //             notEditable: false,
+  //             notCurrentVersion: false,
+  //             dataBaseError: true
+  //           }
+  //         };
+  //     }
+  //   }
+
+  //   const resVerion = await this.insertPageVersion(
+  //     page, 
+  //     modifyBlockDataList, 
+  //     { 
+  //       id: pageVersions.next, 
+  //       preVersionId: pageVersions.current 
+  //     }
+  //   );
+
+  //   if(!resVerion) {
+  //     // rollback
+
+  //     return {
+  //       success: false,
+  //       error: {
+  //         notEditable: false,
+  //         notCurrentVersion: false,
+  //         dataBaseError: true
+  //       }
+  //     };
+  //   }
+
+  //   return {
+  //     success: true
+  //   }
+  // }
+
+  public async modifyBlock2(modifyBlockDataList: ModifyBlockType, pageId: string, userId: string, pageVersions: PageVersions): Promise<ResModifyBlock> {
 
     const page: Page = await this.pageService.getPage(pageId);
 
     if(page.userId !== userId) {
       return {
         success: false,
+        pageVersion: null,
         error: {
           notEditable: true,
           notCurrentVersion: false,
@@ -250,13 +385,14 @@ export class BklogService {
     }
 
     // page version의 가장 최근을 찾아야 함.
-    const  resCheckCurrentVersion: boolean = await this.checkCurrentPageVersion(pageVersions.current, page);
+    const  resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
 
     console.log(modifyBlockDataList);
 
-    if(!resCheckCurrentVersion) {
+    if(!resCheckCurrentVersion.success) {
       return {
         success: false,
+        pageVersion: resCheckCurrentVersion.pageVersion,
         error: {
           notEditable: false,
           notCurrentVersion: true,
@@ -265,92 +401,147 @@ export class BklogService {
       }
     }
 
+    const data: ModifyData = {
+      block: [],
+      property: [],
+      comment: []
+    }
+
     for(const [key, value] of Object.entries(modifyBlockDataList)) {
-      switch(key) {
-        case "create":
-          const resCreate: boolean = await this.blockService.createData(value, page);
-          
-          if(!resCreate) {
-            return {
-              success: false,
-              error: {
-                notEditable: false,
-                notCurrentVersion: false,
-                dataBaseError: true
-              }
-            };
-          }
+      if(key === "create") {
+        const resCreate: ModifyData | null = await this.blockService.createData2(value, page);
 
-          break;
+        console.log(resCreate);
 
-        case "update":
-          const resUpdate: boolean = await this.blockService.updateData(value);
-
-          if(!resUpdate) {
-            return {
-              success: false,
-              error: {
-                notEditable: false,
-                notCurrentVersion: false,
-                dataBaseError: true
-              }
-            };
-          }
-
-          break;
-        
-        case "delete": 
-          const resDelete: boolean = await this.blockService.deleteData(value);
-
-          if(!resDelete) {
-            return {
-              success: false,
-              error: {
-                notEditable: false,
-                notCurrentVersion: false,
-                dataBaseError: true
-              }
-            };
-          }
-
-          break;
-        
-        default: 
+        if(!resCreate) {
           return {
             success: false,
+            pageVersion: resCheckCurrentVersion.pageVersion,
             error: {
               notEditable: false,
               notCurrentVersion: false,
               dataBaseError: true
             }
           };
+        }
+
+        if(resCreate.block) {
+          data.block = data.block.concat(resCreate.block);
+        }
+
+        if(resCreate.property) {
+          data.property = data.property.concat(resCreate.property);
+        }
+
+        if(resCreate.comment) {
+          data.comment = data.comment.concat(resCreate.comment);
+        }
+      }
+
+      if(key === "update") {
+        const resUpdate: ModifyData | null = await this.blockService.updateData2(value);
+
+        if(!resUpdate) {
+          return {
+            success: false,
+            pageVersion: resCheckCurrentVersion.pageVersion,
+            error: {
+              notEditable: false,
+              notCurrentVersion: false,
+              dataBaseError: true
+            }
+          };
+        }
+
+        if(resUpdate.block) {
+          data.block = data.block.concat(resUpdate.block);
+        }
+
+        if(resUpdate.property) {
+          data.property = data.property.concat(resUpdate.property);
+        }
+
+        if(resUpdate.comment) {
+          data.comment = data.comment.concat(resUpdate.comment);
+        }
       }
     }
 
-    const resVerion = await this.insertPageVersion(
-      page, 
-      modifyBlockDataList, 
-      { 
-        id: pageVersions.next, 
-        preVersionId: pageVersions.current 
-      }
-    );
+    const queryRunner = this.connection.createQueryRunner();
 
-    if(!resVerion) {
-      // rollback
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+
+      console.log(data);
+      
+      if(data.property) await queryRunner.manager.save(data.property);
+      if(data.block) await queryRunner.manager.save(data.block);
+      if(data.comment) await queryRunner.manager.save(data.comment);
+
+      if(modifyBlockDataList.delete) {
+        const deleteData = modifyBlockDataList.delete;
+
+        let propertyIdList: string[]  = [];
+        let commentIdList: string[] = [];
+
+        if(deleteData.blockIdList) {
+          const blockList: Block[] = await queryRunner.manager.find(Block, {
+            relations: ["property", "blockComment"],
+            where: {
+              id: In(deleteData.blockIdList)
+            }
+          });
+
+          for(const block of blockList) {
+            propertyIdList.push(block.property.id);
+            
+            if(block.blockComment[0]) {
+              
+              commentIdList = commentIdList.concat(
+                block.blockComment.map(comment => comment.id)
+              );
+
+            }
+          }
+
+          await queryRunner.manager.delete(Block, deleteData.blockIdList);
+          await queryRunner.manager.delete(BlockProperty, propertyIdList);
+        }
+
+        if(deleteData.commentIdList) {
+          commentIdList = commentIdList.concat(deleteData.commentIdList);
+        }
+        
+        if(commentIdList[0]) await queryRunner.manager.delete(BlockComment, commentIdList);
+        
+      }
+
+      const pageVersion: PageVersion = await queryRunner.manager.create(PageVersion, {
+        id: pageVersions.next,
+        preVersionId: pageVersions.current,
+        page,
+        modifyDataList: modifyBlockDataList
+      });
+
+      await queryRunner.manager.save(pageVersion);
+
+      await queryRunner.commitTransaction();
 
       return {
-        success: false,
-        error: {
-          notEditable: false,
-          notCurrentVersion: false,
-          dataBaseError: true
-        }
-      };
-    }
+        success: true,
+        pageVersion: pageVersions.next
+      }
 
-    return {
-      success: true
+    } catch(e) {
+
+      Logger.error(e);
+      await queryRunner.rollbackTransaction();
+
+    } finally {
+
+      await queryRunner.release();
     }
   }
 

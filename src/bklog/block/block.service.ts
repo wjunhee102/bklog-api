@@ -103,6 +103,8 @@ export class BlockService {
   private async insertProperty(requiredProperty: RequiredBlockProperty): Promise<BlockProperty> {
     const property: BlockProperty = await this.propertyRepository.create(requiredProperty);
     
+    property.id = Token.getUUID();
+
     await this.saveProperty([property]);
 
     return await this.propertyRepository.findOne({
@@ -166,7 +168,7 @@ export class BlockService {
    * 
    * @param propertyIdList 
    */
-  private async deleteProperty(propertyIdList: number[]): Promise<boolean> {
+  private async deleteProperty(propertyIdList: string[]): Promise<boolean> {
     try {
       await this.propertyRepository.delete(propertyIdList);
 
@@ -223,6 +225,15 @@ export class BlockService {
     return block;
   }
 
+  public async findBlockList(blockIdList: string[]): Promise<Block[]> {
+    return await this.blockRepository.find({
+      relations: ["property", "blockComment"],
+      where: {
+        id: In(blockIdList)
+      }
+    });
+  }
+
   /**
    * 
    * @param page 
@@ -236,6 +247,8 @@ export class BlockService {
       },
       contents: []
     });
+
+    property.id = Token.getUUID();
 
     if(!property) {
       return null;
@@ -365,21 +378,27 @@ export class BlockService {
 
       for(const param of paramModifyBlockList) {
 
-        if(param instanceof ParamCreateBlock &&  param.set === "block") {
+        if(param.set === "block") {
           const { payload } = param;
 
-          const property: BlockProperty = await this.propertyRepository.create(payload.property);
+          const property: BlockProperty = await this.propertyRepository
+            .create(Object.assign({}, payload.property, {
+              id: Token.getUUID()
+            }));
+
+          property.id = Token.getUUID();
 
           data.property.push(property);
         
-          const block: Block = await this.blockRepository.create(Object.assign({}, payload, { 
+          const block: Block = await this.blockRepository
+            .create(Object.assign({}, payload, { 
               property,
               page
-            }))
+            }));
 
           data.block.push(block);
 
-        } else if(param instanceof ParamCreateComment && param.set === "comment") {
+        } else if(param.set === "comment") {
           const { blockId, payload } = param;
 
           const block: Block = await this.findOneBlock(blockId);
@@ -400,6 +419,8 @@ export class BlockService {
           return null;
         }
       }
+
+      console.log(data);
 
       return data;
 
@@ -437,7 +458,7 @@ export class BlockService {
         property: []
       };
 
-      for(const {blockId, set, payload} of paramModifyBlockList) {
+      for(const { blockId, set, payload } of paramModifyBlockList) {
         const idx = blockList.findIndex((block) => block.id === blockId);
 
         switch(set) {
@@ -475,17 +496,12 @@ export class BlockService {
     return true;
   }
 
-  /**
-   * 
-   * @param paramModifyBlockList 
-   */
-  public async updateData2(paramModifyBlockList: ParamModifyBlock[]): Promise<boolean> {
+  public async updateData2(paramModifyBlockList: ParamModifyBlock[]): Promise<ModifyData | null> {
     const idList = paramModifyBlockList.map((param) => {
       return param.blockId
     });
 
     try {
-
       const blockList: Block[] = await this.blockRepository.find({
         relations: ["property"],
         where: {
@@ -494,50 +510,47 @@ export class BlockService {
       });
   
       if(!blockList[0]) {
-        return false;
+        return null;
       }
 
-      const data = {
+      const data: ModifyData = {
         block: [],
-        property: []
+        property: [],
+        comment: []
       };
 
-      for(const {blockId, set, payload} of paramModifyBlockList) {
+      for(const { blockId, set, payload } of paramModifyBlockList) {
         const idx = blockList.findIndex((block) => block.id === blockId);
+        console.log(blockList[idx]);
 
         switch(set) {
           case "block":
-            data.block.push(Object.assign({}, blockList[idx], payload));
+            if(payload.property) {
+              data.property.push(Object.assign(blockList[idx].property, payload.property));
+            }
+
+            data.block.push(Object.assign(blockList[idx], payload, {
+              property: undefined
+            }));
+            
           break;
           
           case "property":
-            data.property.push(Object.assign({}, blockList[idx].property, payload))
+            data.property.push(Object.assign(blockList[idx].property, payload));
+
           break;
 
           default: 
-            return false;
+            return null;
         }
       }
 
-      if(data.block[0]) {
-        const res: boolean = await this.saveBlock(data.block);
-
-        if(!res) return false;
-      }
-
-      if(data.property[0]) {
-        const res: boolean = await this.saveProperty(data.property);
-
-        if(!res) return false;
-      }
-
+      return data;
     } catch(e) {
       Logger.error(e);
 
-      return false;
+      return null;
     }
-
-    return true;
   }
 
   /**

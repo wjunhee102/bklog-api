@@ -82,12 +82,17 @@ export class ParamCreateComment implements ParamModifyBlock {
   payload: any;
 }
 
+export class ParamDeleteModity {
+  blockIdList?: string[];
+  commentIdList?: string[];
+}
+
 export type ParamCreateModifyBlock = ParamCreateComment | ParamCreateBlock;
 
 export interface ModifyBlockType {
   create?: ParamCreateBlock[];
   update?: ParamModifyBlock[];
-  delete?: ParamModifyBlock[];
+  delete?: ParamDeleteModity;
 }
 
 export interface PageVersions {
@@ -97,6 +102,7 @@ export interface PageVersions {
 
 export interface ResModifyBlock {
   success: boolean,
+  pageVersion: string,
   error?: {
     notEditable: boolean,
     notCurrentVersion: boolean,

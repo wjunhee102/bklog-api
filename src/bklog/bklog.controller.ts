@@ -122,7 +122,7 @@ export class BklogController {
     //   return this.responseReissueToken(resCheckCookie.error);
     // } 
 
-    const res: ResModifyBlock = await this.bklogService.modifyBlock(data.data, data.pageId, "4087b8662b988ca2a405c9a6030703a0", data.pageVersions);
+    const res: ResModifyBlock = await this.bklogService.modifyBlock2(data.data, data.pageId, "4087b8662b988ca2a405c9a6030703a0", data.pageVersions);
   
     console.log(res);
 
