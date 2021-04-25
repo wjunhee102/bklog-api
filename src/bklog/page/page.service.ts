@@ -69,9 +69,25 @@ export class PageService {
    * 
    * @param page 
    */
-  private async deletePage(page: Page): Promise<boolean> {
+  // private async deletePage(page: Page): Promise<boolean> {
+  //   try {
+  //     await this.pageRepository.delete(page);
+
+  //     return true;
+  //   } catch(e) {
+  //     Logger.error(e);
+
+  //     return false;
+  //   }
+  // }
+
+  /**
+   * 
+   * @param pageIdList 
+   */
+  private async deletePage(pageIdList: string[]): Promise<boolean> {
     try {
-      await this.pageRepository.delete(page);
+      await this.pageRepository.delete(pageIdList);
 
       return true;
     } catch(e) {
@@ -128,7 +144,7 @@ export class PageService {
     const page: Page | null  = await this.findOnePage({id: pageId, userId});
 
     if(page) {
-      const result = await this.deletePage(page);
+      const result = await this.deletePage([page.id]);
 
       return result;
     }

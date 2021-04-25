@@ -15,10 +15,12 @@ import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageVersionRepository } from './repositories/page-version.repository';
 import { Token } from 'src/util/token.util';
 import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList } from './bklog.type';
+import { Connection } from 'typeorm';
 
 @Injectable()
 export class BklogService {
   constructor(
+    private connection: Connection,
     private readonly pageService: PageService,
     private readonly blockService: BlockService,
     private readonly userService: UserService,
@@ -55,18 +57,32 @@ export class BklogService {
   }
 
   /**
-   * 
+   * 나중에 수정해야함 삼항식
    * @param page 
    */
   private async insertPageVersion(page: Page, modifyDataList: ModifyBlockType, RequiredIdList?: RequiredPageVersionIdList): Promise<PageVersion> {
     const pageVersion: PageVersion = this.pageVersionRepository.create({
-      id: RequiredIdList.id? RequiredIdList.id : Token.getUUID(),
-      preVersionId: RequiredIdList.preVersionId? RequiredIdList.preVersionId : null,
+      id: RequiredIdList? (RequiredIdList.id? RequiredIdList.id : Token.getUUID()) : Token.getUUID(),
+      preVersionId: RequiredIdList? RequiredIdList.preVersionId? RequiredIdList.preVersionId : null : null,
       page,
       modifyDataList
     });
 
-    await this.pageVersionRepository.save(pageVersion);
+    const queryRunner = this.connection.createQueryRunner();
+
+    // await this.pageVersionRepository.save(pageVersion);
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.manager.save(pageVersion);
+
+      await queryRunner.commitTransaction();
+    } catch(e) {
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
+    }
 
     return await this.findOnePageVersion({ id: pageVersion.id });
   }
@@ -108,6 +124,8 @@ export class BklogService {
    */
   private async checkCurrentPageVersion(id: string, page: Page): Promise<boolean> {
     const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
+
+    console.log(pageVersion, id);
 
     if(!pageVersion || pageVersion.id !== id) {
       return false;
@@ -195,7 +213,7 @@ export class BklogService {
   public async getPage(pageId: string, userId?: string): Promise<ResGetPage> {
     const page: Page | null = await this.pageService.getPage(pageId);
     const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
-    
+
     return page? 
       Object.assign({}, page, {
         blockList: page.blockList.map((block) => {
@@ -309,7 +327,14 @@ export class BklogService {
       }
     }
 
-    const resVerion = await this.insertPageVersion(page, modifyBlockDataList, { id: pageVersions.next, preVersionId: pageVersions.next })
+    const resVerion = await this.insertPageVersion(
+      page, 
+      modifyBlockDataList, 
+      { 
+        id: pageVersions.next, 
+        preVersionId: pageVersions.current 
+      }
+    );
 
     if(!resVerion) {
       // rollback

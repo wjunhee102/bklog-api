@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BlockRepository } from './repositories/block.repository';
-import { RequiredBlock, RequiredBlockProperty, BlockData, BlockUpdateProps, PropertyUpdateProps } from './block.type';
+import { RequiredBlock, RequiredBlockProperty, BlockData, BlockUpdateProps, PropertyUpdateProps, ModifyData } from './block.type';
 import { Block } from 'src/entities/bklog/block.entity';
 import { Token } from 'src/util/token.util';
 import { BlockPropertyRepository } from './repositories/block-property.repository';
@@ -8,7 +8,8 @@ import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';
 import { In } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
-import { ParamModifyBlock } from '../bklog.type';
+import { ParamModifyBlock, ParamCreateModifyBlock, ParamCreateBlock, ParamCreateComment } from '../bklog.type';
+import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 
 @Injectable()
 export class BlockService {
@@ -90,10 +91,6 @@ export class BlockService {
   private async insertBlock(requiredBlock: RequiredBlock): Promise<Block> {
     const block: Block = await this.blockRepository.create(requiredBlock);
 
-    if(!requiredBlock.id) {
-      block.id = Token.getUUID();
-    }
-
     await this.saveBlock([block]);
 
     return await this.findOneBlock(block.id);
@@ -116,13 +113,29 @@ export class BlockService {
   }
 
   /**
-   * 
+   * 전부 id 배열로 바꿔야 함.
    * @param block 
    */
-  private async deleteBlock(block: Block): Promise<boolean> {
+  // private async deleteBlock(block: Block): Promise<boolean> {
+  //   try {
+  //     console.log("1");
+  //     await this.blockRepository.delete([block.id]);
+
+  //     return true;
+  //   } catch(e) {
+  //     Logger.error(e);
+
+  //     return false;
+  //   }
+  // }
+
+  /**
+   * 
+   * @param blockIdList 
+   */
+  private async deleteBlock(blockIdList: string[]): Promise<boolean> {
     try {
-      console.log("1");
-      await this.blockRepository.delete(block);
+      await this.blockRepository.delete(blockIdList);
 
       return true;
     } catch(e) {
@@ -136,10 +149,26 @@ export class BlockService {
    * 
    * @param property 
    */
-  private async deleteProperty(property: BlockProperty): Promise<boolean> {
+  // private async deleteProperty(property: BlockProperty): Promise<boolean> {
+  //   try {
+  //     console.log("2");
+  //     await this.propertyRepository.delete([property.id]);
+
+  //     return true;
+  //   } catch(e) {
+  //     Logger.error(e);
+
+  //     return false;
+  //   }
+  // }
+
+  /**
+   * 
+   * @param propertyIdList 
+   */
+  private async deleteProperty(propertyIdList: number[]): Promise<boolean> {
     try {
-      console.log("2");
-      await this.propertyRepository.delete(property);
+      await this.propertyRepository.delete(propertyIdList);
 
       return true;
     } catch(e) {
@@ -212,14 +241,17 @@ export class BlockService {
       return null;
     }
 
+    console.log(property);
+
     const block: Block | null = await this.insertBlock({
+      id: Token.getUUID(),
       page,
       property,
       children: []
     });
 
     if(!block) {
-      this.deleteProperty(property);
+      this.deleteProperty([property.id]);
       return null;
     }
 
@@ -239,28 +271,36 @@ export class BlockService {
    * @param blockIdList 
    */
   public async removeBlockData(blockIdList: string[]): Promise<boolean> {
-    try {
-
-      const blockList = await this.blockRepository.find({
-        where: {
-          id: In(blockIdList)
-        }
-      });
-
-      console.log(blockList);
-  
-      for(const block of blockList) {
-        console.log(block);
-
-        // if(block.blockComment[0]) {
-        //   for(const comment of block.blockComment) {
-        //     await this.blockCommentRepository.delete(comment);
-        //   }
-        // }
-
-        await this.deleteBlock(block);
-        // await this.deleteProperty(block.property);
+    const blockList = await this.blockRepository.find({
+      relations: ["property", "blockComment"],
+      where: {
+        id: In(blockIdList)
       }
+    });
+
+    const data = {
+      propertyList: [],
+      commentList: []
+    };
+
+    console.log(blockList);
+
+    for(const block of blockList) {
+      console.log(block);
+
+      if(block.blockComment[0]) {
+        for(const comment of block.blockComment) {
+          data.commentList.push(comment.id);
+        }
+      }
+
+      data.propertyList.push(block.property.id);
+    }
+
+    try {
+      await this.blockCommentRepository.delete(data.commentList);
+      await this.deleteBlock(blockIdList);
+      await this.deleteProperty(data.propertyList);
 
       return true;
     } catch(e) {
@@ -314,11 +354,132 @@ export class BlockService {
     return true;
   }
 
+  public async createData2(paramModifyBlockList: ParamCreateModifyBlock[], page: Page): Promise<ModifyData | null> {
+    try {
+
+      const data = {
+        block: [],
+        property: [],
+        comment: []
+      };
+
+      for(const param of paramModifyBlockList) {
+
+        if(param instanceof ParamCreateBlock &&  param.set === "block") {
+          const { payload } = param;
+
+          const property: BlockProperty = await this.propertyRepository.create(payload.property);
+
+          data.property.push(property);
+        
+          const block: Block = await this.blockRepository.create(Object.assign({}, payload, { 
+              property,
+              page
+            }))
+
+          data.block.push(block);
+
+        } else if(param instanceof ParamCreateComment && param.set === "comment") {
+          const { blockId, payload } = param;
+
+          const block: Block = await this.findOneBlock(blockId);
+            
+          if(!block) {
+            return null;
+          }
+
+          const blockComment: BlockComment = await this.blockCommentRepository.create();
+          
+          blockComment.block = block;
+          blockComment.page = page;
+          blockComment.comment = payload;
+
+          data.comment.push(blockComment);
+
+        } else {
+          return null;
+        }
+      }
+
+      return data;
+
+    } catch(e) {
+      Logger.error(e);
+
+      return null;
+    }
+  }
+
   /**
    * 
    * @param paramModifyBlockList 
    */
   public async updateData(paramModifyBlockList: ParamModifyBlock[]): Promise<boolean> {
+    const idList = paramModifyBlockList.map((param) => {
+      return param.blockId
+    });
+
+    try {
+
+      const blockList: Block[] = await this.blockRepository.find({
+        relations: ["property"],
+        where: {
+          id: In(idList)
+        }
+      });
+  
+      if(!blockList[0]) {
+        return false;
+      }
+
+      const data = {
+        block: [],
+        property: []
+      };
+
+      for(const {blockId, set, payload} of paramModifyBlockList) {
+        const idx = blockList.findIndex((block) => block.id === blockId);
+
+        switch(set) {
+          case "block":
+            data.block.push(Object.assign({}, blockList[idx], payload));
+          break;
+          
+          case "property":
+            data.property.push(Object.assign({}, blockList[idx].property, payload))
+          break;
+
+          default: 
+            return false;
+        }
+      }
+
+      if(data.block[0]) {
+        const res: boolean = await this.saveBlock(data.block);
+
+        if(!res) return false;
+      }
+
+      if(data.property[0]) {
+        const res: boolean = await this.saveProperty(data.property);
+
+        if(!res) return false;
+      }
+
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * 
+   * @param paramModifyBlockList 
+   */
+  public async updateData2(paramModifyBlockList: ParamModifyBlock[]): Promise<boolean> {
     const idList = paramModifyBlockList.map((param) => {
       return param.blockId
     });

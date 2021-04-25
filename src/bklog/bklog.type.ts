@@ -54,8 +54,38 @@ export interface ParamModifyBlock {
   payload: any;
 }
 
+// export interface ParamCreateBlock {
+//   blockId: string;
+//   set: "block";
+//   payload: BlockData;
+// }
+
+// export interface ParamCreateComment {
+//   blockId: string;
+//   set: "comment";
+//   payload: string | string[][] | null;
+// }
+
+export interface ParamModify {
+
+}
+
+export class ParamCreateBlock implements ParamModifyBlock {
+  blockId: string;
+  set: "block";
+  payload: BlockData;
+}
+
+export class ParamCreateComment implements ParamModifyBlock {
+  blockId: string;
+  set: "comment";
+  payload: any;
+}
+
+export type ParamCreateModifyBlock = ParamCreateComment | ParamCreateBlock;
+
 export interface ModifyBlockType {
-  create?: ParamModifyBlock[];
+  create?: ParamCreateBlock[];
   update?: ParamModifyBlock[];
   delete?: ParamModifyBlock[];
 }

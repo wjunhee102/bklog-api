@@ -2,6 +2,8 @@ import { BlockTextProperty } from "src/entities/bklog/text-property.entity";
 import { TextStyle, TextContents } from "src/types/bklog";
 import { Page } from "src/entities/bklog/page.entity";
 import { BlockProperty } from "src/entities/bklog/block-property.entity";
+import { Block } from "src/entities/bklog/block.entity";
+import { BlockComment } from "src/entities/bklog/block-comment.entity";
 
 export const TYPE_TEXT = "text" as const;
 
@@ -9,6 +11,12 @@ export const TYPE_TEXT = "text" as const;
 export type BlockTypes = "text" | "container";
 
 export type BlockProperties = any | BlockTextProperty | null;
+
+export type Property = {
+  type: any;
+  styles: any;
+  contents: any;
+}
 
 export interface ReqBlockProps {
   type?: BlockTypes;
@@ -25,7 +33,7 @@ export interface BlockUpdateProps extends ReqBlockProps {
 export interface RequiredBlock extends ReqBlockProps {
   page: Page;
   property: BlockProperty;
-  id?: string;
+  id: string;
 }
 
 export interface PropertyUpdateProps {
@@ -66,9 +74,15 @@ export interface BlockData {
   parentBlockId: string | null;
   preBlockId: string | null;
   nextBlockId: string | null;
-  property: BlockProperties;
+  property: Property;
   children: string[];
 }
+
+export interface ModifyData {
+  block?: Block[],
+  property?: BlockProperty[],
+  comment?: BlockComment[]
+};
 
 export interface ResCreateBlockDate {
   blockData: BlockData;
