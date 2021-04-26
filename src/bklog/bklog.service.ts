@@ -255,33 +255,31 @@ export class BklogService {
    * @param pageVersions 
    */
   public async modifyBlock(modifyBlockDataList: ModifyBlockType, pageId: string, userId: string, pageVersions: PageVersions): Promise<ResModifyBlock> {
+    const result: ResModifyBlock = {
+      success: false,
+      pageVersion: null,
+      error: {
+        notEditable: undefined,
+        notCurrentVersion: undefined,
+        paramError: undefined,
+        dataBaseError: undefined
+      }
+    }
 
     const page: Page = await this.pageService.getPage(pageId);
 
     if(page.userId !== userId) {
-      return {
-        success: false,
-        pageVersion: null,
-        error: {
-          notEditable: true,
-          notCurrentVersion: false,
-          dataBaseError: false
-        }
-      }
+      result.error.notEditable = true;
+      return result;
     }
 
     const  resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
 
+    result.pageVersion = resCheckCurrentVersion.pageVersion;
+
     if(!resCheckCurrentVersion.success) {
-      return {
-        success: false,
-        pageVersion: resCheckCurrentVersion.pageVersion,
-        error: {
-          notEditable: false,
-          notCurrentVersion: true,
-          dataBaseError: false
-        }
-      }
+      result.error.notCurrentVersion = true;
+      return result;
     }
 
     const modifyData: ModifyData = {
@@ -295,15 +293,8 @@ export class BklogService {
         const resCreate: ModifyData | null = await this.blockService.createData(value, page);
 
         if(!resCreate) {
-          return {
-            success: false,
-            pageVersion: resCheckCurrentVersion.pageVersion,
-            error: {
-              notEditable: false,
-              notCurrentVersion: false,
-              dataBaseError: true
-            }
-          };
+          result.error.paramError = true;
+          return result;
         }
 
         if(resCreate.block) {
@@ -323,15 +314,8 @@ export class BklogService {
         const resUpdate: ModifyData | null = await this.blockService.updateData(value);
 
         if(!resUpdate) {
-          return {
-            success: false,
-            pageVersion: resCheckCurrentVersion.pageVersion,
-            error: {
-              notEditable: false,
-              notCurrentVersion: false,
-              dataBaseError: true
-            }
-          };
+          result.error.paramError = true;
+          return result;
         }
 
         if(resUpdate.block) {
@@ -396,7 +380,7 @@ export class BklogService {
         if(deleteData.blockIdList) {
           await queryRunner.manager.delete(Block, deleteData.blockIdList);
           await queryRunner.manager.delete(BlockProperty, propertyIdList);
-        };
+        }
         
       }
 
@@ -411,20 +395,22 @@ export class BklogService {
 
       await queryRunner.commitTransaction();
 
-      return {
-        success: true,
-        pageVersion: pageVersions.next
-      }
+      result.success = true;
+      result.pageVersion = pageVersions.next;
+      result.error = undefined;
 
     } catch(e) {
 
       Logger.error(e);
       await queryRunner.rollbackTransaction();
 
-    } finally {
+      result.error.dataBaseError = true;
 
+    } finally {
       await queryRunner.release();
     }
+
+    return result;
   }
 
   // private async modifyBlock(modifyBlockDataList: ModifyBlockType[]) {

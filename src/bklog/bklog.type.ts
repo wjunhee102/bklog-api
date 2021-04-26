@@ -82,8 +82,9 @@ export interface ResModifyBlock {
   success: boolean,
   pageVersion: string,
   error?: {
-    notEditable: boolean,
-    notCurrentVersion: boolean,
-    dataBaseError: boolean
+    notEditable?: boolean,
+    notCurrentVersion?: boolean,
+    paramError?: boolean,
+    dataBaseError?: boolean
   }
 }

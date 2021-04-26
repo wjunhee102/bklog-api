@@ -254,8 +254,6 @@ export class BlockService {
       return null;
     }
 
-    console.log(property);
-
     const block: Block | null = await this.insertBlock({
       id: Token.getUUID(),
       page,
@@ -296,10 +294,7 @@ export class BlockService {
       commentList: []
     };
 
-    console.log(blockList);
-
     for(const block of blockList) {
-      console.log(block);
 
       if(block.blockComment[0]) {
         for(const comment of block.blockComment) {
@@ -381,8 +376,6 @@ export class BlockService {
         }
       }
 
-      console.log(modifyData);
-
       return modifyData;
 
     } catch(e) {
@@ -422,7 +415,6 @@ export class BlockService {
 
       for(const { blockId, set, payload } of paramModifyBlockList) {
         const idx = blockList.findIndex((block) => block.id === blockId);
-        console.log(blockList[idx]);
 
         switch(set) {
           case "block":
