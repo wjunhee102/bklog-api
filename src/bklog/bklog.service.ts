@@ -13,7 +13,7 @@ import { Page } from 'src/entities/bklog/page.entity';
 import { PageStar } from 'src/entities/bklog/page-star.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageVersionRepository } from './repositories/page-version.repository';
-import { Token } from 'src/util/token.util';
+import { Token } from 'src/utils/base/token.util';
 import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList } from './bklog.type';
 import { Connection, In } from 'typeorm';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
@@ -270,7 +270,6 @@ export class BklogService {
       }
     }
 
-    // page version의 가장 최근을 찾아야 함.
     const  resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
 
     if(!resCheckCurrentVersion.success) {
@@ -285,7 +284,7 @@ export class BklogService {
       }
     }
 
-    const data: ModifyData = {
+    const modifyData: ModifyData = {
       block: [],
       property: [],
       comment: []
@@ -308,15 +307,15 @@ export class BklogService {
         }
 
         if(resCreate.block) {
-          data.block = data.block.concat(resCreate.block);
+          modifyData.block = modifyData.block.concat(resCreate.block);
         }
 
         if(resCreate.property) {
-          data.property = data.property.concat(resCreate.property);
+          modifyData.property = modifyData.property.concat(resCreate.property);
         }
 
         if(resCreate.comment) {
-          data.comment = data.comment.concat(resCreate.comment);
+          modifyData.comment = modifyData.comment.concat(resCreate.comment);
         }
       }
 
@@ -336,15 +335,15 @@ export class BklogService {
         }
 
         if(resUpdate.block) {
-          data.block = data.block.concat(resUpdate.block);
+          modifyData.block = modifyData.block.concat(resUpdate.block);
         }
 
         if(resUpdate.property) {
-          data.property = data.property.concat(resUpdate.property);
+          modifyData.property = modifyData.property.concat(resUpdate.property);
         }
 
         if(resUpdate.comment) {
-          data.comment = data.comment.concat(resUpdate.comment);
+          modifyData.comment = modifyData.comment.concat(resUpdate.comment);
         }
       }
     }
@@ -356,9 +355,9 @@ export class BklogService {
 
     try {
       
-      if(data.property) await queryRunner.manager.save(data.property);
-      if(data.block) await queryRunner.manager.save(data.block);
-      if(data.comment) await queryRunner.manager.save(data.comment);
+      if(modifyData.property) await queryRunner.manager.save(modifyData.property);
+      if(modifyData.block) await queryRunner.manager.save(modifyData.block);
+      if(modifyData.comment) await queryRunner.manager.save(modifyData.comment);
 
       if(modifyBlockDataList.delete) {
         const deleteData = modifyBlockDataList.delete;

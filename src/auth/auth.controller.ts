@@ -2,7 +2,7 @@ import { Controller, Post, Req, Res, Body, Logger, Get, Delete } from '@nestjs/c
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './auth.schema';
 import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN } from './auth.type';
-import { ResponseMessage } from 'src/util/response.util';
+import { ResponseMessage } from 'src/utils/base/response.util';
 import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
 import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-user.type';

@@ -3,7 +3,7 @@ import { BklogService } from './bklog.service';
 import { RequiredPageInfo, PageInfoList, RequiredBklogInfo, ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
 import { ACCESS_TOKEN, ResValitionAccessToken } from 'src/auth/auth.type';
-import { ResponseMessage } from 'src/util/response.util';
+import { ResponseMessage } from 'src/utils/base/response.util';
 import { ParamGetPageList, ResModifyBlock } from './bklog.type';
 
 @Controller('bklog')

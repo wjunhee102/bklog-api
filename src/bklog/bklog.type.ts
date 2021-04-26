@@ -42,32 +42,10 @@ export interface ParamGetPageList {
 export type ModifyCommand = "update" | "create" | "delete";
 export type ModifySet = "block" | "property" | "comment"; 
 
-// export interface ModifyBlockType {
-//   command: ModifyCommand;
-//   set: ModifySet;
-//   payload: any;
-// }
-
 export interface ParamModifyBlock {
   blockId: string;
   set: ModifySet;
   payload: any;
-}
-
-// export interface ParamCreateBlock {
-//   blockId: string;
-//   set: "block";
-//   payload: BlockData;
-// }
-
-// export interface ParamCreateComment {
-//   blockId: string;
-//   set: "comment";
-//   payload: string | string[][] | null;
-// }
-
-export interface ParamModify {
-
 }
 
 export class ParamCreateBlock implements ParamModifyBlock {

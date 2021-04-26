@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BlockRepository } from './repositories/block.repository';
 import { RequiredBlock, RequiredBlockProperty, BlockData, BlockUpdateProps, PropertyUpdateProps, ModifyData } from './block.type';
 import { Block } from 'src/entities/bklog/block.entity';
-import { Token } from 'src/util/token.util';
+import { Token } from 'src/utils/base/token.util';
 import { BlockPropertyRepository } from './repositories/block-property.repository';
 import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';
@@ -331,7 +331,7 @@ export class BlockService {
   public async createData(paramModifyBlockList: ParamCreateModifyBlock[], page: Page): Promise<ModifyData | null> {
     try {
 
-      const data = {
+      const modifyData = {
         block: [],
         property: [],
         comment: []
@@ -349,7 +349,7 @@ export class BlockService {
 
           property.id = Token.getUUID();
 
-          data.property.push(property);
+          modifyData.property.push(property);
         
           const block: Block = await this.blockRepository
             .create(Object.assign({}, payload, { 
@@ -357,7 +357,7 @@ export class BlockService {
               page
             }));
 
-          data.block.push(block);
+          modifyData.block.push(block);
 
         } else if(param.set === "comment") {
           const { blockId, payload } = param;
@@ -374,16 +374,16 @@ export class BlockService {
           blockComment.page = page;
           blockComment.comment = payload;
 
-          data.comment.push(blockComment);
+          modifyData.comment.push(blockComment);
 
         } else {
           return null;
         }
       }
 
-      console.log(data);
+      console.log(modifyData);
 
-      return data;
+      return modifyData;
 
     } catch(e) {
       Logger.error(e);
@@ -398,15 +398,15 @@ export class BlockService {
    * @param paramModifyBlockList 
    */
   public async updateData(paramModifyBlockList: ParamModifyBlock[]): Promise<ModifyData | null> {
-    const idList = paramModifyBlockList.map((param) => {
-      return param.blockId
-    });
+    const blockIdList = paramModifyBlockList
+      .filter(({ set }) => set === "block" || set === "property")
+      .map(({ blockId }) => blockId);
 
     try {
       const blockList: Block[] = await this.blockRepository.find({
         relations: ["property"],
         where: {
-          id: In(idList)
+          id: In(blockIdList)
         }
       });
   
@@ -414,7 +414,7 @@ export class BlockService {
         return null;
       }
 
-      const data: ModifyData = {
+      const modifyData: ModifyData = {
         block: [],
         property: [],
         comment: []
@@ -427,17 +427,21 @@ export class BlockService {
         switch(set) {
           case "block":
             if(payload.property) {
-              data.property.push(Object.assign(blockList[idx].property, payload.property));
+              modifyData.property.push(Object.assign(blockList[idx].property, payload.property));
             }
 
-            data.block.push(Object.assign(blockList[idx], payload, {
+            if(payload.styles || payload.contents) {
+              return null;
+            }
+
+            modifyData.block.push(Object.assign(blockList[idx], payload, {
               property: undefined
             }));
             
           break;
           
           case "property":
-            data.property.push(Object.assign(blockList[idx].property, payload));
+            modifyData.property.push(Object.assign(blockList[idx].property, payload));
 
           break;
 
@@ -446,7 +450,7 @@ export class BlockService {
         }
       }
 
-      return data;
+      return modifyData;
     } catch(e) {
       Logger.error(e);
 
