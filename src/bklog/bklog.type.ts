@@ -17,6 +17,15 @@ export interface RequiredPageVersionIdList {
   preVersionId: string;
 }
 
+export interface ResCreateBklog {
+  success: boolean;
+  pageId: string | null;
+  error?: {
+    notUserProfile?: boolean;
+    dataBaseError?: boolean;
+  }
+}
+
 export interface ResGetPage {
   id: string;
   title: string;
@@ -68,7 +77,7 @@ export class ParamDeleteModity {
 export type ParamCreateModifyBlock = ParamCreateComment | ParamCreateBlock;
 
 export interface ModifyBlockType {
-  create?: ParamCreateBlock[];
+  create?: ParamCreateModifyBlock[];
   update?: ParamModifyBlock[];
   delete?: ParamDeleteModity;
 }

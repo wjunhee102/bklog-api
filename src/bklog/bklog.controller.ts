@@ -1,10 +1,10 @@
 import { Controller, Post, Req, Res, Body, Get, Param, Query } from '@nestjs/common';
 import { BklogService } from './bklog.service';
-import { RequiredPageInfo, PageInfoList, RequiredBklogInfo, ReqCreatePage } from './page/page.type';
+import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
 import { ACCESS_TOKEN, ResValitionAccessToken } from 'src/auth/auth.type';
 import { ResponseMessage } from 'src/utils/base/response.util';
-import { ParamGetPageList, ResModifyBlock } from './bklog.type';
+import { ParamGetPageList, ResModifyBlock, ResCreateBklog } from './bklog.type';
 
 @Controller('bklog')
 export class BklogController {
@@ -81,20 +81,39 @@ export class BklogController {
       return this.responseReissueToken(resCheckCookie.error);
     } 
 
-    const pageId = await this.bklogService.createBklog(
+    const resCreateBklog: ResCreateBklog = await this.bklogService.createBklog(
       Object.assign(
         requiredBklogInfo, {
           userId: resCheckCookie.uuid
-      }));
+    }));  
     
-    return ResponseMessage({
-      success: true,
-      pageId
-    });
+    return ResponseMessage(resCreateBklog);
   }
 
   @Get('getpage')
   public async getPage(@Req() req, @Query('id') id) {
+    const accessToken = req.signedCookies[ACCESS_TOKEN];
+
+    let resCheckCookie = undefined;
+
+    if(accessToken) {
+      resCheckCookie = this.validationAccessToken(req);
+
+      if(!resCheckCookie.uuid) {
+        return this.responseReissueToken(resCheckCookie.error);
+      }
+    } 
+
+    const page: any = await this.bklogService.getPage(id, resCheckCookie? resCheckCookie.uuid : undefined); 
+
+    return ResponseMessage({
+      success: true,
+      page
+    });
+  }
+
+  @Get('t-getpage')
+  public async testGetPage(@Req() req, @Query('id') id) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
 
     if(accessToken) {
@@ -105,8 +124,7 @@ export class BklogController {
       }
     } 
 
-    const page: any = await this.bklogService.getPage(id,  "4087b8662b988ca2a405c9a6030703a0");
-    console.log(id);
+    const page: any = await this.bklogService.getPage(id,  "4087b8662b988ca2a405c9a6030703a0"); 
 
     return ResponseMessage({
       success: true,
@@ -116,16 +134,27 @@ export class BklogController {
 
   @Post('modify')
   public async modifyBlock(@Req() req, @Body() data: any) {
-    // const resCheckCookie = this.validationAccessToken(req);
+    const resCheckCookie = this.validationAccessToken(req);
 
-    // if(!resCheckCookie.uuid) {
-    //   return this.responseReissueToken(resCheckCookie.error);
-    // } 
+    if(!resCheckCookie.uuid) {
+      return this.responseReissueToken(resCheckCookie.error);
+    } 
+
+    const res: ResModifyBlock = await this.bklogService.modifyBlock(
+      data.data, 
+      data.pageId, 
+      resCheckCookie.uuid, 
+      data.pageVersions
+    );
+    
+    return ResponseMessage(res);
+  }
+
+  @Post('t-modify')
+  public async testModifyBlock(@Body() data: any) {
 
     const res: ResModifyBlock = await this.bklogService.modifyBlock(data.data, data.pageId, "4087b8662b988ca2a405c9a6030703a0", data.pageVersions);
-  
-    console.log(res);
-
+    
     return ResponseMessage(res);
   }
 

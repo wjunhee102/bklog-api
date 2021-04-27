@@ -14,7 +14,7 @@ import { PageStar } from 'src/entities/bklog/page-star.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageVersionRepository } from './repositories/page-version.repository';
 import { Token } from 'src/utils/base/token.util';
-import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList } from './bklog.type';
+import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList, ResCreateBklog } from './bklog.type';
 import { Connection, In } from 'typeorm';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { Block } from 'src/entities/bklog/block.entity';
@@ -34,6 +34,26 @@ export class BklogService {
     private readonly cTcRepository: CommentToCommentRepository,
     private readonly blockCommentRepository: BlockCommentRepository
   ){}
+
+  private createPageVersion(
+    page: Page, 
+    modifyDataList: ModifyBlockType, 
+    requiredIdList?: RequiredPageVersionIdList
+  ): PageVersion {
+    const pageVersion: PageVersion = this.pageVersionRepository.create({
+      page,
+      modifyDataList
+    });
+
+    if(requiredIdList) {
+      pageVersion.id = requiredIdList.id;
+      pageVersion.preVersionId = requiredIdList.preVersionId
+    } else {
+      pageVersion.id = Token.getUUID();
+    }
+
+    return pageVersion;
+  }
 
   /**
    * pageVersion id
@@ -72,21 +92,7 @@ export class BklogService {
       modifyDataList
     });
 
-    const queryRunner = this.connection.createQueryRunner();
-
-    // await this.pageVersionRepository.save(pageVersion);
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      await queryRunner.manager.save(pageVersion);
-
-      await queryRunner.commitTransaction();
-    } catch(e) {
-      await queryRunner.rollbackTransaction();
-    } finally {
-      await queryRunner.release();
-    }
+    await this.pageVersionRepository.save(pageVersion);
 
     return await this.findOnePageVersion({ id: pageVersion.id });
   }
@@ -152,51 +158,83 @@ export class BklogService {
   }
 
   /**
-   * 
+   * error 처리를 해야함.
    * @param requiredBklogInfo 
    */
-  public async createBklog(requiredBklogInfo: RequiredBklogInfo): Promise<string> {
+  public async createBklog(requiredBklogInfo: RequiredBklogInfo): Promise<ResCreateBklog> {
+    const result: ResCreateBklog = {
+      success: true,
+      pageId: null,
+      error: {
+        notUserProfile: undefined,
+        dataBaseError: undefined
+      }
+    }
+
     const userProfile: UserProfile | null = await this.userService.getUserProfile(requiredBklogInfo.profileId);
     
     if(!userProfile) {
-      return null;
+      result.error.notUserProfile = true;
+      return result;
     }
     
     const requiredPageInfo: RequiredPageInfo = Object.assign(requiredBklogInfo, {
       userProfile
     });
 
-    const page: Page | null = await this.pageService.createPage(requiredPageInfo);
+    const page: Page = this.pageService.createPage(requiredPageInfo);
 
-    if(!page) {
-      return null;
-    }
-    
-    const blockData: BlockData | null = await this.blockService.createBlockData(page);
+    const block: Block = this.blockService.createBlockData(page);
 
-    if(!blockData) {
-      await this.pageService.removePage(page.id, requiredPageInfo.userId);
-      return null;
-    }
-    
-    // pageversion update;
-    const pageVersion: PageVersion = await this.insertPageVersion(page, {
+    const blockData: BlockData = Object.assign({}, block, {
+      blockComment: undefined, 
+      page: undefined,
+      property: Object.assign({}, block.property, {
+        id: undefined
+      })
+    });
+
+    const pageVersion: PageVersion = this.createPageVersion(page, {
       create: [
         {
-          blockId: blockData.id,
+          blockId: block.id,
           set: "block",
           payload: blockData
         }
       ]
     });
 
-    if(!pageVersion) {
-      await this.blockService.removeBlockData([blockData.id]);
-      await this.pageService.removePage(page.id, requiredBklogInfo.userId);
-      return null;
+    const queryRunner = this.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.manager.save(page);
+      await queryRunner.manager.save(block.property);
+      await queryRunner.manager.save(block);
+      await queryRunner.manager.save(pageVersion);
+
+      await queryRunner.commitTransaction();
+
+      result.error = undefined;
+      result.pageId = page.id;
+      result.success = true;
+
+    } catch(e) {
+
+      Logger.error(e);
+      await queryRunner.rollbackTransaction();
+
+      result.error.dataBaseError = true;
+
+      return result;
+
+    } finally {
+      await queryRunner.release();
     }
 
-    return page.id;
+    return result;
   }
 
   /**
@@ -400,7 +438,6 @@ export class BklogService {
       result.error = undefined;
 
     } catch(e) {
-
       Logger.error(e);
       await queryRunner.rollbackTransaction();
 

@@ -14,10 +14,12 @@ import { UserPrivacy } from './entities/user-privacy.entity';
 import { Token } from 'src/utils/base/token.util';
 import { ResSignInUser } from '../auth.type';
 import { InfoToFindUserProfile } from 'src/user/user.type';
+import { Connection } from 'typeorm';
 
 @Injectable()
 export class PrivateUserService {
   constructor(
+    private connection: Connection,
     private readonly userPrivacyRepository: UserPrivacyRepository,
     private readonly userRepository: UserRepository,
     private readonly userAuthRepository: UserAuthRepository,
@@ -357,17 +359,35 @@ export class PrivateUserService {
   public async getAuthenticatedUser(
     userId: string
   ): Promise<string | null> {
-    const user: User = await this.findOneUserAuth({id: userId});
+    let user: User = await this.findOneUserAuth({id: userId});
 
     if(user) {
       const date = new Date(Date.now());;
       user.lastSignInDate = date;
       user.userStatus.lastAccessTime = date;
       user.userAuth.countOfFailures = 0;
-    
-      await this.saveUserStatus(user.userStatus);
-      await this.saveUserAuth(user.userAuth);
-      await this.saveUser(user);
+
+      const queryRunner = this.connection.createQueryRunner();
+
+      await queryRunner.connect();
+      await queryRunner.startTransaction();
+
+      try {
+        await queryRunner.manager.save(user.userStatus);
+        await queryRunner.manager.save(user.userAuth);
+        await queryRunner.manager.save(user);
+
+        await queryRunner.commitTransaction();
+
+      } catch(e) {
+        Logger.error(e);
+        await queryRunner.rollbackTransaction();
+
+        user = null;
+
+      } finally {
+        await queryRunner.release();
+      }
     }
     
     return user? user.id : null;

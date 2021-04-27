@@ -6,7 +6,7 @@ import { Token } from 'src/utils/base/token.util';
 import { BlockPropertyRepository } from './repositories/block-property.repository';
 import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';
-import { In } from 'typeorm';
+import { In, Connection } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
 import { ParamModifyBlock, ParamCreateModifyBlock, ParamCreateBlock, ParamCreateComment } from '../bklog.type';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
@@ -18,6 +18,24 @@ export class BlockService {
     private readonly propertyRepository: BlockPropertyRepository,
     private readonly blockCommentRepository: BlockCommentRepository
   ){}
+
+  /**
+   * 
+   * @param requiredProperty 
+   */
+  private createProperty(requiredProperty: RequiredBlockProperty): BlockProperty {
+    const property: BlockProperty = this.propertyRepository.create(requiredProperty);
+    
+    property.id = Token.getUUID();
+
+    return property;
+  }
+  
+  private createBlock(requiredBlock: RequiredBlock): Block {
+    const block: Block = this.blockRepository.create(requiredBlock);
+
+    return block;
+  }
 
   /**
    * block id
@@ -238,8 +256,9 @@ export class BlockService {
    * 
    * @param page 
    */
-  public async createBlockData(page: Page): Promise<BlockData> {
-    const property: BlockProperty | null = await this.insertProperty({
+  public createBlockData(page: Page): Block {
+
+    const property: BlockProperty = this.createProperty({
       type: "bk-h1",
       styles: {
         color: null,
@@ -248,33 +267,14 @@ export class BlockService {
       contents: []
     });
 
-    property.id = Token.getUUID();
-
-    if(!property) {
-      return null;
-    }
-
-    const block: Block | null = await this.insertBlock({
+    const block: Block = this.createBlock({
       id: Token.getUUID(),
       page,
       property,
       children: []
     });
 
-    if(!block) {
-      this.deleteProperty([property.id]);
-      return null;
-    }
-
-    const blockData: BlockData = Object.assign({}, block, {
-      blockComment: undefined,
-      page: undefined,
-      property: Object.assign({}, property, {
-        id: undefined
-      })
-    });
-
-    return blockData;
+    return block;
   }
 
   /**

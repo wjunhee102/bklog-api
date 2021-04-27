@@ -12,24 +12,6 @@ export class PageService {
   ){}
 
   /**
-   * 
-   * @param requiredPageInfo 
-   */
-  private async insertPage(requiredPageInfo: RequiredPageInfo): Promise<Page> {
-    const page: Page = await this.pageRepository.create();
-
-    page.id = Token.getUUID();
-    page.userProfile = requiredPageInfo.userProfile;
-    page.userId = requiredPageInfo.userId;
-    page.title = requiredPageInfo.title;
-    page.disclosureScope = requiredPageInfo.disclosureScope;
-
-    await this.savePage(page);
-
-    return await this.findOnePage({id: page.id});
-  }
-
-  /**
    * page 정보 찾기
    * @param pageInfo 
    */
@@ -67,22 +49,6 @@ export class PageService {
 
   /**
    * 
-   * @param page 
-   */
-  // private async deletePage(page: Page): Promise<boolean> {
-  //   try {
-  //     await this.pageRepository.delete(page);
-
-  //     return true;
-  //   } catch(e) {
-  //     Logger.error(e);
-
-  //     return false;
-  //   }
-  // }
-
-  /**
-   * 
    * @param pageIdList 
    */
   private async deletePage(pageIdList: string[]): Promise<boolean> {
@@ -101,14 +67,14 @@ export class PageService {
    * 
    * @param requiredPageInfo 
    */
-  public async createPage(requiredPageInfo: RequiredPageInfo): Promise<Page> {
-    const page: Page | null = await this.insertPage(requiredPageInfo);
-    if(page) {
-      return page;
-    } else {
-      return null;
-    }
+  public createPage(requiredPageInfo: RequiredPageInfo): Page {
+    const page: Page = this.pageRepository.create(requiredPageInfo);
+
+    page.id = Token.getUUID();
+
+    return page;
   }
+
 
   /**
    * 
