@@ -1,9 +1,11 @@
-import { Entity, Column, PrimaryColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne } from 'typeorm';
+import { Entity, Column, OneToMany, ManyToOne } from 'typeorm';
 import { UserProfile } from '../user/user-profile.entity';
 import { PageStar } from './page-star.entity';
 import { PageVersion } from './page-version.entity';
 import { Block } from './block.entity';
 import { MainTable } from '../base/main-table';
+import { PageComment } from './page-comment.entity';
+import { BlockComment } from './block-comment.entity';
 
 @Entity({ name: "page" })
 export class Page extends MainTable {
@@ -60,16 +62,24 @@ export class Page extends MainTable {
   })
   disclosureScope: number;
 
-  @ManyToOne(() => UserProfile)
+  @ManyToOne(() => UserProfile, userProfile => userProfile.pages, {
+    nullable: true
+  })
   userProfile: UserProfile;
-
-  @OneToMany(() => Block, block => block.page)
-  blockList: Block[];
-
-  @OneToMany(() => PageStar, pageStar => pageStar.page)
-  pageStar: PageStar[];
 
   @OneToMany(() => PageVersion, pageVersion => pageVersion.page)
   versionList: PageVersion[];
 
+  @OneToMany(() => PageStar, pageStar => pageStar.page)
+  pageStar: PageStar[];
+
+  @OneToMany(() => PageComment, pageComments => pageComments.page)
+  pageComments: PageComment[];
+
+  @OneToMany(() => Block, block => block.page)
+  blockList: Block[];
+  
+  @OneToMany(() => BlockComment, blockComment => blockComment.page)
+  blockComments: BlockComment[];
+  
 }

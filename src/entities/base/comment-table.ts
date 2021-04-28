@@ -1,6 +1,5 @@
 import { DateTable } from "./date-table";
-import { Column, ManyToOne, PrimaryColumn } from "typeorm";
-import { UserProfile } from "../user/user-profile.entity";
+import { Column, PrimaryColumn } from "typeorm";
 
 export abstract class CommentTable extends DateTable {
 
@@ -11,12 +10,8 @@ export abstract class CommentTable extends DateTable {
   id: string;
 
   @Column({
-    type: "varchar",
-    width: 255
+    type: "json"
   })
-  comment: string;
-
-  @ManyToOne(() => UserProfile)
-  userProfile: UserProfile;
+  comments: any;
   
 };

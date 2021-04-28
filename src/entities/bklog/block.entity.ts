@@ -60,6 +60,6 @@ export class Block {
   page: Page;
 
   @OneToMany(() => BlockComment, blockComment => blockComment.block)
-  blockComment: BlockComment[];
+  blockComments: BlockComment[];
   
 }

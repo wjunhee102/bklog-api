@@ -11,10 +11,10 @@ export class PageStar extends SubTable {
   })
   createdDate: Date;
 
-  @ManyToOne(() => UserProfile)
+  @ManyToOne(() => UserProfile, userProfile => userProfile.pageStars)
   userProfile: UserProfile;
 
-  @ManyToOne(() => Page)
+  @ManyToOne(() => Page, page => page.pageStar)
   page: Page;
 
 }

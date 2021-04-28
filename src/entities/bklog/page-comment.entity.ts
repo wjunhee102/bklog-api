@@ -1,7 +1,7 @@
-import { Entity, ManyToOne, OneToMany } from "typeorm";
+import { Entity, ManyToOne } from "typeorm";
 import { Page } from "./page.entity";
-import { CommentToComment } from "./comment-comment.entity";
 import { CommentTable } from "../base/comment-table";
+import { UserProfile } from "../user/user-profile.entity";
 
 @Entity({name: "page-comment"})
 export class PageComment extends CommentTable {
@@ -9,7 +9,7 @@ export class PageComment extends CommentTable {
   @ManyToOne(() => Page)
   page: Page;
 
-  @OneToMany(() => CommentToComment, commentTocomment => commentTocomment.PageComment)
-  commentTocomment: CommentToComment[];
+  @ManyToOne(() => UserProfile, userProfile => userProfile.pageComments)
+  userProfile: UserProfile;
 
 }

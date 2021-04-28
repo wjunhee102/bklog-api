@@ -2,10 +2,11 @@ import { Entity, Column, PrimaryColumn, OneToOne, JoinColumn, OneToMany } from "
 import { UserStatus } from "./user-status.entity";
 import { PageComment } from "../bklog/page-comment.entity";
 import { PageStar } from "../bklog/page-star.entity";
-import { UserFollower } from "./user-follower.entity";
-import { UserFollowing } from "./user-following.entity";
 import { Page } from "../bklog/page.entity";
 import { ChildTable } from "../base/child-table";
+import { UserFollow } from "./user-follow.entity";
+import { UserBlocking } from "./user-blocking.entity";
+import { BlockComment } from "../bklog/block-comment.entity";
 
 /**
  * id는 uuid
@@ -59,17 +60,28 @@ export class UserProfile extends ChildTable {
   @JoinColumn()
   userStatus: UserStatus;
 
+  @OneToMany(() => UserFollow, userFollow => userFollow.userProfile)
+  followings: UserFollow[];
+
+  @OneToMany(() => UserFollow, userFollow => userFollow.relativeProfile)
+  followers: UserFollow[];
+
+  @OneToMany(()=> UserBlocking, userBlocking => userBlocking.userProfile)
+  blockedUsers: UserBlocking[];
+
+  @OneToMany(() => UserBlocking, userBlocking => userBlocking.blockedProfile)
+  blockedMes: UserBlocking[];
+
   @OneToMany(() => Page, page => page.userProfile)
-  page: Page[];
+  pages: Page[];
 
-  @OneToMany(() => UserFollowing, userFollowing => userFollowing.userProfile)
-  userFollowing: UserFollowing[];
-
-  @OneToMany(() => UserFollower, userFollower => userFollower.userProfile)
-  userFollower: UserFollower[];
+  @OneToMany(() => PageStar, pageStar => pageStar.userProfile)
+  pageStars: PageStar[];
 
   @OneToMany(() => PageComment, pageComment => pageComment.userProfile)
   pageComments: PageComment[];
 
+  @OneToMany(() => BlockComment, blockComment => blockComment.userProfile)
+  blockComments: BlockComment[];
 
 }

@@ -7,10 +7,13 @@ import { CommentTable } from "../base/comment-table";
 @Entity({ name: "block-comment" })
 export class BlockComment extends CommentTable {
 
-  @ManyToOne(() => Block)
+  @ManyToOne(() => Block, block => block.blockComments)
   block: Block;
 
   @ManyToOne(() => Page)
   page: Page;
+
+  @ManyToOne(() => UserProfile, userProfile => userProfile.blockComments)
+  userProfile: UserProfile;
 
 }

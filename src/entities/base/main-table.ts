@@ -1,4 +1,4 @@
-import { PrimaryColumn } from "typeorm";
+import { PrimaryColumn, Column } from "typeorm";
 import { DateTable } from "./date-table";
 
 export abstract class MainTable extends DateTable {
@@ -8,5 +8,12 @@ export abstract class MainTable extends DateTable {
     width: 255
   })
   id: string;
+
+  @Column({
+    name: "removed_at",
+    type: "date",
+    nullable: true
+  })
+  removedDate: Date;
 
 }

@@ -28,7 +28,7 @@ export class User extends MainTable {
   email: string;
 
   @Column({
-    name:"last_sign_in_date",
+    name: "last_sign_in_date",
     type: "datetime",
     nullable: true,
     default: null
