@@ -3,11 +3,15 @@ import { PageController } from './page.controller';
 import { PageService } from './page.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PageRepository } from './repositories/page.repository';
+import { PageVersionRepository } from '../repositories/page-version.repository';
+import { PageComment } from 'src/entities/bklog/page-comment.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      PageRepository
+      PageRepository,
+      PageVersionRepository,
+      PageComment
     ])
   ],
   controllers: [PageController],

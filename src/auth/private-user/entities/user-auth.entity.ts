@@ -1,9 +1,9 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from "typeorm";
 import { UserPrivacy } from "./user-privacy.entity";
-import { SubTable } from "src/entities/base/sub-table";
+import { ChildTable } from "src/entities/base/child-table";
 
 @Entity({ name: 'user-auth' })
-export class UserAuth extends SubTable {
+export class UserAuth extends ChildTable {
 
   @Column({
     type: 'varchar',

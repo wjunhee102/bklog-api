@@ -11,6 +11,8 @@ import { BlockCommentRepository } from './block/repositories/block-comment.repos
 import { PageCommentRepository } from './page/repositories/page-comment.repository';
 import { CommentToCommentRepository } from './page/repositories/comment-comment.repository';
 import { PageStarRepository } from './page/repositories/page-star.repository';
+import { TestRepository } from './block/repositories/test.repositoty';
+import { Test2Respository } from './block/repositories/test2.repository';
 
 @Module({
   imports: [
@@ -21,7 +23,9 @@ import { PageStarRepository } from './page/repositories/page-star.repository';
       PageStarRepository,
       PageCommentRepository,
       CommentToCommentRepository,
-      BlockCommentRepository
+      BlockCommentRepository,
+      TestRepository,
+      Test2Respository
     ]),
     PageModule,
     BlockModule,

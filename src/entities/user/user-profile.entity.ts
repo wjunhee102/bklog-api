@@ -5,20 +5,14 @@ import { PageStar } from "../bklog/page-star.entity";
 import { UserFollower } from "./user-follower.entity";
 import { UserFollowing } from "./user-following.entity";
 import { Page } from "../bklog/page.entity";
+import { ChildTable } from "../base/child-table";
 
 /**
  * id는 uuid
  * pen name은 중복 불가
  */
 @Entity({name: "user-profile"})
-export class UserProfile {
-
-  @PrimaryColumn({
-    name: "user-profile-id",
-    type: "varchar",
-    width: 255
-  })
-  id: string;
+export class UserProfile extends ChildTable {
 
   @Column({
     name: "pen-name",

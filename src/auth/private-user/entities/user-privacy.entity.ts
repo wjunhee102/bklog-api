@@ -1,8 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn } from "typeorm";
-import { SubTable } from "src/entities/base/sub-table";
+import { Entity, Column, UpdateDateColumn } from "typeorm";
+import { ChildTable } from "src/entities/base/child-table";
 
 @Entity({name:"user-privacy"})
-export class UserPrivacy extends SubTable {
+export class UserPrivacy extends ChildTable {
 
   @Column({
     name: "social_security_number_f",

@@ -45,6 +45,8 @@ export interface ResGetPage {
 export interface ParamGetPageList {
   pageUserInfo: PageUserInfo,
   reqUserId?: string;
+  skip?: number;
+  take?: number;
 }
 
 

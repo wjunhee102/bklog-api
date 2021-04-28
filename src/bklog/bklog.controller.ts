@@ -49,23 +49,41 @@ export class BklogController {
   }
 
   @Get('list/penname/:penName')
-  async getPageListPenName(@Req() req, @Param('penName') penName, @Query('id') reqUserId) {
+  async getPageListPenName(
+    @Req() req, 
+    @Param('penName') penName, 
+    @Query('id') reqUserId?, 
+    @Query('skip') skip?, 
+    @Query('take') take?
+  ) {
+
+    console.log(reqUserId, skip, take);
 
     return await this.getPageList(req, {
       pageUserInfo: {
         penName
       },
-      reqUserId
+      reqUserId,
+      skip,
+      take
     });
   }
 
   @Get('list/id/:profileId')
-  async getPageListProfileId(@Req() req, @Param('profileId') id, @Query('id') reqUserId) {
+  async getPageListProfileId(
+    @Req() req, 
+    @Param('profileId') id, 
+    @Query('id') reqUserId?,
+    @Query('skip') skip?,
+    @Query('take') take?
+  ) {
     return await this.getPageList(req, {
       pageUserInfo: {
         id
       },
-      reqUserId
+      reqUserId,
+      skip,
+      take
     })
   }
 
@@ -156,6 +174,20 @@ export class BklogController {
     const res: ResModifyBlock = await this.bklogService.modifyBlock(data.data, data.pageId, "4087b8662b988ca2a405c9a6030703a0", data.pageVersions);
     
     return ResponseMessage(res);
+  }
+
+  @Get('test')
+  public async test(@Query('data') data){
+    const res = await this.bklogService.addTest(data);
+
+    return ResponseMessage(res);
+  }
+
+  @Get('test-d')
+  public async deleteTest(@Query('id') id) {
+    const res = await this.bklogService.deleteTest(id);
+
+    return res;
   }
 
 }

@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryColumn } from "typeorm";
+import { Entity, Column, PrimaryColumn, OneToOne } from "typeorm";
+import { Block } from "./block.entity";
 
 @Entity({ name: "block-property" })
 export class BlockProperty {
@@ -26,5 +27,8 @@ export class BlockProperty {
     type: "json"
   })
   contents: any[];
+
+  @OneToOne(() => Block, block => block.property)
+  block: Block;
 
 }

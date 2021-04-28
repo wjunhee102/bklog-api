@@ -15,6 +15,8 @@ import { Token } from 'src/utils/base/token.util';
 import { ResSignInUser } from '../auth.type';
 import { InfoToFindUserProfile } from 'src/user/user.type';
 import { Connection } from 'typeorm';
+import { UserFollower } from 'src/entities/user/user-follower.entity';
+import { UserFollowing } from 'src/entities/user/user-following.entity';
 
 @Injectable()
 export class PrivateUserService {
@@ -143,55 +145,64 @@ export class PrivateUserService {
    * @param userInfo 
    */
   private async createUser(userInfo: RequiredUserInfo): Promise<boolean> {
+    const status: UserStatus = this.userStatusRepository.create();
+    
+    status.id = Token.getUUID();
+
+    const profile: UserProfile = this.userProfileRepository.create();
+
+    profile.id = Token.getUUID();
+    profile.penName = userInfo.penName;
+    profile.userStatus = status;
+    profile.bio = userInfo.bio;
+
+    const privacy: UserPrivacy = this.userPrivacyRepository.create();
+
+    privacy.id = Token.getUUID();
+
+    const auth: UserAuth = this.userAuthRepository.create();
+
+    const salt: string = await Bcrypt.genSalt(10);
+    const password: string = await Bcrypt.hash(userInfo.password, salt);
+
+    auth.id = Token.getUUID();
+    auth.password = password;
+    auth.userPrivacy = privacy;
+
+    const user: User = this.userRepository.create();
+
+    user.id = Token.getUUID();
+    user.firstName = userInfo.firstName;
+    user.lastName = userInfo.lastName;
+    user.email = userInfo.email;
+    user.userAuth = auth;
+    user.userProfile = profile;
+    user.userStatus = status;
+
+    const queryRunner = this.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
     try {
-
-      const status: UserStatus = await this.userStatusRepository.create();
-
-      await this.saveUserStatus(status);
-
-      const profile: UserProfile = await this.userProfileRepository.create();
-
-      profile.id = Token.getUUID();
-      profile.penName = userInfo.penName;
-      profile.userStatus = status;
-      profile.bio = userInfo.bio;
-
-      await this.saveUserProfile(profile);
-
-      const privacy: UserPrivacy = await this.userPrivacyRepository.create();
+      await queryRunner.manager.save(status);
+      await queryRunner.manager.save(profile);
+      await queryRunner.manager.save(privacy);
+      await queryRunner.manager.save(auth);
+      await queryRunner.manager.save(user);
       
-      await this.saveUserPrivacy(privacy);
-
-      const auth: UserAuth = await this.userAuthRepository.create();
-
-      const salt: string = await Bcrypt.genSalt(10);
-      const password: string = await Bcrypt.hash(userInfo.password, salt);
-
-      auth.password = password;
-      auth.userPrivacy = privacy;
-
-      await this.saveUserAuth(auth);
-
-      const user: User = await this.userRepository.create();
-
-      user.id = Token.getUUID();
-      user.firstName = userInfo.firstName;
-      user.lastName = userInfo.lastName;
-      user.email = userInfo.email;
-      user.userAuth = auth;
-      user.userProfile = profile;
-      user.userStatus = status;
-
-      await this.saveUser(user);
-
-      return true;
-  
+      await queryRunner.commitTransaction();
+      
     } catch(e) {
       Logger.error(e);
+      await queryRunner.rollbackTransaction();
 
       return false;
+    } finally {
+      await queryRunner.release();
     }
 
+    return true;
   }
 
   /**
@@ -205,12 +216,37 @@ export class PrivateUserService {
       const { userPrivacy } = userAuth;
 
       if(userPrivacy) {
+
+        const queryRunner = this.connection.createQueryRunner();
+
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+
+          await queryRunner.manager.remove(User, user);
+          await queryRunner.manager.delete(UserFollower, {
+            userProfile: userProfile
+          });
+          await queryRunner.manager.delete(UserFollowing, {
+            userProfile: userProfile
+          });
+          await queryRunner.manager.remove(UserProfile, userProfile);
+
+        } catch(e) {
+          Logger.error(e);
+          await queryRunner.rollbackTransaction();
+
+        } finally {
+          await queryRunner.release();
+        }
+
         
-        await this.userRepository.remove(user);
-        await this.userAuthRepository.remove(userAuth);
-        await this.userPrivacyRepository.remove(userPrivacy);
-        await this.userProfileRepository.remove(userProfile);
-        await this.userStatusRepository.remove(userStatus);
+        // await this.userRepository.remove(user);
+        // await this.userAuthRepository.remove(userAuth);
+        // await this.userPrivacyRepository.remove(userPrivacy);
+        // await this.userProfileRepository.remove(userProfile);
+        // await this.userStatusRepository.remove(userStatus);
 
         return true;
       }
@@ -421,13 +457,13 @@ export class PrivateUserService {
         if(comparedPassword) {
           result.error.passwordValid = true;
 
-          const { userProfile } = await this.userRepository
-            .createQueryBuilder("user")
-            .leftJoinAndSelect("user.userProfile", "user-profile")
-            .where({
-              id: user.id
-            })
-            .getOne();
+          const userProfile: UserProfile = await this.userProfileRepository
+            .findOne({
+              relations: ["userFollowing", "userFollower"],
+              where: {
+                id: user.userProfile.id
+              }
+            });
 
           const { userPrivacy } = await this.userAuthRepository
             .createQueryBuilder("userAuth")

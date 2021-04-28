@@ -1,11 +1,8 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Entity, Column } from "typeorm";
+import { ChildTable } from "../base/child-table";
 
 @Entity({name: "user-status"})
-export class UserStatus {
-  @PrimaryGeneratedColumn({
-    type: "bigint"
-  })
-  id: number;
+export class UserStatus extends ChildTable {
 
   @Column({
     name: "last-access-time",

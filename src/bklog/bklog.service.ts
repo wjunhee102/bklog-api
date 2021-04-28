@@ -19,7 +19,10 @@ import { Connection, In } from 'typeorm';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { Block } from 'src/entities/bklog/block.entity';
 import { BlockProperty } from 'src/entities/bklog/block-property.entity';
-import { BlockRepository } from './block/repositories/block.repository';
+import { TestRepository } from './block/repositories/test.repositoty';
+import { Test } from 'src/entities/bklog/test.entity';
+import { Test2 } from 'src/entities/bklog/test2.entity';
+import { Test2Respository } from './block/repositories/test2.repository';
 
 @Injectable()
 export class BklogService {
@@ -32,7 +35,9 @@ export class BklogService {
     private readonly pageStarRepository: PageStarRepository,
     private readonly pageCommentRepository: PageCommentRepository,
     private readonly cTcRepository: CommentToCommentRepository,
-    private readonly blockCommentRepository: BlockCommentRepository
+    private readonly blockCommentRepository: BlockCommentRepository,
+    private readonly testRepository: TestRepository,
+    private readonly test2Repository: Test2Respository
   ){}
 
   private createPageVersion(
@@ -252,7 +257,9 @@ export class BklogService {
     const pageInfoList: PageInfoList[] | null = await 
       this.pageService.findPublicPageList(
         factorGetPageList.pageUserInfo, 
-        scope
+        scope,
+        factorGetPageList.skip,
+        factorGetPageList.take
       ); 
 
     return  {
@@ -326,47 +333,45 @@ export class BklogService {
       comment: []
     }
 
-    for(const [key, value] of Object.entries(modifyBlockDataList)) {
-      if(key === "create") {
-        const resCreate: ModifyData | null = await this.blockService.createData(value, page);
+    if(modifyBlockDataList.create) {
+      const resCreate: ModifyData | null = await this.blockService.createData(modifyBlockDataList.create, page);
 
-        if(!resCreate) {
-          result.error.paramError = true;
-          return result;
-        }
-
-        if(resCreate.block) {
-          modifyData.block = modifyData.block.concat(resCreate.block);
-        }
-
-        if(resCreate.property) {
-          modifyData.property = modifyData.property.concat(resCreate.property);
-        }
-
-        if(resCreate.comment) {
-          modifyData.comment = modifyData.comment.concat(resCreate.comment);
-        }
+      if(!resCreate) {
+        result.error.paramError = true;
+        return result;
       }
 
-      if(key === "update") {
-        const resUpdate: ModifyData | null = await this.blockService.updateData(value);
+      if(resCreate.block) {
+        modifyData.block = modifyData.block.concat(resCreate.block);
+      }
 
-        if(!resUpdate) {
-          result.error.paramError = true;
-          return result;
-        }
+      if(resCreate.property) {
+        modifyData.property = modifyData.property.concat(resCreate.property);
+      }
 
-        if(resUpdate.block) {
-          modifyData.block = modifyData.block.concat(resUpdate.block);
-        }
+      if(resCreate.comment) {
+        modifyData.comment = modifyData.comment.concat(resCreate.comment);
+      }
+    }
 
-        if(resUpdate.property) {
-          modifyData.property = modifyData.property.concat(resUpdate.property);
-        }
+    if(modifyBlockDataList.update) {
+      const resUpdate: ModifyData | null = await this.blockService.updateData(modifyBlockDataList.update);
 
-        if(resUpdate.comment) {
-          modifyData.comment = modifyData.comment.concat(resUpdate.comment);
-        }
+      if(!resUpdate) {
+        result.error.paramError = true;
+        return result;
+      }
+
+      if(resUpdate.block) {
+        modifyData.block = modifyData.block.concat(resUpdate.block);
+      }
+
+      if(resUpdate.property) {
+        modifyData.property = modifyData.property.concat(resUpdate.property);
+      }
+
+      if(resUpdate.comment) {
+        modifyData.comment = modifyData.comment.concat(resUpdate.comment);
       }
     }
 
@@ -382,42 +387,31 @@ export class BklogService {
       if(modifyData.comment) await queryRunner.manager.save(modifyData.comment);
 
       if(modifyBlockDataList.delete) {
-        const deleteData = modifyBlockDataList.delete;
+        const { commentIdList, blockIdList } = modifyBlockDataList.delete;
 
-        let propertyIdList: string[]  = [];
-        let commentIdList: string[] = [];
+        if(commentIdList) await queryRunner.manager.delete(BlockComment, commentIdList);
 
-        if(deleteData.blockIdList) {
+        if(blockIdList) {
+
           const blockList: Block[] = await queryRunner.manager.find(Block, {
-            relations: ["property", "blockComment"],
+            relations: ["property"],
             where: {
-              id: In(deleteData.blockIdList)
-            }
+              id: In(blockIdList)
+            },
+            select: ["property"]
           });
 
-          for(const block of blockList) {
-            propertyIdList.push(block.property.id);
-            
-            if(block.blockComment[0]) {
-              
-              commentIdList = commentIdList.concat(
-                block.blockComment.map(comment => comment.id)
-              );
-
-            }
-          }
-
-        }
-
-        if(deleteData.commentIdList) {
-          commentIdList = commentIdList.concat(deleteData.commentIdList);
-        }
-        
-        if(commentIdList[0]) await queryRunner.manager.delete(BlockComment, commentIdList);
-        
-        if(deleteData.blockIdList) {
-          await queryRunner.manager.delete(Block, deleteData.blockIdList);
-          await queryRunner.manager.delete(BlockProperty, propertyIdList);
+          await queryRunner.manager
+            .createQueryBuilder()
+            .delete()
+            .from(BlockComment)
+            .where("blockComment.block IN(:...blockIdList)", { blockIdList: blockIdList })
+            .execute();
+          await queryRunner.manager.delete(Block, blockList);
+          await queryRunner.manager.delete(
+            BlockProperty, 
+            blockList.map(block => block.property.id)
+          );
         }
         
       }
@@ -450,47 +444,114 @@ export class BklogService {
     return result;
   }
 
-  // private async modifyBlock(modifyBlockDataList: ModifyBlockType[]) {
+  public async addTest(data: string) {
+    const test: Test = this.testRepository.create({ data });
 
-  //   const param = modifyBlockDataList.reduce((acc, currentValue)=>{
-  //     acc[currentValue.command].push({
-  //       set: currentValue.set,
-  //       payload: currentValue.payload
-  //     });
+    const test2: Test2 = this.test2Repository.create({
+      data
+    });
 
-  //     return acc;
+    test2.test = test;
 
-  //   }, {
-  //     create: [],
-  //     update: [],
-  //     delete: []
-  //   });
+    const queryRunner = this.connection.createQueryRunner();
 
-  //   console.log(param);
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  //   for(const { command, set, payload } of modifyBlockDataList) {
-  //     switch(command) {
-  //       case "create":
-  //         const resCreate: boolean = await this.blockService.createData(set, payload);
-  //         if(!resCreate) return resCreate;
-  //         break;
+    try {
+      await queryRunner.manager.save(test);
+      await queryRunner.manager.save(test2);
 
-  //       case "update":
-  //         const resUpdate: boolean = await this.blockService.updateData(set, payload);
-  //         if(!resUpdate) return resUpdate;
-  //         break;
+      await queryRunner.commitTransaction();
+    } catch(e) {
+      Logger.error(e);
+      await queryRunner.rollbackTransaction();
 
-  //       case "delete":
-  //         const resDelete: boolean = await this.blockService.deleteData(set, payload);
-  //         if(!resDelete) return resDelete;
-  //         break;
+      return false;
+    } finally {
+      await queryRunner.release();
+    }
 
-  //       default: 
-  //         return false;
-  //     }
-  //   }
+    const test21: Test = await this.testRepository.findOne({
+      where: {
+        data: "안녕하세요3"
+      }
+    });
 
-  //   return true;
-  // }
+    return this.test2Repository.count({
+      where: {
+        test: test21
+      }
+    });
+
+  }
+
+  public async deleteTest(id: number) {
+    const test: Test[] = await this.testRepository.find({
+      where: {
+        data: "안녕하세요8"
+      },
+      select: ["id"]
+    });
+
+    const queryRunner = this.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.manager
+        .createQueryBuilder()
+        .delete()
+        .from(Test2)
+        .where("test2.testId IN (:...test)", { test: test.map(test => test.id)} )
+        .execute();
+
+      await queryRunner.commitTransaction();
+
+    } catch(e) {
+      Logger.error(e);
+      queryRunner.rollbackTransaction();
+
+      return false;
+    } finally {
+      queryRunner.release();
+    }
+
+    return true;
+    // return this.test2Repository
+    //   .createQueryBuilder("test2")
+    //   .delete()
+    //   .where("test2.testId IN (:...tests)", { tests: test.map(test => test.id) })
+    //   .execute();
+
+    // console.log(test);
+
+    // return await this.test2Repository
+    //   .createQueryBuilder("test2")
+    //   .where("test2.testId IN (:...tests)", { tests: test.map(test => test.id) })
+    //   .getMany()
+  }
+
+  public async deleteTest2() {
+    const test2: Test2[] = await this.test2Repository.find({
+      where: {
+        data: "안녕하세요"
+      }
+    });
+
+    const queryRunner = this.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+
+    } catch(e) {
+
+    } finally {
+
+    }
+  }
 
 }

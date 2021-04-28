@@ -1,4 +1,3 @@
-import { BlockTextProperty } from "src/entities/bklog/text-property.entity";
 import { TextStyle, TextContents } from "src/types/bklog";
 import { Page } from "src/entities/bklog/page.entity";
 import { BlockProperty } from "src/entities/bklog/block-property.entity";
@@ -10,7 +9,7 @@ export const TYPE_TEXT = "text" as const;
 // export type BlockTypes = "text" | "container" | "image";
 export type BlockTypes = "text" | "container";
 
-export type BlockProperties = any | BlockTextProperty | null;
+export type BlockProperties = any | null;
 
 export type Property = {
   type: any;

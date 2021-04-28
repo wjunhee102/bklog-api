@@ -3,12 +3,19 @@ import { PageRepository } from './repositories/page.repository';
 import { InfoToFindPage, RequiredPageInfo, PageInfoList, PageUserInfo } from './page.type';
 import { Page } from 'src/entities/bklog/page.entity';
 import { Token } from 'src/utils/base/token.util';
-import { Brackets } from 'typeorm';
+import { Brackets, In } from 'typeorm';
+import { PageVersionRepository } from '../repositories/page-version.repository';
+import { PageCommentRepository } from './repositories/page-comment.repository';
+import { PageVersion } from 'src/entities/bklog/page-version.entity';
+import { PageComment } from 'src/entities/bklog/page-comment.entity';
+import { UserProfile } from 'src/entities/user/user-profile.entity';
 
 @Injectable()
 export class PageService {
   constructor(
-    private readonly pageRepository: PageRepository
+    private readonly pageRepository: PageRepository,
+    private readonly pageVersionRepository: PageVersionRepository,
+    private readonly pageCommentRepository : PageCommentRepository
   ){}
 
   /**
@@ -118,14 +125,57 @@ export class PageService {
     return false;
   }
 
-  /**
+  // /**
+  //  * 
+  //  * @param profileId 
+  //  * @param scope 
+  //  */
+  // public async findPublicPageList(
+  //   { id, penName }: PageUserInfo, 
+  //   scope:number = 4
+  // ): Promise<PageInfoList[]> {
+
+  //   if(id || penName) { 
+
+  //     const pageList: Page[] = await this.pageRepository
+  //       .createQueryBuilder("page")
+  //       .leftJoinAndSelect(
+  //         "page.userProfile", 
+  //         "user-profile"
+  //       )
+  //       .where("page.disclosureScope >= :scope", { scope })
+  //       .andWhere(new Brackets(qb => {
+  //         qb.where("user-profile.id = :id", { id })
+  //           .orWhere("user-profile.penName = :penName", { penName })
+  //       }))
+  //       .select([
+  //         "page.id",
+  //         "page.title",
+  //         "page.disclosureScope"
+  //       ])
+  //       .orderBy("page.disclosureScope", "DESC")
+  //       .addOrderBy("page.title", "ASC")
+  //       .getMany();
+
+  //     if(pageList[0]) {
+  //       return pageList;
+  //     }
+
+  //   } 
+
+  //   return null;
+  // }
+
+    /**
    * 
    * @param profileId 
    * @param scope 
    */
   public async findPublicPageList(
     { id, penName }: PageUserInfo, 
-    scope:number = 4
+    scope:number = 4,
+    skip: number = 0,
+    take: number = 50,
   ): Promise<PageInfoList[]> {
 
     if(id || penName) { 
@@ -136,7 +186,7 @@ export class PageService {
           "page.userProfile", 
           "user-profile"
         )
-        .where("page.disclosureScope >= :scope", { scope: 0 })
+        .where("page.disclosureScope >= :scope", { scope })
         .andWhere(new Brackets(qb => {
           qb.where("user-profile.id = :id", { id })
             .orWhere("user-profile.penName = :penName", { penName })
@@ -148,6 +198,8 @@ export class PageService {
         ])
         .orderBy("page.disclosureScope", "DESC")
         .addOrderBy("page.title", "ASC")
+        .skip(skip)
+        .take(take)
         .getMany();
 
       if(pageList[0]) {
@@ -157,6 +209,35 @@ export class PageService {
     } 
 
     return null;
+  }
+
+  public async removeAllPage(userProfile: UserProfile) {
+    const pageIdList: Page[] = await this.pageRepository
+      .find({
+        where: {
+          userProfile
+        },
+        select: ["id"]
+      });
+
+    const pageVersionIdList: PageVersion[] = await this.pageVersionRepository
+      .find({
+        where: {
+          page: In(pageIdList)
+        },
+        select: ["id"]
+      });
+
+    const pageCommentIdList: PageComment[] = await this.pageCommentRepository
+      .find({
+        where: {
+          page: In(pageIdList),
+          userProfile
+        }
+      });
+    
+
+
   }
 
 }

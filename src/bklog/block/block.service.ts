@@ -47,28 +47,6 @@ export class BlockService {
       where: { id }
     });
   }
-  
-  /**
-   * block property id
-   * @param id 
-   */
-  private async findOneProperty(id: string): Promise<BlockProperty> {
-    const block: Block = await this.blockRepository
-      .createQueryBuilder("block")
-      .leftJoinAndSelect(
-        "block.property",
-        "block-property"
-      )
-      .where({ id })
-      .select("block.property")
-      .getOne()
-
-    if(!block) {
-      return null;
-    }
-    
-    return block.property
-  }
 
   /**
    * 
@@ -133,23 +111,6 @@ export class BlockService {
   }
 
   /**
-   * 전부 id 배열로 바꿔야 함.
-   * @param block 
-   */
-  // private async deleteBlock(block: Block): Promise<boolean> {
-  //   try {
-  //     console.log("1");
-  //     await this.blockRepository.delete([block.id]);
-
-  //     return true;
-  //   } catch(e) {
-  //     Logger.error(e);
-
-  //     return false;
-  //   }
-  // }
-
-  /**
    * 
    * @param blockIdList 
    */
@@ -167,23 +128,6 @@ export class BlockService {
 
   /**
    * 
-   * @param property 
-   */
-  // private async deleteProperty(property: BlockProperty): Promise<boolean> {
-  //   try {
-  //     console.log("2");
-  //     await this.propertyRepository.delete([property.id]);
-
-  //     return true;
-  //   } catch(e) {
-  //     Logger.error(e);
-
-  //     return false;
-  //   }
-  // }
-
-  /**
-   * 
    * @param propertyIdList 
    */
   private async deleteProperty(propertyIdList: string[]): Promise<boolean> {
@@ -197,40 +141,6 @@ export class BlockService {
       return false;
     }
   }
-
-  // /**
-  //  * 
-  //  * @param blockUpdateProps 
-  //  */
-  // private async updateBlock(block: Block, blockUpdateProps: BlockUpdateProps): Promise<boolean> {
-
-  //   for(const [key, value] of Object.entries(blockUpdateProps)) {
-  //     if(key !== "id") {
-  //       block[key] = value;
-  //     }
-  //   }
-
-  //   await this.saveBlock([block]);
-
-  //   return true;
-  // }
-
-  // /**
-  //  * 
-  //  * @param propertyUpdateProps 
-  //  */
-  // private async updateProperty(property: BlockProperty, propertyUpdateProps: PropertyUpdateProps): Promise<boolean> {
-
-  //   for(const [key, value] of Object.entries(propertyUpdateProps)) {
-  //     if(key !== "blockid") {
-  //       property[key] = value;
-  //     }
-  //   }
-
-  //   await this.saveProperty([property]);
-
-  //   return true;
-  // }
 
   private async insertBlockData(blockData: BlockData, page: Page): Promise<Block> {
     const property: BlockProperty = await this.insertProperty(blockData.property);
