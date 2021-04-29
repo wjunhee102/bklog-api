@@ -78,6 +78,11 @@ export class AuthController {
     
   }
   
+  /**
+   * id return 하는 것 바꿔야 함.
+   * @param req 
+   * @param res 
+   */
   @Get('check-token')
   public async valudationAccessToken(
     @Req() req,
@@ -85,21 +90,22 @@ export class AuthController {
   ) {
     const result = {
       success: false,
-      userId: null,
-      error: null
+      error: undefined
     }
     const accessToken = req.signedCookies[ACCESS_TOKEN];
     if(!accessToken) {
       result.error = "not cookie";
     } else {
-      const resValitionAC = this.authService.validateAccessTokenReturnId(
+      const { infoFalse, expFalse } = this.authService.validationAccessToken(
         accessToken,
         req.headers["user-agent"]
       );
       
-      result.userId = resValitionAC.uuid;
-      if(resValitionAC.error) {
-        result.error = resValitionAC.error
+      if(infoFalse || expFalse) {
+        result.error = {
+          infoFalse,
+          expFalse
+        }
       } else {
         result.success = true
       }

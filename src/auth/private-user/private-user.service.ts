@@ -553,7 +553,6 @@ export class PrivateUserService {
         firstName: user.firstName,
         lastName: user.lastName,
         penName: user.userProfile.penName,
-        userId: user.id,
         profileId: user.userProfile.id,
         userPhoto: user.userProfile.photo,
         bio: user.userProfile.bio

@@ -1,5 +1,5 @@
 import { PublicUserInfo } from "src/types/public";
-import { IdentifyUser, ResDeleteUser } from "./private-user/types/private-user.type";
+import { ResDeleteUser } from "./private-user/types/private-user.type";
 
 export const ACCESS_TOKEN = "AID" as const;
 export const REFRESH_TOKEN = "RID" as const;
@@ -40,6 +40,18 @@ export interface ResAuthToUser {
   userInfo: PublicUserInfo,
   jwt: UserJwtokens
 };
+
+
+// 다른 명칭으로 바꾸거나 좀 더 구체화 시켜야 함.
+interface IdentifyUser {
+  email: string;
+  firstName: string;
+  lastName: string;
+  penName: string;
+  profileId: string;
+  userPhoto: string;
+  bio: string;
+}
 
 export interface ResSignInUser {
   success: boolean;
