@@ -3,10 +3,9 @@ import { UserProfileRepository } from './repositories/user-profile.repository';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { InfoToFindUserProfile, UserStatusData } from './user.type';
 import { UserStatusRepository } from './repositories/user-status.repository';
-import { UserFollowingRepository } from './repositories/user-following.repository';
-import { UserFollowerRepository } from './repositories/user-follower.repository';
-import { UserFollower } from 'src/entities/user/user-follower.entity';
-import { UserFollowing } from 'src/entities/user/user-following.entity';
+import { UserFollow } from 'src/entities/user/user-follow.entity';
+import { UserFollowRepository } from './repositories/user-follow.repository';
+import { UserBlockingRepository } from './repositories/user-blocking.repository';
 
 
 @Injectable()
@@ -14,8 +13,8 @@ export class UserService {
   constructor(
     private readonly userProfileRepository: UserProfileRepository,
     private readonly userStatusRepository: UserStatusRepository,
-    private readonly userFollowingRepository: UserFollowingRepository,
-    private readonly userFollowerRepository: UserFollowerRepository
+    private readonly userFollowRepository: UserFollowRepository,
+    private readonly userBlockingRepository: UserBlockingRepository
   ){}
 
   /**
@@ -23,35 +22,14 @@ export class UserService {
    * @param profileId 
    * @param relativeId 
    */
-  private async insertUserFollowing(userProfile: UserProfile, relativeProfile: UserProfile): Promise<boolean> {
+  private async insertUserFollow(userProfile: UserProfile, relativeProfile: UserProfile): Promise<boolean> {
     try {
-      const userFollowing: UserFollowing = await this.userFollowingRepository.create({
+      const userFollow: UserFollow = await this.userFollowRepository.create({
         userProfile,
         relativeProfile
       });
 
-      await this.userFollowingRepository.save(userFollowing);
-
-      return true;
-    } catch(e) {
-      Logger.error(e);
-      return false;
-    }
-  }
-  
-  /**
-   * user follower 추가
-   * @param profileId 
-   * @param relativeId 
-   */
-  private async insertUserFollower(userProfile: UserProfile, relativeProfile: UserProfile): Promise<boolean> {
-    try {
-      const userFollower: UserFollower = await this.userFollowerRepository.create({
-        userProfile,
-        relativeProfile
-      });
-
-      await this.userFollowerRepository.save(userFollower);
+      await this.userFollowRepository.save(userFollow);
 
       return true;
     } catch(e) {
@@ -92,8 +70,8 @@ export class UserService {
    * @param profileId 
    * @param relativeId 
    */
-  private async findOneUserFollower(profileId: string, relativeId: string): Promise<UserFollower | null> {
-    const userFollower: UserFollower = await this.userFollowingRepository.findOne({
+  private async findOneUserFollower(profileId: string, relativeId: string): Promise<UserFollow | null> {
+    const userFollower: UserFollow = await this.userFollowRepository.findOne({
       relations: ["userProfile", "relativeProfile"],
       where: {
         userProfile: {
@@ -112,18 +90,16 @@ export class UserService {
    * follower List 찾기
    * @param profileId 
    */
-  private async findUserFollower(profileId: string): Promise<UserFollower[]> {
-    return await this.userFollowerRepository.find({
-      relations:["userProfile", "relativeProfile"],
-      where: {
-        userProfile: {
-          id: profileId
-        } 
-      },
-      order: {
-        createdDate: "ASC"
-      }
-    });
+  private async findUserFollower(profileId: string): Promise<UserFollow[]> {
+    return await this.userFollowRepository
+      .createQueryBuilder("user-follow")
+      .leftJoinAndSelect(
+        "userFollow.relativeProfile",
+        "user-profile"
+      )
+      .where("userFollow.userProfileId = :profileId", { profileId })
+      .select("userFollow.relative")
+      .getMany();
   }
 
   /**
@@ -131,15 +107,15 @@ export class UserService {
    * @param profileId 
    * @param relativeId 
    */
-  private async findOneUserFollowing(profileId: string, relativeId: string): Promise<UserFollowing> {
-    const userFollowing: UserFollowing = await this.userFollowingRepository.findOne({
+  private async findOneUserFollowing(profileId: string, relativeId: string): Promise<UserFollow> {
+    const userFollowing: UserFollow = await this.userFollowRepository.findOne({
       relations: ["userProfile", "relativeProfile"],
       where: {
         userProfile: {
-          id: profileId
+          id: relativeId
         },
         relativeProfile: {
-          id: relativeId
+          id: profileId
         }
       }
     });
@@ -151,18 +127,16 @@ export class UserService {
    * following List 찾기
    * @param profileId 
    */
-  private async findUserFollowing(profileId: string): Promise<UserFollowing[]> {
-    return await this.userFollowingRepository.find({
-      relations:["userProfile"],
-      where: {
-        userProfile: {
-          id: profileId
-        } 
-      },
-      order: {
-        createdDate: "ASC"
-      }
-    });
+  private async findUserFollowing(profileId: string): Promise<UserFollow[]> {
+    return await this.userFollowRepository
+      .createQueryBuilder("user-follow")
+      .leftJoinAndSelect(
+        "userFollow.userProfile",
+        "user-profile"
+      )
+      .where("userFollow.relativeProfileId = :profileId", { profileId })
+      .select("userFollow.userProfile")
+      .getMany();
   }
 
   public async getUserProfile(id: string): Promise<UserProfile | null> {
@@ -211,7 +185,7 @@ export class UserService {
    * @param relativeId 
    */
   public async checkFollower(profileId: string, relativeId: string) {
-    const userFollower: UserFollower | null = await this.findOneUserFollower(profileId, relativeId);
+    const userFollower: UserFollow | null = await this.findOneUserFollower(profileId, relativeId);
 
     return userFollower? true : false;
   }
@@ -222,7 +196,7 @@ export class UserService {
    * @param relativeId 
    */
   public async checkFollowing(profileId: string, relativeId: string) {
-    const userFollowing: UserFollowing | null = await this.findOneUserFollowing(profileId, relativeId);
+    const userFollowing: UserFollow | null = await this.findOneUserFollowing(profileId, relativeId);
 
     return userFollowing? true : false;
   }

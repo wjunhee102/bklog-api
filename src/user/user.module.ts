@@ -4,8 +4,8 @@ import { UserService } from './user.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserProfileRepository } from './repositories/user-profile.repository';
 import { UserStatusRepository } from './repositories/user-status.repository';
-import { UserFollowerRepository } from './repositories/user-follower.repository';
-import { UserFollowingRepository } from './repositories/user-following.repository';
+import { UserFollowRepository } from './repositories/user-follow.repository';
+import { UserBlockingRepository } from './repositories/user-blocking.repository';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
@@ -13,8 +13,8 @@ import { AuthModule } from 'src/auth/auth.module';
     TypeOrmModule.forFeature([
       UserProfileRepository,
       UserStatusRepository,
-      UserFollowerRepository,
-      UserFollowingRepository
+      UserFollowRepository,
+      UserBlockingRepository
     ]),
     AuthModule
   ],

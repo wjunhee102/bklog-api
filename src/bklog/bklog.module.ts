@@ -9,7 +9,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PageVersionRepository } from './repositories/page-version.repository';
 import { BlockCommentRepository } from './block/repositories/block-comment.repository';
 import { PageCommentRepository } from './page/repositories/page-comment.repository';
-import { CommentToCommentRepository } from './page/repositories/comment-comment.repository';
 import { PageStarRepository } from './page/repositories/page-star.repository';
 import { TestRepository } from './block/repositories/test.repositoty';
 import { Test2Respository } from './block/repositories/test2.repository';
@@ -22,7 +21,6 @@ import { Test2Respository } from './block/repositories/test2.repository';
       PageVersionRepository,
       PageStarRepository,
       PageCommentRepository,
-      CommentToCommentRepository,
       BlockCommentRepository,
       TestRepository,
       Test2Respository

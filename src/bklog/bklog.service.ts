@@ -8,7 +8,6 @@ import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { PageStarRepository } from './page/repositories/page-star.repository';
 import { PageCommentRepository } from './page/repositories/page-comment.repository';
 import { BlockCommentRepository } from './block/repositories/block-comment.repository';
-import { CommentToCommentRepository } from './page/repositories/comment-comment.repository';
 import { Page } from 'src/entities/bklog/page.entity';
 import { PageStar } from 'src/entities/bklog/page-star.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
@@ -34,7 +33,6 @@ export class BklogService {
     private readonly pageVersionRepository: PageVersionRepository,
     private readonly pageStarRepository: PageStarRepository,
     private readonly pageCommentRepository: PageCommentRepository,
-    private readonly cTcRepository: CommentToCommentRepository,
     private readonly blockCommentRepository: BlockCommentRepository,
     private readonly testRepository: TestRepository,
     private readonly test2Repository: Test2Respository
@@ -416,7 +414,7 @@ export class BklogService {
         
       }
 
-      const pageVersion: PageVersion = await queryRunner.manager.create(PageVersion, {
+      const pageVersion: PageVersion = queryRunner.manager.create(PageVersion, {
         id: pageVersions.next,
         preVersionId: pageVersions.current,
         page,

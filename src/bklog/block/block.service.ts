@@ -6,7 +6,7 @@ import { Token } from 'src/utils/base/token.util';
 import { BlockPropertyRepository } from './repositories/block-property.repository';
 import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';
-import { In, Connection } from 'typeorm';
+import { In } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
 import { ParamModifyBlock, ParamCreateModifyBlock, ParamCreateBlock, ParamCreateComment } from '../bklog.type';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
@@ -206,8 +206,8 @@ export class BlockService {
 
     for(const block of blockList) {
 
-      if(block.blockComment[0]) {
-        for(const comment of block.blockComment) {
+      if(block.blockComments[0]) {
+        for(const comment of block.blockComments) {
           data.commentList.push(comment.id);
         }
       }
@@ -277,7 +277,7 @@ export class BlockService {
           
           blockComment.block = block;
           blockComment.page = page;
-          blockComment.comment = payload;
+          blockComment.comments = payload;
 
           modifyData.comment.push(blockComment);
 

@@ -71,12 +71,16 @@ export class ParamCreateComment implements ParamModifyBlock {
   payload: any;
 }
 
+type Combine<T, K> = T & Omit<K, keyof T>;
+
+export type ParamCreateModifyBlock = ParamCreateBlock | ParamCreateComment;
+
 export class ParamDeleteModity {
   blockIdList?: string[];
   commentIdList?: string[];
 }
 
-export type ParamCreateModifyBlock = ParamCreateComment | ParamCreateBlock;
+
 
 export interface ModifyBlockType {
   create?: ParamCreateModifyBlock[];

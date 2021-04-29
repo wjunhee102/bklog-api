@@ -15,8 +15,7 @@ import { Token } from 'src/utils/base/token.util';
 import { ResSignInUser } from '../auth.type';
 import { InfoToFindUserProfile } from 'src/user/user.type';
 import { Connection } from 'typeorm';
-import { UserFollower } from 'src/entities/user/user-follower.entity';
-import { UserFollowing } from 'src/entities/user/user-following.entity';
+import { UserFollow } from 'src/entities/user/user-follow.entity';
 
 @Injectable()
 export class PrivateUserService {
@@ -206,6 +205,7 @@ export class PrivateUserService {
   }
 
   /**
+   * 수정해야함..
    * user 데이터 삭제
    * @param user 
    */
@@ -225,10 +225,16 @@ export class PrivateUserService {
         try {
 
           await queryRunner.manager.remove(User, user);
-          await queryRunner.manager.delete(UserFollower, {
+          await queryRunner.manager.createQueryBuilder()
+            .delete()
+            .from(UserFollow)
+            .where("userfollow.userProfileId :userProfileid", {userProfileId: userProfile.id})
+            .execute();
+            
+          await queryRunner.manager.delete(UserFollow, {
             userProfile: userProfile
           });
-          await queryRunner.manager.delete(UserFollowing, {
+          await queryRunner.manager.delete(UserFollow, {
             userProfile: userProfile
           });
           await queryRunner.manager.remove(UserProfile, userProfile);
@@ -459,7 +465,7 @@ export class PrivateUserService {
 
           const userProfile: UserProfile = await this.userProfileRepository
             .findOne({
-              relations: ["userFollowing", "userFollower"],
+              relations: ["follows", "followers"],
               where: {
                 id: user.userProfile.id
               }
