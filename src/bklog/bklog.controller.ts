@@ -3,7 +3,7 @@ import { BklogService } from './bklog.service';
 import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
 import { ACCESS_TOKEN, ResValitionAccessToken } from 'src/auth/auth.type';
-import { ResponseMessage } from 'src/utils/base/response.util';
+import { ResponseMessage } from 'src/utils/common/response.util';
 import { ParamGetPageList, ResModifyBlock, ResCreateBklog } from './bklog.type';
 
 @Controller('bklog')
@@ -183,11 +183,19 @@ export class BklogController {
     return ResponseMessage(res);
   }
 
-  @Get('test-d')
-  public async deleteTest(@Query('id') id) {
-    const res = await this.bklogService.deleteTest(id);
+  @Get('test2')
+  public async test2(@Query('data') data){
+    const res = await this.bklogService.addTest2(data);
 
-    return res;
+    return ResponseMessage(res);
+  }
+
+  @Get('test-d')
+  public async deleteTest(@Query('id') id, @Res() response) {
+    const res = await this.bklogService.deleteTest(id);
+    console.log(response);
+    response.status(404).send(ResponseMessage(res));
+
   }
 
 }

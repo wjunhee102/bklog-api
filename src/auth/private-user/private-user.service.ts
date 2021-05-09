@@ -11,7 +11,7 @@ import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { User } from './entities/user.entity';
 import { UserAuth } from './entities/user-auth.entity';
 import { UserPrivacy } from './entities/user-privacy.entity';
-import { Token } from 'src/utils/base/token.util';
+import { Token } from 'src/utils/common/token.util';
 import { ResSignInUser } from '../auth.type';
 import { InfoToFindUserProfile } from 'src/user/user.type';
 import { Connection } from 'typeorm';

@@ -2,7 +2,7 @@ import { Controller, Post, Req, Res, Body, Logger, Get, Delete } from '@nestjs/c
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './auth.schema';
 import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN } from './auth.type';
-import { ResponseMessage } from 'src/utils/base/response.util';
+import { ResponseMessage } from 'src/utils/common/response.util';
 import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
 import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-user.type';
@@ -11,7 +11,7 @@ import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-use
 export class AuthController {
   constructor(private readonly authService: AuthService){}
 
-  private setUserJwtCookies(@Res() res, jwtTokens: UserJwtokens) {
+  private setUserJwtCookies(res, jwtTokens: UserJwtokens) {
     res.cookie(
       ACCESS_TOKEN, 
       jwtTokens.accessToken, 
@@ -24,12 +24,12 @@ export class AuthController {
     );
   }
 
-  private clearUserJwtCookie(@Res() res) {
+  private clearUserJwtCookie(res) {
     res.clearCookie(ACCESS_TOKEN);
     res.clearCookie(REFRESH_TOKEN);
   }
 
-  private clearUserJwtCookieAccess(@Res() res) {
+  private clearUserJwtCookieAccess(res) {
     res.clearCookie(ACCESS_TOKEN);
   }
 
@@ -55,9 +55,9 @@ export class AuthController {
     @Body() userAuthInfo: UserAuthInfo
   ) {
     const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
-    console.log(value);
+
     if(error) {
-      res.send(ResponseMessage(error));
+      res.status(400).send(ResponseMessage(error));
     } else {
       const resSignInUser: ResSignInUser = 
       await this.authService.signInUser(value, req.headers["user-agent"]);
@@ -71,8 +71,9 @@ export class AuthController {
 
       const result = Object.assign({}, resSignInUser);
       
+      result.jwt = undefined;
       delete result.jwt;
-      console.log(result);
+
       res.send(ResponseMessage(result));
     }
     
@@ -96,15 +97,17 @@ export class AuthController {
     if(!accessToken) {
       result.error = "not cookie";
     } else {
-      const { infoFalse, expFalse } = this.authService.validationAccessToken(
+      const res = this.authService.validationAccessToken(
         accessToken,
         req.headers["user-agent"]
       );
-      
-      if(infoFalse || expFalse) {
+        
+      console.log(res);
+
+      if(res && (res.infoFalse || res.expFalse)) {
         result.error = {
-          infoFalse,
-          expFalse
+          infoFalse: res.infoFalse? true : false,
+          expFalse: res.expFalse? true : false
         }
       } else {
         result.success = true

@@ -188,6 +188,8 @@ export class AuthService {
     userAgent: string
   ): TokenVailtionRes | null {
     const decodingUserJwt: any = this.jwtService.decode(accessToken);
+
+    console.log(decodingUserJwt);
     
     if(!decodingUserJwt || decodingUserJwt.type !== ACCESS) {
       return {
@@ -198,6 +200,8 @@ export class AuthService {
 
     const checkAgent: boolean = decodingUserJwt.agent === userAgent;
     const checkExpTime = decodingUserJwt.exp * 1000 + accessExpTime > Date.now();
+
+    console.log(checkAgent, checkExpTime);
 
     if(!checkAgent || !checkExpTime) {
       return {

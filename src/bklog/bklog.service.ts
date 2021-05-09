@@ -12,7 +12,7 @@ import { Page } from 'src/entities/bklog/page.entity';
 import { PageStar } from 'src/entities/bklog/page-star.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageVersionRepository } from './repositories/page-version.repository';
-import { Token } from 'src/utils/base/token.util';
+import { Token } from 'src/utils/common/token.util';
 import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList, ResCreateBklog } from './bklog.type';
 import { Connection, In } from 'typeorm';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
@@ -22,6 +22,7 @@ import { TestRepository } from './block/repositories/test.repositoty';
 import { Test } from 'src/entities/bklog/test.entity';
 import { Test2 } from 'src/entities/bklog/test2.entity';
 import { Test2Respository } from './block/repositories/test2.repository';
+import { ResponseMessage, ResponseError, SystemErrorMessage } from 'src/utils/common/responseMessage';
 
 @Injectable()
 export class BklogService {
@@ -445,6 +446,46 @@ export class BklogService {
   public async addTest(data: string) {
     const test: Test = this.testRepository.create({ data });
 
+    const test2: Test2 = this.test2Repository.create({ data });
+
+    test2.test = test;
+
+    const queryRunner = this.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      await queryRunner.manager.save(test);
+      await queryRunner.manager.save(test2);
+
+      await queryRunner.commitTransaction();
+    } catch(e) {
+      Logger.error(e);
+      await queryRunner.rollbackTransaction();
+
+      return false;
+    } finally {
+      await queryRunner.release();
+    }
+
+    const test21: Test = await this.testRepository.findOne({
+      where: {
+        data: "안녕하세요3"
+      }
+    });
+
+    return this.test2Repository.count({
+      where: {
+        test: test21
+      }
+    });
+
+  }
+
+  public async addTest2(data: string) {
+    const test: Test = this.testRepository.create({ data });
+
     const test2: Test2 = this.test2Repository.create({
       data
     });
@@ -457,8 +498,51 @@ export class BklogService {
     await queryRunner.startTransaction();
 
     try {
-      await queryRunner.manager.save(test);
-      await queryRunner.manager.save(test2);
+      await this.testRepository.save(test, {
+        transaction: false
+      })
+      await this.test2Repository.save(test2,  {
+        transaction: false
+      })
+
+      await queryRunner.commitTransaction();
+    } catch(e) {
+      Logger.error(e);
+      await queryRunner.rollbackTransaction();
+
+      return new ResponseMessage()
+        .error(SystemErrorMessage.db())
+        .systemError();
+        
+    } finally {
+      await queryRunner.release();
+    }
+
+    const test21: Test = await this.testRepository.findOne({
+      where: {
+        data: "안녕하세요3"
+      }
+    });
+
+    return this.test2Repository.count({
+      where: {
+        test: test21
+      }
+    });
+
+  }
+
+  public async addTest3(data: string) {
+    const queryRunner = this.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // await this.testRepository.update({
+      //   id: 2,
+      //   data: "SDddsad"
+      // }, Test)
 
       await queryRunner.commitTransaction();
     } catch(e) {

@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BlockRepository } from './repositories/block.repository';
 import { RequiredBlock, RequiredBlockProperty, BlockData, BlockUpdateProps, PropertyUpdateProps, ModifyData } from './block.type';
 import { Block } from 'src/entities/bklog/block.entity';
-import { Token } from 'src/utils/base/token.util';
+import { Token } from 'src/utils/common/token.util';
 import { BlockPropertyRepository } from './repositories/block-property.repository';
 import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';

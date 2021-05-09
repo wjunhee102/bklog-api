@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { PageService } from './page.service';
 import { PageInfoList } from './page.type';
-import { ResponseMessage } from 'src/utils/base/response.util';
+import { ResponseMessage } from 'src/utils/common/response.util';
 
 @Controller('page')
 export class PageController {

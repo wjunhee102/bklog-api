@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PageRepository } from './repositories/page.repository';
 import { InfoToFindPage, RequiredPageInfo, PageInfoList, PageUserInfo } from './page.type';
 import { Page } from 'src/entities/bklog/page.entity';
-import { Token } from 'src/utils/base/token.util';
+import { Token } from 'src/utils/common/token.util';
 import { Brackets, In } from 'typeorm';
 import { PageVersionRepository } from '../repositories/page-version.repository';
 import { PageCommentRepository } from './repositories/page-comment.repository';
