@@ -22,10 +22,12 @@ export interface DecodeJwt extends JwtUserPayload {
   exp: number 
 }
 
-export type TokenVailtionRes = {
+export type TokenVailtionType = {
   infoFalse: boolean,
   expFalse: boolean
-} | null;
+}
+
+export type TokenVailtionRes = TokenVailtionType | null;
 
 export interface ResRegisterUser {
   success: boolean;

@@ -55,10 +55,11 @@ export class Page extends MainTable {
   })
   userId: string;
 
+  // 0: 삭제 예정, 1: 개인, 2: following, 3: org, 4: following || org, 5: public;
   @Column({
-    name: "disclosure-scope",
+    name: "disclosure_scope",
     type: "tinyint",
-    default: 4
+    default: 5
   })
   disclosureScope: number;
 
@@ -81,5 +82,5 @@ export class Page extends MainTable {
   
   @OneToMany(() => BlockComment, blockComment => blockComment.page)
   blockComments: BlockComment[];
-  
+
 }

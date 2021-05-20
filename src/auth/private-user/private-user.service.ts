@@ -5,7 +5,7 @@ import { UserAuthRepository } from './repositories/user-auth.repository';
 import { UserRepository } from './repositories/user.repository';
 import { UserProfileRepository } from 'src/user/repositories/user-profile.repository';
 import { UserStatusRepository } from 'src/user/repositories/user-status.repository';
-import { UserAuthInfo, RequiredUserInfo, ResAuthenticatedUser, InfoToFindUser, ResDeleteUser } from './types/private-user.type';
+import { UserAuthInfo, RequiredUserInfo, ResAuthenticatedUser, InfoToFindUser, ResDeleteUser, UserIdList, UserIdNPenName } from './types/private-user.type';
 import { UserStatus } from 'src/entities/user/user-status.entity';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { User } from './entities/user.entity';
@@ -37,6 +37,29 @@ export class PrivateUserService {
       where: userInfo
     })
   };
+
+  /**
+   * 
+   * @param userId 
+   */
+  private findOneUserProfileUserId(userId: string): Promise<User> {
+    return this.userRepository.findOne({
+      relations: ["userProfile"],
+      where: {
+        id: userId
+      },
+      select: ["id", "userProfile"]
+    });
+  }
+
+  private findOneUserNProfileId(userId: string): Promise<User> {
+    return this.userRepository.findOne({
+      relations: ["userProfile"],
+      where: {
+        id: userId
+      }
+    })
+  }
 
   /**
    * 
@@ -560,6 +583,24 @@ export class PrivateUserService {
       error: null 
     }
 
+  }
+  
+  public async getUserIdNProfileId(userId: string): Promise<UserIdList> {
+    const user: User = await this.findOneUserProfileUserId(userId);
+
+    return user? {
+      userId: user.id,
+      profileId: user.userProfile.id
+    } : null;
+  }
+
+  public async getUserIdNPenName(userId: string): Promise<UserIdNPenName> {
+    const user: User = await this.findOneUserProfileUserId(userId);
+
+    return user? {
+      userId: user.id,
+      penName: user.userProfile.penName
+    } : null;
   }
 
 }

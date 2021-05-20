@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
 import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo, ACCESS, REFRESH } from './auth.type';
-import { UserAuthInfo } from './private-user/types/private-user.type';
+import { UserAuthInfo, UserIdList, UserIdNPenName } from './private-user/types/private-user.type';
 import { RequiredUserInfo, ResAuthenticatedUser } from './private-user/types/private-user.type';
 import { PrivateUserService } from './private-user/private-user.service';
 
@@ -356,7 +356,7 @@ export class AuthService {
    * @param userAgent 
    * @param targetEmail 
    */
-  public async activateUser (
+  public async activateUser(
     accessToken: string, 
     userAgent: string, 
     targetEmail: string
@@ -393,7 +393,7 @@ export class AuthService {
    * @param accessToken 
    * @param userAgent 
    */
-  public async simpleSignInUser (
+  public async simpleSignInUser(
     accessToken: string,
     userAgent: string
   ) {
@@ -410,5 +410,25 @@ export class AuthService {
     const result = this.privateUserService.getUserInfo(decodingJwt.uuid);
 
     return result;
+  }
+
+  public async checkUserIdNProfileId(userId: string, profileId: string): Promise<boolean> {
+    const userInfo: UserIdList = await this.privateUserService.getUserIdNProfileId(userId);
+
+    if(userInfo) {
+      return userInfo.profileId === profileId? true : false;
+    }
+
+    return false;
+  }
+
+  public async checkUserIdNPenName(userId: string, penName: string): Promise<boolean> {
+    const userInfo: UserIdNPenName = await this.privateUserService.getUserIdNPenName(userId);
+
+    if(userInfo) {
+      return userInfo.penName === penName? true : false;
+    }
+
+    return false;
   }
 }

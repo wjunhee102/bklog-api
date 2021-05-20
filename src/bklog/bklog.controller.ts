@@ -2,9 +2,10 @@ import { Controller, Post, Req, Res, Body, Get, Param, Query } from '@nestjs/com
 import { BklogService } from './bklog.service';
 import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
-import { ACCESS_TOKEN, ResValitionAccessToken } from 'src/auth/auth.type';
-import { ResponseMessage } from 'src/utils/common/response.util';
-import { ParamGetPageList, ResModifyBlock, ResCreateBklog } from './bklog.type';
+import { ACCESS_TOKEN, ResValitionAccessToken, REFRESH_TOKEN, TokenVailtionType } from 'src/auth/auth.type';
+import { ResponseMessage } from 'src/utils/common/response.util2';
+import { ParamGetPageList, ResTokenValidation } from './bklog.type';
+import { Response, ResponseError, AuthErrorMessage } from 'src/utils/common/response.util';
 
 @Controller('bklog')
 export class BklogController {
@@ -13,75 +14,100 @@ export class BklogController {
     private readonly bklogService: BklogService
   ){}
 
-  private validationAccessToken(@Req() req): ResValitionAccessToken {
+  private clearUserJwtCookie(res) {
+    res.clearCookie(ACCESS_TOKEN);
+    res.clearCookie(REFRESH_TOKEN);
+  }
+
+  private validationAccessToken(@Req() req): ResTokenValidation {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
     const userAgent = req.headers["user-agent"];
 
     if(!accessToken) {
       return {
         uuid: null,
-        error: {
-          infoFalse: true,
-          expFalse: false
-        }
+        accessToken: false
       }
     }
 
-    return this.authService.validateAccessTokenReturnId(accessToken, userAgent);
+    // if(!accessToken) {
+    //   return {
+    //     uuid: "4e17660a0ea99a83845cbf3c90f62700"
+    //   }
+    // }
+
+    return Object.assign({}, this.authService.validateAccessTokenReturnId(accessToken, userAgent), {
+      accessToken: true
+    });
   }
 
-  private responseReissueToken(error) {
-    return ResponseMessage({ success: false, error });
+  private responseCheckToken({ infoFalse } : TokenVailtionType ,res): void {
+    const response: Response = new Response();
+
+    if(infoFalse) {
+      this.clearUserJwtCookie(res);
+      response.error(AuthErrorMessage.info).unauthorized();
+    } else {
+      response.error(AuthErrorMessage.exp).unauthorized();
+    }
+
+    response.res(res).send();
   }
 
-  private async getPageList(req, factorGetPageList: ParamGetPageList) {
-    const resCheckCookie = this.validationAccessToken(req);
+  private async getPageList(
+    res, 
+    req, 
+    factorGetPageList: ParamGetPageList
+  ): Promise<void> {
+    const { uuid, error, accessToken } = this.validationAccessToken(req);
 
-    if(!resCheckCookie.error.infoFalse) {
-      if(!resCheckCookie.uuid) {
-        return this.responseReissueToken(resCheckCookie.error);
-      }
-    } 
+    if(!uuid && accessToken) {
+      this.responseCheckToken(error, res);
+    } else {  
+      const response = await this.bklogService.findPageList(factorGetPageList, uuid);
 
-    const pageInfoList = await this.bklogService.findPageList(factorGetPageList);
-
-    return ResponseMessage(pageInfoList);
+      response.res(res).send();
+    }
+    
   }
 
   @Get('list/penname/:penName')
-  async getPageListPenName(
+  public async getPageListPenName(
+    @Res() res,
     @Req() req, 
     @Param('penName') penName, 
-    @Query('id') reqUserId?, 
+    @Query('id') reqProfileId?, 
     @Query('skip') skip?, 
     @Query('take') take?
   ) {
 
-    console.log(reqUserId, skip, take);
-
-    return await this.getPageList(req, {
+    await this.getPageList(res, req, {
       pageUserInfo: {
         penName
       },
-      reqUserId,
+      reqProfileId,
       skip,
       take
     });
+
   }
 
   @Get('list/id/:profileId')
-  async getPageListProfileId(
+  public async getPageListProfileId(
+    @Res() res,
     @Req() req, 
     @Param('profileId') id, 
-    @Query('id') reqUserId?,
+    @Query('id') reqProfileId?,
     @Query('skip') skip?,
     @Query('take') take?
   ) {
-    return await this.getPageList(req, {
+    await this.getPageList(
+      res,
+      req, {
       pageUserInfo: {
         id
       },
-      reqUserId,
+      reqProfileId,
       skip,
       take
     })
@@ -90,90 +116,138 @@ export class BklogController {
   @Post('create-page')
   public async createPage(
     @Req() req, 
+    @Res() res,
     @Body() requiredBklogInfo: ReqCreatePage
   ) {
 
-    const resCheckCookie = this.validationAccessToken(req);
+    // const resCheckCookie = this.validationAccessToken(req);
 
-    if(!resCheckCookie.uuid) {
-      return this.responseReissueToken(resCheckCookie.error);
-    } 
+    const { uuid, error }  = this.validationAccessToken(req);
 
-    const resCreateBklog: ResCreateBklog = await this.bklogService.createBklog(
-      Object.assign(
-        requiredBklogInfo, {
-          userId: resCheckCookie.uuid
-    }));  
+    if(!uuid) {
+      this.responseCheckToken(error, res);
+    } else {
+
+      const checkUser: boolean = await this.authService.checkUserIdNProfileId(
+        uuid,
+        requiredBklogInfo.profileId
+      );
+
+      if(!checkUser) {
+        this.clearUserJwtCookie(res);
+
+        new Response()
+        .error(AuthErrorMessage.info)
+        .unauthorized()
+        .res(res)
+        .send();
+
+      } else {
+        const response: Response = await this.bklogService.createBklog(
+          Object.assign(requiredBklogInfo, { userId: uuid })
+        );  
+        
+        response.res(res).send();
+      }
+
+    }
     
-    return ResponseMessage(resCreateBklog);
+  }
+
+  @Post('t-create-page')
+  public async createPage2(
+    @Res() res,
+    @Body() requiredBklogInfo: ReqCreatePage
+  ): Promise<void> {
+
+    const checkUser: boolean = await this.authService.checkUserIdNProfileId(
+      "4e17660a0ea99a83845cbf3c90f627001",
+      requiredBklogInfo.profileId
+    );
+
+    if(!checkUser) {
+      this.clearUserJwtCookie(res);
+
+      new Response().error(AuthErrorMessage.info).unauthorized().res(res).send();
+        
+    } else {
+      const response: Response = await this.bklogService.createBklog(
+        Object.assign( requiredBklogInfo, { userId: "4e17660a0ea99a83845cbf3c90f62700" })
+      );  
+      
+      response.res(res).send();
+    }
+    
   }
 
   @Get('getpage')
-  public async getPage(@Req() req, @Query('id') id) {
-    const accessToken = req.signedCookies[ACCESS_TOKEN];
+  public async getPage(@Res() res, @Req() req, @Query('id') id): Promise<void> {
+    const { uuid, error, accessToken } = this.validationAccessToken(req);
 
-    let resCheckCookie = undefined;
-
-    if(accessToken) {
-      resCheckCookie = this.validationAccessToken(req);
-
-      if(!resCheckCookie.uuid) {
-        return this.responseReissueToken(resCheckCookie.error);
-      }
-    } 
-
-    const page: any = await this.bklogService.getPage(id, resCheckCookie? resCheckCookie.uuid : undefined); 
-
-    return ResponseMessage({
-      success: true,
-      page
-    });
+    if(!uuid && accessToken) {
+      this.responseCheckToken(error, res);
+    } else {
+      const response: Response = await this.bklogService.getPage(id, uuid); 
+      response.res(res).send();
+    }
+    
   }
 
   @Get('t-getpage')
-  public async testGetPage(@Req() req, @Query('id') id) {
+  public async testGetPage(@Res() res, @Req() req, @Query('id') id) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
 
     if(accessToken) {
       const resCheckCookie = this.validationAccessToken(req);
 
       if(!resCheckCookie.uuid) {
-        return this.responseReissueToken(resCheckCookie.error);
+        this.responseCheckToken(resCheckCookie.error, res);
+      } else {
+        const response: Response = await this.bklogService.getPage(id, "4e17660a0ea99a83845cbf3c90f62700"); 
+        response.res(res).send();
       }
-    } 
+    } else {
+      const response: Response = await this.bklogService.getPage(id, "4e17660a0ea99a83845cbf3c90f62700"); 
+      response.res(res).send();
+    }
 
-    const page: any = await this.bklogService.getPage(id,  "4087b8662b988ca2a405c9a6030703a0"); 
-
-    return ResponseMessage({
-      success: true,
-      page
-    });
   }
 
   @Post('modify')
-  public async modifyBlock(@Req() req, @Body() data: any) {
+  public async modifyBlock(@Req() req, @Body() data: any, @Res() res) {
     const resCheckCookie = this.validationAccessToken(req);
 
     if(!resCheckCookie.uuid) {
-      return this.responseReissueToken(resCheckCookie.error);
-    } 
+      // return this.responseCheckToken(resCheckCookie.error);
 
-    const res: ResModifyBlock = await this.bklogService.modifyBlock(
-      data.data, 
-      data.pageId, 
-      resCheckCookie.uuid, 
-      data.pageVersions
-    );
-    
-    return ResponseMessage(res);
+      new Response()
+      .error(AuthErrorMessage.info)
+      .unauthorized()
+      .res(res)
+      .send();
+    } else {
+      const response: Response = await this.bklogService.modifyBlock(
+        data.data, 
+        data.pageId, 
+        resCheckCookie.uuid, 
+        data.pageVersions
+      );
+  
+      response.res(res).send();
+    }
   }
 
   @Post('t-modify')
-  public async testModifyBlock(@Body() data: any) {
-
-    const res: ResModifyBlock = await this.bklogService.modifyBlock(data.data, data.pageId, "4087b8662b988ca2a405c9a6030703a0", data.pageVersions);
+  public async testModifyBlock(@Res() res, @Body() data: any) {
     
-    return ResponseMessage(res);
+    const response: Response = await this.bklogService.modifyBlock(
+      data.data, 
+      data.pageId, 
+      "4e17660a0ea99a83845cbf3c90f62700", 
+      data.pageVersions
+    );
+
+    response.res(res).send();
   }
 
   @Get('test')
@@ -184,18 +258,25 @@ export class BklogController {
   }
 
   @Get('test2')
-  public async test2(@Query('data') data){
-    const res = await this.bklogService.addTest2(data);
-
-    return ResponseMessage(res);
+  public test2(@Query('data') data, @Res() res){
+    // response.res(res).send();
+    this.bklogService.addTest2(data)
+    .then((response) => response
+      .error(
+        new ResponseError()
+        .build("test", "test", "500", "test")
+        .get()
+      )
+      .res(res)
+      .send()
+    )
+  
   }
 
   @Get('test-d')
   public async deleteTest(@Query('id') id, @Res() response) {
     const res = await this.bklogService.deleteTest(id);
-    console.log(response);
     response.status(404).send(ResponseMessage(res));
-
   }
 
 }

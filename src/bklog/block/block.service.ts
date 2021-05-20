@@ -6,17 +6,19 @@ import { Token } from 'src/utils/common/token.util';
 import { BlockPropertyRepository } from './repositories/block-property.repository';
 import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';
-import { In } from 'typeorm';
+import { In, Connection, QueryRunner } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
 import { ParamModifyBlock, ParamCreateModifyBlock, ParamCreateBlock, ParamCreateComment } from '../bklog.type';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
+import { Test } from 'src/entities/bklog/test.entity';
 
 @Injectable()
 export class BlockService {
   constructor(
     private readonly blockRepository   : BlockRepository,
     private readonly propertyRepository: BlockPropertyRepository,
-    private readonly blockCommentRepository: BlockCommentRepository
+    private readonly blockCommentRepository: BlockCommentRepository,
+    private connection: Connection
   ){}
 
   /**
@@ -62,6 +64,10 @@ export class BlockService {
 
       return false;
     }
+  }
+
+  private async save<T = any> (queryRunner: QueryRunner, data: T) {
+    await queryRunner.manager.save(data);
   }
 
   /**
@@ -370,6 +376,11 @@ export class BlockService {
     });
 
     return await this.removeBlockData(idList);
+  }
+
+  public async test(queryRunner: QueryRunner, test: Test) {
+    await queryRunner.manager.save(test);
+    await queryRunner.manager.save({});
   }
 
 }

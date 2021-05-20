@@ -22,7 +22,8 @@ import { TestRepository } from './block/repositories/test.repositoty';
 import { Test } from 'src/entities/bklog/test.entity';
 import { Test2 } from 'src/entities/bklog/test2.entity';
 import { Test2Respository } from './block/repositories/test2.repository';
-import { ResponseMessage, ResponseError, SystemErrorMessage } from 'src/utils/common/responseMessage';
+import { Response, ResponseError, SystemErrorMessage, AuthErrorMessage, CommonErrorMessage } from 'src/utils/common/response.util';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class BklogService {
@@ -31,12 +32,13 @@ export class BklogService {
     private readonly pageService: PageService,
     private readonly blockService: BlockService,
     private readonly userService: UserService,
+    private readonly authService: AuthService,
     private readonly pageVersionRepository: PageVersionRepository,
     private readonly pageStarRepository: PageStarRepository,
     private readonly pageCommentRepository: PageCommentRepository,
     private readonly blockCommentRepository: BlockCommentRepository,
     private readonly testRepository: TestRepository,
-    private readonly test2Repository: Test2Respository
+    private readonly test2Repository: Test2Respository,
   ){}
 
   private createPageVersion(
@@ -162,24 +164,15 @@ export class BklogService {
   }
 
   /**
-   * error 처리를 해야함.
+   * 
    * @param requiredBklogInfo 
    */
-  public async createBklog(requiredBklogInfo: RequiredBklogInfo): Promise<ResCreateBklog> {
-    const result: ResCreateBklog = {
-      success: true,
-      pageId: null,
-      error: {
-        notUserProfile: undefined,
-        dataBaseError: undefined
-      }
-    }
+  public async createBklog(requiredBklogInfo: RequiredBklogInfo): Promise<Response> {
 
     const userProfile: UserProfile | null = await this.userService.getUserProfile(requiredBklogInfo.profileId);
     
     if(!userProfile) {
-      result.error.notUserProfile = true;
-      return result;
+      return new Response().error(AuthErrorMessage.info).unauthorized();
     }
     
     const requiredPageInfo: RequiredPageInfo = Object.assign(requiredBklogInfo, {
@@ -221,35 +214,35 @@ export class BklogService {
 
       await queryRunner.commitTransaction();
 
-      result.error = undefined;
-      result.pageId = page.id;
-      result.success = true;
-
     } catch(e) {
 
       Logger.error(e);
       await queryRunner.rollbackTransaction();
 
-      result.error.dataBaseError = true;
-
-      return result;
+      return new Response().error(SystemErrorMessage.db).systemError();
 
     } finally {
       await queryRunner.release();
     }
 
-    return result;
+    return new Response().body({ pageId: page.id }).status(201);
   }
+
 
   /**
    * 
    * @param factorGetPageList 
    */
-  public async findPageList(factorGetPageList: ParamGetPageList) {
-    let scope = 4;
+  public async findPageList(factorGetPageList: ParamGetPageList, uuid?: string): Promise<Response> {
+    let scope = 5;
 
-    if(factorGetPageList.reqUserId) {
+    if(factorGetPageList.reqProfileId && uuid) {
       // id가 해당 유저의 팔로워인지... 맞으면 scope에 대입.
+      const checkProfileId = await this.authService.checkUserIdNProfileId(uuid, factorGetPageList.reqProfileId);
+
+      if(!checkProfileId) {
+        return new Response().error(AuthErrorMessage.info).unauthorized();
+      }
       
     }
     
@@ -261,19 +254,22 @@ export class BklogService {
         factorGetPageList.take
       ); 
 
-    return  {
-      success: pageInfoList? true : false,
-      pageInfoList
-    }
+    return pageInfoList? 
+      new Response().body(pageInfoList) 
+      : new Response().error(CommonErrorMessage.notFound).notFound();
   }
 
-  public async getPage(pageId: string, userId?: string): Promise<ResGetPage> {
-    const page: Page | null = await this.pageService.getPage(pageId);
-    const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
+  public async getPage(pageId: string, userId?: string | null): Promise<Response> {
+    const rawPage: Page | null = await this.pageService.getPage(pageId);
+    const pageVersion: PageVersion = await this.findOneCurrentPageVersion(rawPage);
 
-    return page? 
-      Object.assign({}, page, {
-        blockList: page.blockList.map((block) => {
+    /**
+     * scope 확인?
+     */
+
+    const page = rawPage ? 
+      Object.assign({}, rawPage, {
+        blockList: rawPage.blockList.map((block) => {
           return Object.assign({}, block, {
             page: undefined,
             blockComment: undefined,
@@ -284,11 +280,22 @@ export class BklogService {
         }),
         version: pageVersion.id,
         userProfile: undefined,
-        profileId: page.userProfile.id,
+        profileId: rawPage.userProfile.id,
         userId: undefined,
-        editable: userId? userId === page.userId : false
-      }) 
-      : null;
+        editable: userId? userId === rawPage.userId : false
+      }) : null;
+    
+    return page? new Response().body(page) 
+      : new Response()
+        .error(
+          new ResponseError()
+          .build(
+            "페이지를 찾을 수 없습니다.",
+            "The page does not exist or you entered an invalid page id.",
+            "001",
+            "Bklog"
+          )
+        ).notFound();
   }
 
   /**
@@ -298,32 +305,30 @@ export class BklogService {
    * @param userId 
    * @param pageVersions 
    */
-  public async modifyBlock(modifyBlockDataList: ModifyBlockType, pageId: string, userId: string, pageVersions: PageVersions): Promise<ResModifyBlock> {
-    const result: ResModifyBlock = {
-      success: false,
-      pageVersion: null,
-      error: {
-        notEditable: undefined,
-        notCurrentVersion: undefined,
-        paramError: undefined,
-        dataBaseError: undefined
-      }
-    }
+  public async modifyBlock(
+    modifyBlockDataList: ModifyBlockType, 
+    pageId: string, userId: string, 
+    pageVersions: PageVersions
+  ): Promise<Response> {
 
     const page: Page = await this.pageService.getPage(pageId);
 
     if(page.userId !== userId) {
-      result.error.notEditable = true;
-      return result;
+      return new Response().error(AuthErrorMessage.info).forbidden();
     }
 
     const  resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
 
-    result.pageVersion = resCheckCurrentVersion.pageVersion;
-
     if(!resCheckCurrentVersion.success) {
-      result.error.notCurrentVersion = true;
-      return result;
+      return new Response()
+        .error(
+          new ResponseError().build(
+            "최신 버전이 아닙니다.",
+            "Not the current version",
+            "002",
+            "Bklog"
+          ).get()
+        ).forbidden();
     }
 
     const modifyData: ModifyData = {
@@ -336,8 +341,14 @@ export class BklogService {
       const resCreate: ModifyData | null = await this.blockService.createData(modifyBlockDataList.create, page);
 
       if(!resCreate) {
-        result.error.paramError = true;
-        return result;
+        return new Response().error(
+          new ResponseError().build(
+            "client error",
+            "create param error",
+            "003",
+            "Bklog"
+          ).get()
+        ).badReq();
       }
 
       if(resCreate.block) {
@@ -357,8 +368,14 @@ export class BklogService {
       const resUpdate: ModifyData | null = await this.blockService.updateData(modifyBlockDataList.update);
 
       if(!resUpdate) {
-        result.error.paramError = true;
-        return result;
+        return new Response().error(
+          new ResponseError().build(
+            "client error",
+            "update param error",
+            "003",
+            "Bklog"
+          ).get()
+        ).badReq();
       }
 
       if(resUpdate.block) {
@@ -426,21 +443,17 @@ export class BklogService {
 
       await queryRunner.commitTransaction();
 
-      result.success = true;
-      result.pageVersion = pageVersions.next;
-      result.error = undefined;
-
     } catch(e) {
       Logger.error(e);
       await queryRunner.rollbackTransaction();
 
-      result.error.dataBaseError = true;
+      return new Response().error(SystemErrorMessage.db).systemError();
 
     } finally {
       await queryRunner.release();
     }
 
-    return result;
+    return new Response().body({ pageVersion: pageVersions.next });
   }
 
   public async addTest(data: string) {
@@ -456,8 +469,9 @@ export class BklogService {
     await queryRunner.startTransaction();
 
     try {
-      await queryRunner.manager.save(test);
+      await this.blockService.test(queryRunner, test);
       await queryRunner.manager.save(test2);
+      
 
       await queryRunner.commitTransaction();
     } catch(e) {
@@ -510,10 +524,8 @@ export class BklogService {
       Logger.error(e);
       await queryRunner.rollbackTransaction();
 
-      return new ResponseMessage()
-        .error(SystemErrorMessage.db())
-        .systemError();
-        
+      return new Response().error(SystemErrorMessage.db).systemError();
+
     } finally {
       await queryRunner.release();
     }
@@ -524,12 +536,13 @@ export class BklogService {
       }
     });
 
-    return this.test2Repository.count({
+    const count = await this.test2Repository.count({
       where: {
         test: test21
       }
     });
 
+    return new Response().body({count});
   }
 
   public async addTest3(data: string) {

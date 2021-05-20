@@ -84,7 +84,7 @@ export class PageService {
 
 
   /**
-   * 
+   * scope 추가해야함.
    * @param id 
    */
   public async getPage(id: string): Promise<Page> {
@@ -173,12 +173,13 @@ export class PageService {
    */
   public async findPublicPageList(
     { id, penName }: PageUserInfo, 
-    scope:number = 4,
+    reqScope:number = 5,
     skip: number = 0,
     take: number = 50,
   ): Promise<PageInfoList[]> {
 
-    if(id || penName) { 
+    if(id || penName) {
+      let scope = reqScope === 0? 5 : reqScope; 
 
       const pageList: Page[] = await this.pageRepository
         .createQueryBuilder("page")

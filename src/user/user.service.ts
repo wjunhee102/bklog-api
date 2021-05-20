@@ -6,11 +6,14 @@ import { UserStatusRepository } from './repositories/user-status.repository';
 import { UserFollow } from 'src/entities/user/user-follow.entity';
 import { UserFollowRepository } from './repositories/user-follow.repository';
 import { UserBlockingRepository } from './repositories/user-blocking.repository';
+import { Connection } from 'typeorm';
+import { User } from 'src/auth/private-user/entities/user.entity';
 
 
 @Injectable()
 export class UserService {
   constructor(
+    private connection: Connection,
     private readonly userProfileRepository: UserProfileRepository,
     private readonly userStatusRepository: UserStatusRepository,
     private readonly userFollowRepository: UserFollowRepository,
@@ -139,10 +142,10 @@ export class UserService {
       .getMany();
   }
 
-  public async getUserProfile(id: string): Promise<UserProfile | null> {
+  public async getUserProfile(id: string): Promise<UserProfile> {
     return await this.findOneUserProfile({ id });
   }
-
+             
   /**
    * 중복 유무 확인
    * @param penName 

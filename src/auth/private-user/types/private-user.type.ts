@@ -54,3 +54,8 @@ export interface UserIdList {
   profileId: string;
   userId: string;
 }
+
+export interface UserIdNPenName {
+  penName: string;
+  userId: string;
+}

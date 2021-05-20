@@ -16,7 +16,7 @@ export interface ReqCreatePage {
 
 export interface RequiredBklogInfo extends UserIdList {
   title: string;
-  disclosureScope: number;// 0: 개인, 1: following, 2: org, 3: following || org, 4: public
+  disclosureScope: number;// 0: 삭제 예정, 1: 개인, 2: following, 3: org, 4: following || org, 5: public;
 }
 
 export interface RequiredPageInfo extends RequiredBklogInfo {

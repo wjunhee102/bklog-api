@@ -1,6 +1,10 @@
 import { BlockData } from "./block/block.type";
 import { PageUserInfo } from "./page/page.type";
+import { ResValitionAccessToken } from "../auth/auth.type";
 
+export interface ResTokenValidation extends ResValitionAccessToken {
+  accessToken: boolean;
+}
 
 export interface RequiredPageListInfo {
   penName: string;
@@ -44,7 +48,7 @@ export interface ResGetPage {
 
 export interface ParamGetPageList {
   pageUserInfo: PageUserInfo,
-  reqUserId?: string;
+  reqProfileId?: string;
   skip?: number;
   take?: number;
 }
