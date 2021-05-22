@@ -342,7 +342,7 @@ export class PrivateUserService {
   ): Promise<ResAuthenticatedUser> {
     const result: ResAuthenticatedUser = {
       userInfo: null,
-      countOfFail: 0,
+      countOfFail: -1,
       isActive: false,
       isNotDormant: false
     }
@@ -375,6 +375,7 @@ export class PrivateUserService {
 
           result.isActive = true;
           result.isNotDormant = true;
+          result.countOfFail = 0;
 
           result.userInfo = {
             email: user.email,
@@ -386,7 +387,6 @@ export class PrivateUserService {
             userPhoto: user.userProfile.photo,
             bio: user.userProfile.bio
           }
-
         } 
         
       }

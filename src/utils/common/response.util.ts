@@ -31,7 +31,7 @@ export class ResponseErrorTypes {
     return this;
   }
 
-  public _code(code: number): ResponseError {
+  public _code(code: number | string): ResponseError {
     this.code = code;
     return this;
   }
@@ -85,7 +85,54 @@ export class AuthErrorMessage extends ResponseError {
       "token information mismatch",
       "002",
       "AUTH"
-    );
+    ).get();
+  }
+
+  static get notCookie(): ResponseErrorTypes {
+    return new ResponseError().build(
+      "token이 존재하지 않습니다.",
+      "token does not exist",
+      "003",
+      "AUTH"
+    ).get();
+  }
+
+  /**
+   * 나중에 해결 방법 message에 적어 놓을 것.
+   */
+  static get disabledUser(): ResponseErrorTypes {
+    return new ResponseError().build(
+      "비활성화된 유저입니다.",
+      "5 or more failures",
+      "004",
+      "AUTH"
+    ).get();
+  }
+
+  static get dormantUser(): ResponseErrorTypes {
+    return new ResponseError().build(
+      "휴면 유저입니다.",
+      "users who have not been connected for a long time",
+      "005",
+      "AUTH"
+    ).get();
+  }
+
+  static failureSignIn(count: number): ResponseErrorTypes {
+    let message = "가입하지 않은 아이디이거나, 잘못된 비밀번호입니다.";
+    let detail = "non-existent user";
+
+    if(count !== -1) {
+      message = `잘못된 비밀번호입니다. (실패 횟수 ${count})`;
+      detail = `countOfFail ${count}`;
+    } 
+
+    return new ResponseError().build(
+      message,
+      detail,
+      "006",
+      "AUTH"
+    ).get();
   }
 
   public _exp(): AuthErrorMessage {
@@ -119,6 +166,15 @@ export class CommonErrorMessage extends ResponseError {
       "Common"
     ).get();
   }
+
+  static get validationError(): ResponseErrorTypes {
+    return new ResponseError().build(
+      "형식에 맞지 않는 정보입니다.",
+      "validation error",
+      "002",
+      "Common"
+    ).get();
+  }
 }
 
 export class SystemErrorMessage extends ResponseError {
@@ -140,9 +196,9 @@ export class SystemErrorMessage extends ResponseError {
 }
 
 export class Response {
-  data: any;
-  code: number = 200;
-  response: any;
+  private data: any;
+  private code: number = 200;
+  private response: any;
 
   public res(res): Response {
     this.response = res;
@@ -185,7 +241,7 @@ export class Response {
     return this;
   }
 
-  public systemError(): Response {
+  public serverError(): Response {
     this.code = 500;
     return this;
   }

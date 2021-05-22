@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
-import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo, ACCESS, REFRESH } from './auth.type';
+import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo, ACCESS, REFRESH, ResCheckAccessToken, ResReissueTokens } from './auth.type';
 import { UserAuthInfo, UserIdList, UserIdNPenName } from './private-user/types/private-user.type';
 import { RequiredUserInfo, ResAuthenticatedUser } from './private-user/types/private-user.type';
 import { PrivateUserService } from './private-user/private-user.service';
+import { ResponseError, AuthErrorMessage, Response, SystemErrorMessage, CommonErrorMessage } from 'src/utils/common/response.util';
 
 @Injectable()
 export class AuthService {
@@ -68,7 +69,7 @@ export class AuthService {
   private validationRefreshToken(
     refreshToken: string, 
     userAgent: string
-  ): { uuid: string } | null {
+  ): { id: string } | null {
     const decodingUserJwt: any = this.jwtService.decode(refreshToken);
     if(!decodingUserJwt || decodingUserJwt.type !== REFRESH) {
       return null;
@@ -82,9 +83,58 @@ export class AuthService {
     } 
 
     return {
-      uuid: decodingUserJwt.uuid 
+      id: decodingUserJwt.id 
     }
   } 
+
+  // /**
+  //  * 
+  //  * @param requiredUserInfo 
+  //  */
+  // public async signUpUser2(
+  //   requiredUserInfo: RequiredUserInfo
+  // ): Promise<ResSignUpUser> {
+  //   const emailValid: boolean = await this.checkValidEmailAddress(requiredUserInfo.email);
+  //   const passwordValid: boolean = await this.checkValidPassword(requiredUserInfo.password);
+  //   const penNameValid: boolean = await this.checkValidPenName(requiredUserInfo.penName);
+
+  //   console.log(emailValid, passwordValid, penNameValid);
+
+  //   if(!emailValid || !passwordValid || !penNameValid) {
+  //     return {
+  //       success: false,
+  //       error: {
+  //         emailValid: !emailValid,
+  //         passwordValid: !passwordValid,
+  //         penNameValid: !penNameValid,
+  //         emailUsed: false,
+  //         penNameUsed: false
+  //       }
+  //     }
+  //   } 
+    
+  //   const emailUsed: boolean = await this.privateUserService.checkUsedEmailAddress(requiredUserInfo.email);
+  //   const penNameUsed: boolean = await this.privateUserService.checkPenName(requiredUserInfo.penName);
+    
+  //   if(emailUsed || penNameUsed) {
+  //     return {
+  //       success: false,
+  //       error: {
+  //         emailValid: !emailValid,
+  //         passwordValid: !passwordValid,
+  //         penNameValid: !penNameValid,
+  //         emailUsed,
+  //         penNameUsed
+  //       }
+  //     }
+  //   }
+
+  //   const resUserResister = await this.privateUserService.registerUser(requiredUserInfo);
+
+  //   return {
+  //     success: resUserResister
+  //   }
+  // }
 
   /**
    * 
@@ -92,7 +142,7 @@ export class AuthService {
    */
   public async signUpUser(
     requiredUserInfo: RequiredUserInfo
-  ): Promise<ResSignUpUser> {
+  ): Promise<Response> {
     const emailValid: boolean = await this.checkValidEmailAddress(requiredUserInfo.email);
     const passwordValid: boolean = await this.checkValidPassword(requiredUserInfo.password);
     const penNameValid: boolean = await this.checkValidPenName(requiredUserInfo.penName);
@@ -100,82 +150,66 @@ export class AuthService {
     console.log(emailValid, passwordValid, penNameValid);
 
     if(!emailValid || !passwordValid || !penNameValid) {
-      return {
-        success: false,
-        error: {
-          emailValid: !emailValid,
-          passwordValid: !passwordValid,
-          penNameValid: !penNameValid,
-          emailUsed: false,
-          penNameUsed: false
-        }
-      }
+      return new Response().error(CommonErrorMessage.validationError).badReq();
     } 
     
     const emailUsed: boolean = await this.privateUserService.checkUsedEmailAddress(requiredUserInfo.email);
     const penNameUsed: boolean = await this.privateUserService.checkPenName(requiredUserInfo.penName);
     
     if(emailUsed || penNameUsed) {
-      return {
-        success: false,
-        error: {
-          emailValid: !emailValid,
-          passwordValid: !passwordValid,
-          penNameValid: !penNameValid,
-          emailUsed,
-          penNameUsed
-        }
-      }
+      return new Response().error(CommonErrorMessage.validationError).badReq();
     }
 
     const resUserResister = await this.privateUserService.registerUser(requiredUserInfo);
 
-    return {
-      success: resUserResister
-    }
+    return resUserResister? 
+      new Response().body("successs")
+      : new Response().error(SystemErrorMessage.db).serverError();
   }
 
-  /**
-   * return UserJwtTokens & PublicUserInfo
-   * @param userInfo 
-   * @param userAgent 
-   */
   public async signInUser(
     unverifieduserInfo: UserAuthInfo, 
     userAgent: string
-  ): Promise<ResSignInUser> {
-    const resSignInUser: ResSignInUser = {
-      success: false,
-      userInfo: null,
-      jwt: null,
-      error: null
+  ): Promise<Response> {
+
+    const { 
+      isActive, 
+      isNotDormant, 
+      countOfFail, 
+      userInfo 
+    }: ResAuthenticatedUser = await this.privateUserService.authenticateUser(unverifieduserInfo);
+
+    if(countOfFail) {
+      return new Response()
+        .error(AuthErrorMessage.failureSignIn(countOfFail))
+        .forbidden();
     }
 
-    const error = {
-      countOfFail: 0,
-      isActive: false,
-      isNotDormant: false
+    if(!isActive) {
+      return new Response()
+        .error(AuthErrorMessage.disabledUser)
+        .forbidden();
     }
-    const authenticatedUser: ResAuthenticatedUser = await this.privateUserService.authenticateUser(unverifieduserInfo);
 
-    error.countOfFail = authenticatedUser.countOfFail;
-    error.isActive = authenticatedUser.isActive;
-    error.isNotDormant = authenticatedUser.isNotDormant;
-    resSignInUser.error = error;
+    if(!isNotDormant) {
+      return new Response()
+        .error(AuthErrorMessage.dormantUser)
+        .forbidden();
+    }
 
-    if(authenticatedUser.userInfo) {
-
-      resSignInUser.userInfo = authenticatedUser.userInfo;
-
-      resSignInUser.jwt = await this.issueTokensToUser({
-        uuid: authenticatedUser.userInfo.userId,
+    if(userInfo) {
+      const jwt = await this.issueTokensToUser({
+        id: userInfo.userId,
         agent: userAgent
       });
-      resSignInUser.success = true;
-      resSignInUser.error = null;
-    } 
 
-    return resSignInUser;
+      return new Response().body({
+        userInfo,
+        jwt
+      });
+    } 
+    
+    return new Response().error(SystemErrorMessage.db).serverError();
   }
 
   /**
@@ -188,8 +222,6 @@ export class AuthService {
     userAgent: string
   ): TokenVailtionRes | null {
     const decodingUserJwt: any = this.jwtService.decode(accessToken);
-
-    console.log(decodingUserJwt);
     
     if(!decodingUserJwt || decodingUserJwt.type !== ACCESS) {
       return {
@@ -200,8 +232,6 @@ export class AuthService {
 
     const checkAgent: boolean = decodingUserJwt.agent === userAgent;
     const checkExpTime = decodingUserJwt.exp * 1000 + accessExpTime > Date.now();
-
-    console.log(checkAgent, checkExpTime);
 
     if(!checkAgent || !checkExpTime) {
       return {
@@ -226,7 +256,7 @@ export class AuthService {
     
     if(!decodingUserJwt || decodingUserJwt.type !== ACCESS) {
       return {
-        uuid: null,
+        id: null,
         error: {
           infoFalse: true,
           expFalse: true
@@ -239,7 +269,7 @@ export class AuthService {
 
     if(!checkAgent || !checkExpTime) {
       return {
-        uuid: null,
+        id: null,
         error: {
           infoFalse: !checkAgent,
           expFalse: !checkExpTime
@@ -248,8 +278,45 @@ export class AuthService {
     } 
 
     return {
-      uuid: decodingUserJwt.uuid
+      id: decodingUserJwt.id
     };
+  }
+
+  /**
+   * 
+   * @param accessToken 
+   * @param userAgent 
+   */
+  public checkAccessToken(
+    accessToken: string, 
+    userAgent: string
+  ): ResCheckAccessToken {
+    const result = this.validationAccessToken(accessToken, userAgent);
+
+    let clearToken: boolean = true;
+    let response: Response = new Response();
+
+    if(result) {
+      clearToken = true;
+
+      if(result.expFalse) {
+        response.error(AuthErrorMessage.exp);
+      }
+
+      if(result.infoFalse) {
+        response.error(AuthErrorMessage.info);
+      }
+
+      response.forbidden();      
+    } else {
+      clearToken = false;
+      response.body("success");
+    }
+
+    return {
+      response,
+      clearToken
+    }
   }
 
   /**
@@ -257,12 +324,12 @@ export class AuthService {
    * @param refreshToken 
    * @param userAgent 
    */
-  public async reissueTokens(
+  public async reissueTokensToUser(
     refreshToken: string, 
     userAgent: string
   ): Promise<UserJwtokens | null> {
 
-    const tokenVailtionRes: { uuid: string } | null = this.validationRefreshToken(
+    const tokenVailtionRes: { id: string } | null = this.validationRefreshToken(
       refreshToken,
       userAgent
     );
@@ -271,18 +338,38 @@ export class AuthService {
       return null;
     }
 
-    const userId: string | null = await this.privateUserService.getAuthenticatedUser(tokenVailtionRes.uuid);
+    const userId: string | null = await this.privateUserService.getAuthenticatedUser(tokenVailtionRes.id);
 
     if(!userId) {
       return null;
     }
 
     const jwtTokens: UserJwtokens = this.issueTokensToUser({
-      uuid: userId,
+      id: userId,
       agent: userAgent
     });
 
     return jwtTokens;
+  }
+
+  public async reissueTokens(
+    refreshToken: string,
+    userAgent: string
+  ): Promise<ResReissueTokens> {
+    const userJwtTokens: UserJwtokens | null = await this.reissueTokensToUser(refreshToken, userAgent);
+
+    let response = new Response();
+
+    if(userJwtTokens) {
+      response.body("success");
+    } else {
+      response.error(AuthErrorMessage.info).forbidden();
+    }
+
+    return {
+      response,
+      userJwt: userJwtTokens
+    } 
   }
 
   /**
@@ -294,7 +381,7 @@ export class AuthService {
     refreshToken: string,
     userAgent: string
   ): Promise<boolean> {
-    const tokenVailtionRes: { uuid: string } | null = this.validationRefreshToken(
+    const tokenVailtionRes: { id: string } | null = this.validationRefreshToken(
         refreshToken,
         userAgent
       );
@@ -304,7 +391,7 @@ export class AuthService {
     }
 
     const resUpdateAccessTime: boolean = 
-      await this.privateUserService.updateAccessTime(tokenVailtionRes.uuid);
+      await this.privateUserService.updateAccessTime(tokenVailtionRes.id);
 
     return resUpdateAccessTime;
   }
@@ -329,14 +416,14 @@ export class AuthService {
         error: validationAccessToken
       }
     }
-    const tokenVailtionRes: { uuid: string } | null = this.validationRefreshToken(
+    const tokenVailtionRes: { id: string } | null = this.validationRefreshToken(
       refreshToken,
       userAgent
     );
 
     if(tokenVailtionRes) {
       const resDeleteUser = await this.privateUserService.withdrawalUser(
-        Object.assign(userInfo, {id: tokenVailtionRes.uuid})
+        Object.assign(userInfo, {id: tokenVailtionRes.id})
       );
 
       return resDeleteUser;
@@ -363,13 +450,13 @@ export class AuthService {
   ) {
     const decodingJwt: ResValitionAccessToken = this.validateAccessTokenReturnId(accessToken, userAgent);
 
-    if(!decodingJwt.uuid) {
+    if(!decodingJwt.id) {
       return {
         success: false,
         error: decodingJwt.error
       }
     }
-    const checkedAdmin: boolean = await this.privateUserService.checkAdmin(decodingJwt.uuid);
+    const checkedAdmin: boolean = await this.privateUserService.checkAdmin(decodingJwt.id);
     
     if(!checkedAdmin) {
       return {
@@ -396,20 +483,34 @@ export class AuthService {
   public async simpleSignInUser(
     accessToken: string,
     userAgent: string
-  ) {
-    const decodingJwt = this.validateAccessTokenReturnId(accessToken, userAgent);
+  ): Promise<ResCheckAccessToken> {
+    const { id, error } = this.validateAccessTokenReturnId(accessToken, userAgent);
 
-    if(!decodingJwt.uuid) {
-      return {
-        success: false,
-        userInfo: null,
-        error: decodingJwt.error
+    const response: Response = new Response();
+    let clearToken = false;
+
+    if(error) {
+      if(error.expFalse) {
+        response.error(AuthErrorMessage.exp);
+      } else {
+        response.error(AuthErrorMessage.info);
       }
+      response.forbidden();
     }
 
-    const result = this.privateUserService.getUserInfo(decodingJwt.uuid);
+    const result = await this.privateUserService.getUserInfo(id);
 
-    return result;
+    if(result.error) {
+      response.error(AuthErrorMessage.failureSignIn(-1)).forbidden();
+    } else {
+      response.body(result.userInfo);
+      clearToken = true;
+    }
+
+    return {
+      response,
+      clearToken
+    }
   }
 
   public async checkUserIdNProfileId(userId: string, profileId: string): Promise<boolean> {

@@ -1,5 +1,6 @@
 import { PublicUserInfo } from "src/types/public";
 import { ResDeleteUser } from "./private-user/types/private-user.type";
+import { Response } from "src/utils/common/response.util";
 
 export const ACCESS_TOKEN = "AID" as const;
 export const REFRESH_TOKEN = "RID" as const;
@@ -8,7 +9,7 @@ export const ACCESS = "AC";
 export const REFRESH = "RF";
 
 export interface JwtUserPayload {
-  uuid: string;
+  id: string;
   agent: string;
 }
 
@@ -99,7 +100,7 @@ export type ResActivateUser = {
 }
 
 export interface ResValitionAccessToken {
-  uuid: string | null;
+  id: string | null;
   error?: CookieAuthenticationFailure;
 }
 
@@ -114,4 +115,14 @@ export interface ClientUserInfo {
 
 export interface TargetUser {
   email: string;
+}
+
+export interface ResCheckAccessToken {
+  response: Response;
+  clearToken: boolean;
+}
+
+export interface ResReissueTokens {
+  response: Response;
+  userJwt: UserJwtokens | null;
 }

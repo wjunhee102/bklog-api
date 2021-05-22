@@ -1,15 +1,24 @@
 import { Controller, Post, Req, Res, Body, Logger, Get, Delete } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './auth.schema';
-import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN } from './auth.type';
+import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens } from './auth.type';
 import { ResponseMessage } from 'src/utils/common/response.util2';
 import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
 import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-user.type';
+import { CommonErrorMessage, Response, AuthErrorMessage, SystemErrorMessage } from 'src/utils/common/response.util';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService){}
+
+  private validationError(res) {
+    new Response()
+      .error(CommonErrorMessage.validationError)
+      .badReq()
+      .res(res)
+      .send();
+  }
 
   private setUserJwtCookies(res, jwtTokens: UserJwtokens) {
     res.cookie(
@@ -34,18 +43,17 @@ export class AuthController {
   }
 
   @Post('sign-up')
-  public async signUpUser(@Body() requiredUserInfo: RequiredUserInfo) {
+  public async signUpUser(@Res() res, @Body() requiredUserInfo: RequiredUserInfo) {
     const { value, error }: ValidationData<RequiredUserInfo> = requiredUserInfoSchema.validate(requiredUserInfo);
 
     if(error) {
-      return ResponseMessage(error);
+      Logger.error(error);
+      this.validationError(res);
     }
 
-    const resSignUpUser: ResSignUpUser = await this.authService.signUpUser(value);
+    const response: Response = await this.authService.signUpUser(value);
 
-    return resSignUpUser.success? 
-      ResponseMessage(resSignUpUser) 
-      : ResponseMessage(resSignUpUser, "vaildationError");
+    response.res(res).send();
   }
 
   @Post('sign-in') 
@@ -57,30 +65,27 @@ export class AuthController {
     const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
 
     if(error) {
-      res.status(400).send(ResponseMessage(error));
+      Logger.error(error);
+      this.validationError(res);
     } else {
-      const resSignInUser: ResSignInUser = 
+      const response: Response = 
       await this.authService.signInUser(value, req.headers["user-agent"]);
     
-      if(!resSignInUser.success) {
+      if(!response.Data.jwt) {
         Logger.error("Authentication failure");
         this.clearUserJwtCookie(res);
       } else {
-        this.setUserJwtCookies(res, resSignInUser.jwt);
+        this.setUserJwtCookies(res, response.Data.jwt);
+        const userInfo = response.Data.userInfo;
+        response.body(userInfo);
       }
 
-      const result = Object.assign({}, resSignInUser);
-      
-      result.jwt = undefined;
-      delete result.jwt;
-
-      res.send(ResponseMessage(result));
+      response.res(res).send();
     }
     
   }
   
   /**
-   * id return 하는 것 바꿔야 함.
    * @param req 
    * @param res 
    */
@@ -89,39 +94,27 @@ export class AuthController {
     @Req() req,
     @Res() res
   ) {
-    const result = {
-      success: false,
-      error: undefined
-    }
     const accessToken = req.signedCookies[ACCESS_TOKEN];
+
     if(!accessToken) {
-      result.error = "not cookie";
+      
+      new Response()
+        .error(AuthErrorMessage.notCookie)
+        .forbidden()
+        .res(res)
+        .send();
+
     } else {
-      const res = this.authService.validationAccessToken(
+      const { response, clearToken }: ResCheckAccessToken = this.authService.checkAccessToken(
         accessToken,
         req.headers["user-agent"]
       );
-        
-      console.log(res);
-
-      if(res && (res.infoFalse || res.expFalse)) {
-        result.error = {
-          infoFalse: res.infoFalse? true : false,
-          expFalse: res.expFalse? true : false
-        }
-      } else {
-        result.success = true
-      }
     
-    }
+      if(clearToken) this.clearUserJwtCookie(res);
 
-    if(result.error) {
-      this.clearUserJwtCookie(res);
-    } else {
-      result.success = true;
+      response.res(res).send();
     }
-
-    res.send(ResponseMessage(result));
+    
   }
 
   @Get('reissue-token') 
@@ -129,21 +122,19 @@ export class AuthController {
     @Req() req, 
     @Res() res
   ) {
-
-    const jwtTokens: UserJwtokens | null = 
+    const { response, userJwt }: ResReissueTokens  = 
       await this.authService.reissueTokens(
         req.signedCookies[REFRESH_TOKEN],
         req.headers["user-agent"]
-      )
+      );
 
-    if(!jwtTokens) {
+    if(!userJwt) {
       this.clearUserJwtCookie(res);
-      res.send(ResponseMessage({success: false}));
     } else {
-      this.setUserJwtCookies(res, jwtTokens);
-      res.send(ResponseMessage({success: true}));
+      this.setUserJwtCookies(res, userJwt);
     }
-    
+
+    response.res(res).send();
   }
 
   @Get('sign-out')
@@ -157,16 +148,19 @@ export class AuthController {
     this.clearUserJwtCookie(res);
 
     if(resSignOut) {
-      res.send(ResponseMessage({success: true}));
+      new Response().body("success").res(res).send();
     } else {
-      res.send(ResponseMessage({
-        success: false,
-        error: "Cookie information mismatch" 
-      }));
+      new Response().error(AuthErrorMessage.info).res(res).send();
     }
     
   }
 
+  /**
+   * Response message 수정해야 함.
+   * @param req 
+   * @param res 
+   * @param userAuthInfo 
+   */
   @Delete('withdrawal')
   public async withdrawalUser(
     @Req() req,
@@ -183,7 +177,7 @@ export class AuthController {
       
       if(!refreshToken || !accessToken) {
         this.clearUserJwtCookie(res);
-        res.send(ResponseMessage("Cookie information mismatch"));
+        new Response().error(AuthErrorMessage.info).forbidden().res(res).send();
       } else {
         const resWithdrawalUser: ResWithdrawalUser = await this.authService.withdrawalUser(
           value, 
@@ -194,9 +188,10 @@ export class AuthController {
     
         if(resWithdrawalUser.success) {
           this.clearUserJwtCookie(res);
+          new Response().body("success").res(res).send();
+        } else {
+          new Response().error(SystemErrorMessage.db).res(res).send();
         } 
-
-        res.send(ResponseMessage(resWithdrawalUser));
 
       }
     }
@@ -238,15 +233,13 @@ export class AuthController {
   public async reSignIn(@Req() req, @Res() res) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
     if(accessToken) {
-      const result = await this.authService.simpleSignInUser(accessToken, req.headers["user-agent"]);
-
-      if(!result.success) {
-        this.clearUserJwtCookieAccess(res);
-      } 
-      res.send(ResponseMessage(result));
-
+      const { response, clearToken } = await this.authService.simpleSignInUser(accessToken, req.headers["user-agent"]);
+      
+      if(clearToken) this.clearUserJwtCookie(res);
+      
+      response.res(res).send();
     } else {
-      res.send(ResponseMessage("No cookies"));
+      new Response().error(AuthErrorMessage.info).res(res).send();
     }
   }
 
