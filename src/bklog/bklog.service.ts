@@ -172,7 +172,7 @@ export class BklogService {
     const userProfile: UserProfile | null = await this.userService.getUserProfile(requiredBklogInfo.profileId);
     
     if(!userProfile) {
-      return new Response().error(AuthErrorMessage.info).unauthorized();
+      return new Response().error(...AuthErrorMessage.info);
     }
     
     const requiredPageInfo: RequiredPageInfo = Object.assign(requiredBklogInfo, {
@@ -219,7 +219,7 @@ export class BklogService {
       Logger.error(e);
       await queryRunner.rollbackTransaction();
 
-      return new Response().error(SystemErrorMessage.db).systemError();
+      return new Response().error(...SystemErrorMessage.db);
 
     } finally {
       await queryRunner.release();
@@ -241,7 +241,7 @@ export class BklogService {
       const checkProfileId = await this.authService.checkUserIdNProfileId(uuid, factorGetPageList.reqProfileId);
 
       if(!checkProfileId) {
-        return new Response().error(AuthErrorMessage.info).unauthorized();
+        return new Response().error(...AuthErrorMessage.info).unauthorized();
       }
       
     }
@@ -256,7 +256,7 @@ export class BklogService {
 
     return pageInfoList? 
       new Response().body(pageInfoList) 
-      : new Response().error(CommonErrorMessage.notFound).notFound();
+      : new Response().error(...CommonErrorMessage.notFound).notFound();
   }
 
   public async getPage(pageId: string, userId?: string | null): Promise<Response> {
@@ -314,7 +314,7 @@ export class BklogService {
     const page: Page = await this.pageService.getPage(pageId);
 
     if(page.userId !== userId) {
-      return new Response().error(AuthErrorMessage.info).forbidden();
+      return new Response().error(...AuthErrorMessage.info).forbidden();
     }
 
     const  resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
@@ -328,7 +328,7 @@ export class BklogService {
             "002",
             "Bklog"
           ).get()
-        ).forbidden();
+        ).badReq();
     }
 
     const modifyData: ModifyData = {
@@ -447,7 +447,7 @@ export class BklogService {
       Logger.error(e);
       await queryRunner.rollbackTransaction();
 
-      return new Response().error(SystemErrorMessage.db).systemError();
+      return new Response().error(...SystemErrorMessage.db);
 
     } finally {
       await queryRunner.release();
@@ -524,7 +524,7 @@ export class BklogService {
       Logger.error(e);
       await queryRunner.rollbackTransaction();
 
-      return new Response().error(SystemErrorMessage.db).systemError();
+      return new Response().error(...SystemErrorMessage.db);
 
     } finally {
       await queryRunner.release();

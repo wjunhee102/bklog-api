@@ -87,55 +87,6 @@ export class AuthService {
     }
   } 
 
-  // /**
-  //  * 
-  //  * @param requiredUserInfo 
-  //  */
-  // public async signUpUser2(
-  //   requiredUserInfo: RequiredUserInfo
-  // ): Promise<ResSignUpUser> {
-  //   const emailValid: boolean = await this.checkValidEmailAddress(requiredUserInfo.email);
-  //   const passwordValid: boolean = await this.checkValidPassword(requiredUserInfo.password);
-  //   const penNameValid: boolean = await this.checkValidPenName(requiredUserInfo.penName);
-
-  //   console.log(emailValid, passwordValid, penNameValid);
-
-  //   if(!emailValid || !passwordValid || !penNameValid) {
-  //     return {
-  //       success: false,
-  //       error: {
-  //         emailValid: !emailValid,
-  //         passwordValid: !passwordValid,
-  //         penNameValid: !penNameValid,
-  //         emailUsed: false,
-  //         penNameUsed: false
-  //       }
-  //     }
-  //   } 
-    
-  //   const emailUsed: boolean = await this.privateUserService.checkUsedEmailAddress(requiredUserInfo.email);
-  //   const penNameUsed: boolean = await this.privateUserService.checkPenName(requiredUserInfo.penName);
-    
-  //   if(emailUsed || penNameUsed) {
-  //     return {
-  //       success: false,
-  //       error: {
-  //         emailValid: !emailValid,
-  //         passwordValid: !passwordValid,
-  //         penNameValid: !penNameValid,
-  //         emailUsed,
-  //         penNameUsed
-  //       }
-  //     }
-  //   }
-
-  //   const resUserResister = await this.privateUserService.registerUser(requiredUserInfo);
-
-  //   return {
-  //     success: resUserResister
-  //   }
-  // }
-
   /**
    * 
    * @param requiredUserInfo 
@@ -150,21 +101,21 @@ export class AuthService {
     console.log(emailValid, passwordValid, penNameValid);
 
     if(!emailValid || !passwordValid || !penNameValid) {
-      return new Response().error(CommonErrorMessage.validationError).badReq();
+      return new Response().error(...CommonErrorMessage.validationError);
     } 
     
     const emailUsed: boolean = await this.privateUserService.checkUsedEmailAddress(requiredUserInfo.email);
     const penNameUsed: boolean = await this.privateUserService.checkPenName(requiredUserInfo.penName);
     
     if(emailUsed || penNameUsed) {
-      return new Response().error(CommonErrorMessage.validationError).badReq();
+      return new Response().error(...CommonErrorMessage.validationError);
     }
 
     const resUserResister = await this.privateUserService.registerUser(requiredUserInfo);
 
     return resUserResister? 
       new Response().body("successs")
-      : new Response().error(SystemErrorMessage.db).serverError();
+      : new Response().error(...SystemErrorMessage.db);
   }
 
   public async signInUser(
@@ -181,20 +132,17 @@ export class AuthService {
 
     if(countOfFail) {
       return new Response()
-        .error(AuthErrorMessage.failureSignIn(countOfFail))
-        .forbidden();
+        .error(...AuthErrorMessage.failureSignIn(countOfFail));
     }
 
     if(!isActive) {
       return new Response()
-        .error(AuthErrorMessage.disabledUser)
-        .forbidden();
+        .error(...AuthErrorMessage.disabledUser);
     }
 
     if(!isNotDormant) {
       return new Response()
-        .error(AuthErrorMessage.dormantUser)
-        .forbidden();
+        .error(...AuthErrorMessage.dormantUser);
     }
 
     if(userInfo) {
@@ -209,7 +157,7 @@ export class AuthService {
       });
     } 
     
-    return new Response().error(SystemErrorMessage.db).serverError();
+    return new Response().error(...SystemErrorMessage.db);
   }
 
   /**
@@ -300,14 +248,13 @@ export class AuthService {
       clearToken = true;
 
       if(result.expFalse) {
-        response.error(AuthErrorMessage.exp);
+        response.error(...AuthErrorMessage.exp);
       }
 
       if(result.infoFalse) {
-        response.error(AuthErrorMessage.info);
+        response.error(...AuthErrorMessage.info);
       }
 
-      response.forbidden();      
     } else {
       clearToken = false;
       response.body("success");
@@ -363,7 +310,7 @@ export class AuthService {
     if(userJwtTokens) {
       response.body("success");
     } else {
-      response.error(AuthErrorMessage.info).forbidden();
+      response.error(...AuthErrorMessage.info);
     }
 
     return {
@@ -491,17 +438,17 @@ export class AuthService {
 
     if(error) {
       if(error.expFalse) {
-        response.error(AuthErrorMessage.exp);
+        response.error(...AuthErrorMessage.exp);
       } else {
-        response.error(AuthErrorMessage.info);
+        response.error(...AuthErrorMessage.info);
       }
-      response.forbidden();
+      response;
     }
 
     const result = await this.privateUserService.getUserInfo(id);
 
     if(result.error) {
-      response.error(AuthErrorMessage.failureSignIn(-1)).forbidden();
+      response.error(...AuthErrorMessage.failureSignIn(-1));
     } else {
       response.body(result.userInfo);
       clearToken = true;

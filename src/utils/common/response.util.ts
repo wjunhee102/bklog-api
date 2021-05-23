@@ -1,9 +1,17 @@
-export class ResponseErrorTypes {
+class ResponseErrorTypes {
   code: number | string;
   type: string;
   message: string;
   detail: string;
 }
+
+type ComposedResponseErrorType = [ ResponseErrorTypes, string | number ];
+
+const BAD_REQ      = 400;
+const UNAUTHORIZED = 401;
+const FORBIDDEN    = 403;
+const NOT_FOUND    = 404;
+const SERVER_ERROR = 500;
 
 /**
  * 현재 sign-up 로직이 실패한 구간을 객체로 보내주는 데 그렇게 하지 말고
@@ -70,55 +78,55 @@ export class AuthErrorMessage extends ResponseError {
     this.type = "AUTH";
   }
 
-  static get exp(): ResponseErrorTypes {
-    return new ResponseError().build(
+  static get exp(): ComposedResponseErrorType {
+    return [ new ResponseError().build(
       "인증 시간이 만료되었습니다.",
       "token expiration",
       "001",
       "AUTH"
-    ).get();
+    ).get(), FORBIDDEN ];
   }
 
-  static get info(): ResponseErrorTypes {
-    return new ResponseError().build(
+  static get info(): ComposedResponseErrorType {
+    return [ new ResponseError().build(
       "인증 정보가 불일치합니다.",
       "token information mismatch",
       "002",
       "AUTH"
-    ).get();
+    ).get(), FORBIDDEN ];
   }
 
-  static get notCookie(): ResponseErrorTypes {
-    return new ResponseError().build(
+  static get notCookie(): ComposedResponseErrorType {
+    return [ new ResponseError().build(
       "token이 존재하지 않습니다.",
       "token does not exist",
       "003",
       "AUTH"
-    ).get();
+    ).get(), FORBIDDEN ];
   }
 
   /**
    * 나중에 해결 방법 message에 적어 놓을 것.
    */
-  static get disabledUser(): ResponseErrorTypes {
-    return new ResponseError().build(
+  static get disabledUser(): ComposedResponseErrorType {
+    return [ new ResponseError().build(
       "비활성화된 유저입니다.",
       "5 or more failures",
       "004",
       "AUTH"
-    ).get();
+    ).get(), FORBIDDEN ];
   }
 
-  static get dormantUser(): ResponseErrorTypes {
-    return new ResponseError().build(
+  static get dormantUser(): ComposedResponseErrorType {
+    return [ new ResponseError().build(
       "휴면 유저입니다.",
       "users who have not been connected for a long time",
       "005",
       "AUTH"
-    ).get();
+    ).get(), FORBIDDEN ];
   }
 
-  static failureSignIn(count: number): ResponseErrorTypes {
+  static failureSignIn(count: number): ComposedResponseErrorType {
     let message = "가입하지 않은 아이디이거나, 잘못된 비밀번호입니다.";
     let detail = "non-existent user";
 
@@ -127,12 +135,12 @@ export class AuthErrorMessage extends ResponseError {
       detail = `countOfFail ${count}`;
     } 
 
-    return new ResponseError().build(
+    return [ new ResponseError().build(
       message,
       detail,
       "006",
       "AUTH"
-    ).get();
+    ).get(), FORBIDDEN ];
   }
 
   public _exp(): AuthErrorMessage {
@@ -158,22 +166,22 @@ export class CommonErrorMessage extends ResponseError {
     super();
   }
 
-  static get notFound(): ResponseErrorTypes {
-    return new ResponseError().build(
+  static get notFound(): ComposedResponseErrorType {
+    return [ new ResponseError().build(
       "찾을 수 없습니다.",
       "not found",
       "001",
       "Common"
-    ).get();
+    ).get(), NOT_FOUND ];
   }
 
-  static get validationError(): ResponseErrorTypes {
-    return new ResponseError().build(
+  static get validationError(): ComposedResponseErrorType {
+    return [ new ResponseError().build(
       "형식에 맞지 않는 정보입니다.",
       "validation error",
       "002",
       "Common"
-    ).get();
+    ).get(), BAD_REQ ];
   }
 }
 
@@ -184,20 +192,20 @@ export class SystemErrorMessage extends ResponseError {
     this.code = "System";
   }
   
-  static get db(): ResponseErrorTypes {
-    return new ResponseError().build(
+  static get db(): ComposedResponseErrorType {
+    return [ new ResponseError().build(
       "잠시 후 다시 시도해주십쇼",
       "Database Error",
       "001",
       "System"
-    ).get();
+    ).get(), SERVER_ERROR ];
   }
 
 }
 
 export class Response {
   private data: any;
-  private code: number = 200;
+  private code: number | string = 200;
   private response: any;
 
   public res(res): Response {
@@ -215,34 +223,34 @@ export class Response {
     return this;
   }
 
-  public error(error: ResponseErrorTypes, code: number = 400): Response {
+  public error(error: ResponseErrorTypes, code: number | string = 400): Response {
     this.code = code;
     this.data = { error };
     return this;
   }
 
   public badReq(): Response {
-    this.code = 400;
+    this.code = BAD_REQ;
     return this;
   }
 
   public unauthorized(): Response {
-    this.code = 401;
+    this.code = UNAUTHORIZED;
     return this;
   }
 
   public forbidden(): Response {
-    this.code = 403;
+    this.code = FORBIDDEN;
     return this;
   }
 
   public notFound(): Response {
-    this.code = 404;
+    this.code = NOT_FOUND;
     return this;
   }
 
   public serverError(): Response {
-    this.code = 500;
+    this.code = SERVER_ERROR;
     return this;
   }
 
@@ -255,7 +263,7 @@ export class Response {
     return this.data;
   }
 
-  get Code(): number {
+  get Code(): number | string {
     return this.code;
   }
 

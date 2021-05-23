@@ -25,7 +25,7 @@ export class BklogController {
 
     if(!accessToken) {
       return {
-        uuid: null,
+        id: null,
         accessToken: false
       }
     }
@@ -46,9 +46,9 @@ export class BklogController {
 
     if(infoFalse) {
       this.clearUserJwtCookie(res);
-      response.error(AuthErrorMessage.info).unauthorized();
+      response.error(...AuthErrorMessage.info);
     } else {
-      response.error(AuthErrorMessage.exp).unauthorized();
+      response.error(...AuthErrorMessage.exp);
     }
 
     response.res(res).send();
@@ -59,12 +59,12 @@ export class BklogController {
     req, 
     factorGetPageList: ParamGetPageList
   ): Promise<void> {
-    const { uuid, error, accessToken } = this.validationAccessToken(req);
+    const { id, error, accessToken } = this.validationAccessToken(req);
 
-    if(!uuid && accessToken) {
+    if(!id && accessToken) {
       this.responseCheckToken(error, res);
     } else {  
-      const response = await this.bklogService.findPageList(factorGetPageList, uuid);
+      const response = await this.bklogService.findPageList(factorGetPageList, id);
 
       response.res(res).send();
     }
@@ -120,16 +120,14 @@ export class BklogController {
     @Body() requiredBklogInfo: ReqCreatePage
   ) {
 
-    // const resCheckCookie = this.validationAccessToken(req);
+    const { id, error }  = this.validationAccessToken(req);
 
-    const { uuid, error }  = this.validationAccessToken(req);
-
-    if(!uuid) {
+    if(!id) {
       this.responseCheckToken(error, res);
     } else {
 
       const checkUser: boolean = await this.authService.checkUserIdNProfileId(
-        uuid,
+        id,
         requiredBklogInfo.profileId
       );
 
@@ -137,14 +135,13 @@ export class BklogController {
         this.clearUserJwtCookie(res);
 
         new Response()
-        .error(AuthErrorMessage.info)
-        .unauthorized()
+        .error(...AuthErrorMessage.info)
         .res(res)
         .send();
 
       } else {
         const response: Response = await this.bklogService.createBklog(
-          Object.assign(requiredBklogInfo, { userId: uuid })
+          Object.assign(requiredBklogInfo, { userId: id })
         );  
         
         response.res(res).send();
@@ -168,7 +165,7 @@ export class BklogController {
     if(!checkUser) {
       this.clearUserJwtCookie(res);
 
-      new Response().error(AuthErrorMessage.info).unauthorized().res(res).send();
+      new Response().error(...AuthErrorMessage.info).res(res).send();
         
     } else {
       const response: Response = await this.bklogService.createBklog(
@@ -181,33 +178,33 @@ export class BklogController {
   }
 
   @Get('getpage')
-  public async getPage(@Res() res, @Req() req, @Query('id') id): Promise<void> {
-    const { uuid, error, accessToken } = this.validationAccessToken(req);
+  public async getPage(@Res() res, @Req() req, @Query('id') pageId): Promise<void> {
+    const { id, error, accessToken } = this.validationAccessToken(req);
 
-    if(!uuid && accessToken) {
+    if(!id && accessToken) {
       this.responseCheckToken(error, res);
     } else {
-      const response: Response = await this.bklogService.getPage(id, uuid); 
+      const response: Response = await this.bklogService.getPage(pageId, id); 
       response.res(res).send();
     }
     
   }
 
   @Get('t-getpage')
-  public async testGetPage(@Res() res, @Req() req, @Query('id') id) {
+  public async testGetPage(@Res() res, @Req() req, @Query('id') pageId) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
 
     if(accessToken) {
       const resCheckCookie = this.validationAccessToken(req);
 
-      if(!resCheckCookie.uuid) {
+      if(!resCheckCookie.id) {
         this.responseCheckToken(resCheckCookie.error, res);
       } else {
-        const response: Response = await this.bklogService.getPage(id, "4e17660a0ea99a83845cbf3c90f62700"); 
+        const response: Response = await this.bklogService.getPage(pageId, "4e17660a0ea99a83845cbf3c90f62700"); 
         response.res(res).send();
       }
     } else {
-      const response: Response = await this.bklogService.getPage(id, "4e17660a0ea99a83845cbf3c90f62700"); 
+      const response: Response = await this.bklogService.getPage(pageId, "4e17660a0ea99a83845cbf3c90f62700"); 
       response.res(res).send();
     }
 
@@ -217,19 +214,18 @@ export class BklogController {
   public async modifyBlock(@Req() req, @Body() data: any, @Res() res) {
     const resCheckCookie = this.validationAccessToken(req);
 
-    if(!resCheckCookie.uuid) {
+    if(!resCheckCookie.id) {
       // return this.responseCheckToken(resCheckCookie.error);
 
       new Response()
-      .error(AuthErrorMessage.info)
-      .unauthorized()
+      .error(...AuthErrorMessage.info)
       .res(res)
       .send();
     } else {
       const response: Response = await this.bklogService.modifyBlock(
         data.data, 
         data.pageId, 
-        resCheckCookie.uuid, 
+        resCheckCookie.id, 
         data.pageVersions
       );
   

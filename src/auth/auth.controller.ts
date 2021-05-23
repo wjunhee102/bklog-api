@@ -14,8 +14,7 @@ export class AuthController {
 
   private validationError(res) {
     new Response()
-      .error(CommonErrorMessage.validationError)
-      .badReq()
+      .error(...CommonErrorMessage.validationError)
       .res(res)
       .send();
   }
@@ -99,8 +98,7 @@ export class AuthController {
     if(!accessToken) {
       
       new Response()
-        .error(AuthErrorMessage.notCookie)
-        .forbidden()
+        .error(...AuthErrorMessage.notCookie)
         .res(res)
         .send();
 
@@ -150,7 +148,7 @@ export class AuthController {
     if(resSignOut) {
       new Response().body("success").res(res).send();
     } else {
-      new Response().error(AuthErrorMessage.info).res(res).send();
+      new Response().error(...AuthErrorMessage.info).res(res).send();
     }
     
   }
@@ -176,9 +174,12 @@ export class AuthController {
       const refreshToken = req.signedCookies[REFRESH_TOKEN];
       
       if(!refreshToken || !accessToken) {
+
         this.clearUserJwtCookie(res);
-        new Response().error(AuthErrorMessage.info).forbidden().res(res).send();
+        new Response().error(...AuthErrorMessage.info).res(res).send();
+
       } else {
+
         const resWithdrawalUser: ResWithdrawalUser = await this.authService.withdrawalUser(
           value, 
           accessToken,
@@ -190,7 +191,7 @@ export class AuthController {
           this.clearUserJwtCookie(res);
           new Response().body("success").res(res).send();
         } else {
-          new Response().error(SystemErrorMessage.db).res(res).send();
+          new Response().error(...SystemErrorMessage.db).res(res).send();
         } 
 
       }
@@ -239,8 +240,18 @@ export class AuthController {
       
       response.res(res).send();
     } else {
-      new Response().error(AuthErrorMessage.info).res(res).send();
+      new Response().error(...AuthErrorMessage.info).res(res).send();
     }
+  }
+
+  @Get('check-email')
+  public async checkEmailAddress(@Req() req, @Res() res) {
+
+  }
+
+  @Get('check-penname')
+  public async checkPenName(@Req() req, @Res() res) {
+
   }
 
 }
