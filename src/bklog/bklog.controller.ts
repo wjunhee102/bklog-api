@@ -255,7 +255,6 @@ export class BklogController {
 
   @Get('test2')
   public test2(@Query('data') data, @Res() res){
-    // response.res(res).send();
     this.bklogService.addTest2(data)
     .then((response) => response
       .error(

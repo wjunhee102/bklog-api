@@ -63,13 +63,13 @@ export interface ParamModifyBlock {
   payload: any;
 }
 
-export class ParamCreateBlock implements ParamModifyBlock {
+export interface ParamCreateBlock {
   blockId: string;
   set: "block";
   payload: BlockData;
 }
 
-export class ParamCreateComment implements ParamModifyBlock {
+export interface ParamCreateComment {
   blockId: string;
   set: "comment";
   payload: any;

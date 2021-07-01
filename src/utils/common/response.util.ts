@@ -27,8 +27,8 @@ const SERVER_ERROR = 500;
   public build(
     message: string = "알 수 없는 error가 발생했습니다.",
     detail: string = "unknown error",
-    type: string = "unknown",
-    code: number | string = "000"
+    code: number | string = "000" ,
+    type: string = "unknown"
   ): ResponseError {
 
     this.code = code;
