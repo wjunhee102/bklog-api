@@ -158,7 +158,7 @@ export class BklogController {
   ): Promise<void> {
 
     const checkUser: boolean = await this.authService.checkUserIdNProfileId(
-      "4e17660a0ea99a83845cbf3c90f627001",
+      "4d120c098d6a113ebe55c5cfa43beb4a",
       requiredBklogInfo.profileId
     );
 
@@ -169,7 +169,7 @@ export class BklogController {
         
     } else {
       const response: Response = await this.bklogService.createBklog(
-        Object.assign( requiredBklogInfo, { userId: "4e17660a0ea99a83845cbf3c90f62700" })
+        Object.assign( requiredBklogInfo, { userId: "4d120c098d6a113ebe55c5cfa43beb4a" })
       );  
       
       response.res(res).send();
@@ -235,11 +235,12 @@ export class BklogController {
 
   @Post('t-modify')
   public async testModifyBlock(@Res() res, @Body() data: any) {
+    console.log(data);
     
     const response: Response = await this.bklogService.modifyBlock(
       data.data, 
       data.pageId, 
-      "4e17660a0ea99a83845cbf3c90f62700", 
+      "4d120c098d6a113ebe55c5cfa43beb4a", 
       data.pageVersions
     );
 

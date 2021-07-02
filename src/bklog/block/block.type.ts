@@ -1,6 +1,5 @@
 import { TextStyle, TextContents } from "src/types/bklog";
 import { Page } from "src/entities/bklog/page.entity";
-import { BlockProperty } from "src/entities/bklog/block-property.entity";
 import { Block } from "src/entities/bklog/block.entity";
 import { BlockComment } from "src/entities/bklog/block-comment.entity";
 
@@ -9,20 +8,13 @@ export const TYPE_TEXT = "text" as const;
 // export type BlockTypes = "text" | "container" | "image";
 export type BlockTypes = "text" | "container";
 
-export type BlockProperties = any | null;
-
-export type Property = {
-  type: any;
-  styles: any;
-  contents: any;
-}
 
 export interface ReqBlockProps {
   type?: BlockTypes;
-  parentBlockId?: string;
-  preBlockId?: string;
-  nextBlockId?: string;
-  children?: string[];
+  position?: string;
+  styleType?: string;
+  styles?: any;
+  contents?: any[];
 }
 
 export interface BlockUpdateProps extends ReqBlockProps {
@@ -31,28 +23,11 @@ export interface BlockUpdateProps extends ReqBlockProps {
 
 export interface RequiredBlock extends ReqBlockProps {
   page: Page;
-  property: BlockProperty;
   id: string;
-}
-
-export interface PropertyUpdateProps {
-  blockId: string;
-  type?: string;
-  styles?: string;
-  contents?: any[];
-}
-
-export interface RequiredBlockProperty {
-  type: string;
-  styles: any;
-  contents: any[]; 
 }
 
 export interface InfoToFindBlock {
   id?: string;
-  parentBlockId?: string;
-  preBlockId?: string;
-  nextBlockId?: string;
   page?: Page;
 }
 
@@ -67,19 +42,17 @@ export interface PropsInfo {
   info: TextPropsInfo | null;
 } 
 
-export interface BlockData {
+export interface BlockData<T = any, P = any> {
+  position: string; // 1,  1-1,  1-2-1
   id: string;
   type: BlockTypes;
-  parentBlockId: string | null;
-  preBlockId: string | null;
-  nextBlockId: string | null;
-  property: Property;
-  children: string[];
+  styleType: string;
+  styles: T;
+  contents: P;
 }
 
 export interface ModifyData {
   block?: Block[],
-  property?: BlockProperty[],
   comment?: BlockComment[]
 };
 

@@ -1,10 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BlockRepository } from './repositories/block.repository';
-import { RequiredBlock, RequiredBlockProperty, BlockData, BlockUpdateProps, PropertyUpdateProps, ModifyData } from './block.type';
+import { RequiredBlock, BlockData, BlockUpdateProps, ModifyData } from './block.type';
 import { Block } from 'src/entities/bklog/block.entity';
 import { Token } from 'src/utils/common/token.util';
-import { BlockPropertyRepository } from './repositories/block-property.repository';
-import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { Page } from 'src/entities/bklog/page.entity';
 import { In, Connection, QueryRunner } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
@@ -16,22 +14,9 @@ import { Test } from 'src/entities/bklog/test.entity';
 export class BlockService {
   constructor(
     private readonly blockRepository   : BlockRepository,
-    private readonly propertyRepository: BlockPropertyRepository,
     private readonly blockCommentRepository: BlockCommentRepository,
     private connection: Connection
   ){}
-
-  /**
-   * 
-   * @param requiredProperty 
-   */
-  private createProperty(requiredProperty: RequiredBlockProperty): BlockProperty {
-    const property: BlockProperty = this.propertyRepository.create(requiredProperty);
-    
-    property.id = Token.getUUID();
-
-    return property;
-  }
   
   private createBlock(requiredBlock: RequiredBlock): Block {
     const block: Block = this.blockRepository.create(requiredBlock);
@@ -44,10 +29,7 @@ export class BlockService {
    * @param id 
    */
   private async findOneBlock(id: string): Promise<Block> {
-    return await this.blockRepository.findOne({
-      relations: ["property"],
-      where: { id }
-    });
+    return await this.blockRepository.findOne({ where: { id } });
   }
 
   /**
@@ -72,22 +54,6 @@ export class BlockService {
 
   /**
    * 
-   * @param propertyList 
-   */
-  private async saveProperty(propertyList: BlockProperty[]): Promise<boolean> {
-    try {
-      await this.propertyRepository.save(propertyList);
-
-      return true;
-    } catch(e) {
-      Logger.error(e);
-
-      return false;
-    }
-  }
-
-  /**
-   * 
    * @param requiredBlock 
    */
   private async insertBlock(requiredBlock: RequiredBlock): Promise<Block> {
@@ -96,24 +62,6 @@ export class BlockService {
     await this.saveBlock([block]);
 
     return await this.findOneBlock(block.id);
-  }
-
-  /**
-   * 
-   * @param requiredProperty 
-   */
-  private async insertProperty(requiredProperty: RequiredBlockProperty): Promise<BlockProperty> {
-    const property: BlockProperty = await this.propertyRepository.create(requiredProperty);
-    
-    property.id = Token.getUUID();
-
-    await this.saveProperty([property]);
-
-    return await this.propertyRepository.findOne({
-      where: {
-        id: property.id
-      }
-    });
   }
 
   /**
@@ -132,36 +80,16 @@ export class BlockService {
     }
   }
 
-  /**
-   * 
-   * @param propertyIdList 
-   */
-  private async deleteProperty(propertyIdList: string[]): Promise<boolean> {
-    try {
-      await this.propertyRepository.delete(propertyIdList);
-
-      return true;
-    } catch(e) {
-      Logger.error(e);
-
-      return false;
-    }
-  }
-
   private async insertBlockData(blockData: BlockData, page: Page): Promise<Block> {
-    const property: BlockProperty = await this.insertProperty(blockData.property);
 
-    const block: Block = await this.blockRepository.create(Object.assign({}, blockData, {
-      page,
-      property
-    }));
+    const block: Block = await this.blockRepository.create(Object.assign({}, blockData, { page }));
 
     return block;
   }
 
   public async findBlockList(blockIdList: string[]): Promise<Block[]> {
     return await this.blockRepository.find({
-      relations: ["property", "blockComment"],
+      relations: ["blockComment"],
       where: {
         id: In(blockIdList)
       }
@@ -173,21 +101,15 @@ export class BlockService {
    * @param page 
    */
   public createBlockData(page: Page): Block {
-
-    const property: BlockProperty = this.createProperty({
-      type: "bk-h1",
+    const block: Block = this.createBlock({
+      id: Token.getUUID(),
+      styleType: "bk-h1",
       styles: {
         color: null,
         backgroundColor: null
       },
-      contents: []
-    });
-
-    const block: Block = this.createBlock({
-      id: Token.getUUID(),
-      page,
-      property,
-      children: []
+      contents: [],
+      page
     });
 
     return block;
@@ -199,14 +121,13 @@ export class BlockService {
    */
   public async removeBlockData(blockIdList: string[]): Promise<boolean> {
     const blockList = await this.blockRepository.find({
-      relations: ["property", "blockComment"],
+      relations: ["blockComment"],
       where: {
         id: In(blockIdList)
       }
     });
 
     const data = {
-      propertyList: [],
       commentList: []
     };
 
@@ -217,14 +138,11 @@ export class BlockService {
           data.commentList.push(comment.id);
         }
       }
-
-      data.propertyList.push(block.property.id);
     }
 
     try {
       await this.blockCommentRepository.delete(data.commentList);
       await this.deleteBlock(blockIdList);
-      await this.deleteProperty(data.propertyList);
 
       return true;
     } catch(e) {
@@ -244,7 +162,6 @@ export class BlockService {
 
       const modifyData = {
         block: [],
-        property: [],
         comment: []
       };
 
@@ -252,19 +169,9 @@ export class BlockService {
 
         if(param.set === "block") {
           const { payload } = param;
-
-          const property: BlockProperty = await this.propertyRepository
-            .create(Object.assign({}, payload.property, {
-              id: Token.getUUID()
-            }));
-
-          property.id = Token.getUUID();
-
-          modifyData.property.push(property);
         
           const block: Block = await this.blockRepository
-            .create(Object.assign({}, payload, { 
-              property,
+            .create(Object.assign({}, payload, {
               page
             }));
 
@@ -308,12 +215,11 @@ export class BlockService {
    */
   public async updateData(paramModifyBlockList: ParamModifyBlock[]): Promise<ModifyData | null> {
     const blockIdList = paramModifyBlockList
-      .filter(({ set }) => set === "block" || set === "property")
+      .filter(({ set }) => set === "block")
       .map(({ blockId }) => blockId);
 
     try {
       const blockList: Block[] = await this.blockRepository.find({
-        relations: ["property"],
         where: {
           id: In(blockIdList)
         }
@@ -325,7 +231,6 @@ export class BlockService {
 
       const modifyData: ModifyData = {
         block: [],
-        property: [],
         comment: []
       };
 
@@ -334,23 +239,8 @@ export class BlockService {
 
         switch(set) {
           case "block":
-            if(payload.property) {
-              modifyData.property.push(Object.assign(blockList[idx].property, payload.property));
-            }
-
-            if(payload.styles || payload.contents) {
-              return null;
-            }
-
-            modifyData.block.push(Object.assign(blockList[idx], payload, {
-              property: undefined
-            }));
+            modifyData.block.push(Object.assign(blockList[idx], payload));
             
-          break;
-          
-          case "property":
-            modifyData.property.push(Object.assign(blockList[idx].property, payload));
-
           break;
 
           default: 

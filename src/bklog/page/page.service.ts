@@ -93,7 +93,6 @@ export class PageService {
       .where({ id })
       .leftJoinAndSelect("page.userProfile", "user-profile")
       .leftJoinAndSelect("page.blockList", "block")
-      .leftJoinAndSelect("block.property","block-property")
       .getOne();
 
     if(!page) {

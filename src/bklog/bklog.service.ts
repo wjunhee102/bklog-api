@@ -17,7 +17,6 @@ import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, M
 import { Connection, In } from 'typeorm';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { Block } from 'src/entities/bklog/block.entity';
-import { BlockProperty } from 'src/entities/bklog/block-property.entity';
 import { TestRepository } from './block/repositories/test.repositoty';
 import { Test } from 'src/entities/bklog/test.entity';
 import { Test2 } from 'src/entities/bklog/test2.entity';
@@ -185,10 +184,7 @@ export class BklogService {
 
     const blockData: BlockData = Object.assign({}, block, {
       blockComment: undefined, 
-      page: undefined,
-      property: Object.assign({}, block.property, {
-        id: undefined
-      })
+      page: undefined
     });
 
     const pageVersion: PageVersion = this.createPageVersion(page, {
@@ -208,7 +204,6 @@ export class BklogService {
 
     try {
       await queryRunner.manager.save(page);
-      await queryRunner.manager.save(block.property);
       await queryRunner.manager.save(block);
       await queryRunner.manager.save(pageVersion);
 
@@ -273,9 +268,6 @@ export class BklogService {
           return Object.assign({}, block, {
             page: undefined,
             blockComment: undefined,
-            property: Object.assign({}, block.property, {
-              id: undefined
-            })
           })
         }),
         version: pageVersion.id,
@@ -307,7 +299,8 @@ export class BklogService {
    */
   public async modifyBlock(
     modifyBlockDataList: ModifyBlockType, 
-    pageId: string, userId: string, 
+    pageId: string, 
+    userId: string, 
     pageVersions: PageVersions
   ): Promise<Response> {
 
@@ -317,6 +310,7 @@ export class BklogService {
       return new Response().error(...AuthErrorMessage.info).forbidden();
     }
 
+    console.log("resCheck");
     const  resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
 
     if(!resCheckCurrentVersion.success) {
@@ -333,7 +327,6 @@ export class BklogService {
 
     const modifyData: ModifyData = {
       block: [],
-      property: [],
       comment: []
     }
 
@@ -353,10 +346,6 @@ export class BklogService {
 
       if(resCreate.block) {
         modifyData.block = modifyData.block.concat(resCreate.block);
-      }
-
-      if(resCreate.property) {
-        modifyData.property = modifyData.property.concat(resCreate.property);
       }
 
       if(resCreate.comment) {
@@ -382,10 +371,6 @@ export class BklogService {
         modifyData.block = modifyData.block.concat(resUpdate.block);
       }
 
-      if(resUpdate.property) {
-        modifyData.property = modifyData.property.concat(resUpdate.property);
-      }
-
       if(resUpdate.comment) {
         modifyData.comment = modifyData.comment.concat(resUpdate.comment);
       }
@@ -398,7 +383,6 @@ export class BklogService {
 
     try {
       
-      if(modifyData.property) await queryRunner.manager.save(modifyData.property);
       if(modifyData.block) await queryRunner.manager.save(modifyData.block);
       if(modifyData.comment) await queryRunner.manager.save(modifyData.comment);
 
@@ -410,11 +394,9 @@ export class BklogService {
         if(blockIdList) {
 
           const blockList: Block[] = await queryRunner.manager.find(Block, {
-            relations: ["property"],
             where: {
               id: In(blockIdList)
-            },
-            select: ["property"]
+            }
           });
 
           await queryRunner.manager
@@ -424,10 +406,6 @@ export class BklogService {
             .where("blockComment.block IN(:...blockIdList)", { blockIdList: blockIdList })
             .execute();
           await queryRunner.manager.delete(Block, blockList);
-          await queryRunner.manager.delete(
-            BlockProperty, 
-            blockList.map(block => block.property.id)
-          );
         }
         
       }

@@ -33,12 +33,21 @@ export type TextContents = [string] | [string, ContentType[]];
 /**
  * type: "text" | "image" | "container"
  */
-export interface BlockData<Props = any> {
+// export interface BlockData<Props = any> {
+//   id: string;
+//   type: string;
+//   parentBlockId: string;
+//   preBlockId: string;
+//   nextBlockId: string;
+//   propery: Props;
+//   children: string[];
+// }
+
+export interface BlockData<T = any, P = any> {
+  position: string; // 1,  1-1,  1-2-1
   id: string;
   type: string;
-  parentBlockId: string;
-  preBlockId: string;
-  nextBlockId: string;
-  propery: Props;
-  children: string[];
+  styleType: string;
+  styles: T;
+  contents: P;
 }

@@ -1,8 +1,7 @@
-import { Entity, Column, PrimaryColumn, OneToOne, ManyToOne, OneToMany, JoinColumn } from "typeorm";
+import { Entity, Column, PrimaryColumn, ManyToOne, OneToMany } from "typeorm";
 import { BlockTypes } from "src/bklog/block/block.type";
 import { Page } from "./page.entity";
 import { BlockComment } from "./block-comment.entity";
-import { BlockProperty } from "./block-property.entity";
 
 @Entity({name: "block"})
 export class Block {
@@ -14,31 +13,11 @@ export class Block {
   id: string;
 
   @Column({
-    name: "pre_block_id",
     type: "varchar",
-    length: 255,
-    nullable: true,
-    default: null
+    width: 50,
+    default: "1"
   })
-  preBlockId: string;
-
-  @Column({
-    name: "next_block_id",
-    type: "varchar",
-    length: 255,
-    nullable: true,
-    default: null
-  })
-  nextBlockId: string;
-
-  @Column({
-    name: "parent_block_id",
-    type: "varchar",
-    length: 255,
-    nullable: true,
-    default: null
-  })
-  parentBlockId: string;
+  position: string;
 
   @Column({
     type: "varchar",
@@ -48,13 +27,23 @@ export class Block {
   type: BlockTypes;
 
   @Column({
-    type: 'json'
+    type: "varchar",
+    length: 20,
+    default: "bk-p"
   })
-  children: string[] | null;
+  styleType: string;
 
-  @OneToOne(() => BlockProperty)
-  @JoinColumn()
-  property: BlockProperty;
+  @Column({
+    type: "json",
+    nullable: true,
+    default: null
+  })
+  styles: any;
+
+  @Column({
+    type: "json"
+  })
+  contents: any[];
 
   @ManyToOne(() => Page)
   page: Page;
