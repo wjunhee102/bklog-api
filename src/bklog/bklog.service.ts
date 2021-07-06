@@ -262,20 +262,23 @@ export class BklogService {
      * scope 확인?
      */
 
-    const page = rawPage ? 
-      Object.assign({}, rawPage, {
-        blockList: rawPage.blockList.map((block) => {
-          return Object.assign({}, block, {
-            page: undefined,
-            blockComment: undefined,
-          })
-        }),
+    const page = rawPage ? {
+      pageInfo: Object.assign({}, rawPage, {
+        blockList: undefined,
         version: pageVersion.id,
         userProfile: undefined,
         profileId: rawPage.userProfile.id,
         userId: undefined,
-        editable: userId? userId === rawPage.userId : false
-      }) : null;
+        editable: userId? userId === rawPage.userId : false,
+        removedDate: undefined
+      }),
+      blockList: rawPage.blockList.map((block) => {
+        return Object.assign({}, block, {
+          page: undefined,
+          blockComment: undefined,
+        })
+      })
+    } : null;
     
     return page? new Response().body(page) 
       : new Response()
@@ -288,6 +291,21 @@ export class BklogService {
             "Bklog"
           )
         ).notFound();
+  }
+
+  public async getModifyData(id: string, preVersionId: string): Promise<Response> {
+    const pageVersion: PageVersion = await this.findOnePageVersion({id, preVersionId});
+
+    return pageVersion? new Response().body({ id: pageVersion.id, data: pageVersion.modifyDataList })
+    : new Response().error(
+      new ResponseError()
+      .build(
+        "버전을 찾을 수 없습니다. 새로 업데이트 해주세요.",
+        "No version found",
+        "002",
+        "Bklog"
+      )
+    ).notFound();
   }
 
   /**
@@ -324,6 +342,8 @@ export class BklogService {
           ).get()
         ).badReq();
     }
+
+    console.log(modifyBlockDataList);
 
     const modifyData: ModifyData = {
       block: [],
@@ -398,13 +418,14 @@ export class BklogService {
               id: In(blockIdList)
             }
           });
-
-          await queryRunner.manager
-            .createQueryBuilder()
-            .delete()
-            .from(BlockComment)
-            .where("blockComment.block IN(:...blockIdList)", { blockIdList: blockIdList })
-            .execute();
+          
+          // block-comment를 찾아서 삭제하는 것으로 수정해야함.
+          // await queryRunner.manager
+          //   .createQueryBuilder()
+          //   .delete()
+          //   .from(BlockComment)
+          //   .where("blockComment.block IN(:...blockIdList)", { blockIdList: blockIdList })
+          //   .execute();
           await queryRunner.manager.delete(Block, blockList);
         }
         

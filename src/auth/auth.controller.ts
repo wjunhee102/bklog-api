@@ -5,7 +5,7 @@ import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, TargetUs
 import { ResponseMessage } from 'src/utils/common/response.util2';
 import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
-import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-user.type';
+import { UserAuthInfo, RequiredUserInfo, IdentifyUser } from './private-user/types/private-user.type';
 import { CommonErrorMessage, Response, AuthErrorMessage, SystemErrorMessage } from 'src/utils/common/response.util';
 
 @Controller('auth')
@@ -67,8 +67,7 @@ export class AuthController {
       Logger.error(error);
       this.validationError(res);
     } else {
-      const response: Response = 
-      await this.authService.signInUser(value, req.headers["user-agent"]);
+      const response: Response = await this.authService.signInUser(value, req.headers["user-agent"]);
     
       if(!response.Data.jwt) {
         Logger.error("Authentication failure");

@@ -233,10 +233,15 @@ export class BklogController {
     }
   }
 
+  @Get('t-getmodifydata')
+  public async getModifyData(@Res() res, @Query("id") id, @Query("pre") preId) {
+    const response: Response = await this.bklogService.getModifyData(id, preId);
+
+    response.res(res).send();
+  }
+
   @Post('t-modify')
   public async testModifyBlock(@Res() res, @Body() data: any) {
-    console.log(data);
-    
     const response: Response = await this.bklogService.modifyBlock(
       data.data, 
       data.pageId, 

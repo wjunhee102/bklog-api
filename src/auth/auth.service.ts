@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
 import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo, ACCESS, REFRESH, ResCheckAccessToken, ResReissueTokens } from './auth.type';
-import { UserAuthInfo, UserIdList, UserIdNPenName } from './private-user/types/private-user.type';
+import { IdentifyUser, UserAuthInfo, UserIdList, UserIdNPenName } from './private-user/types/private-user.type';
 import { RequiredUserInfo, ResAuthenticatedUser } from './private-user/types/private-user.type';
 import { PrivateUserService } from './private-user/private-user.service';
 import { ResponseError, AuthErrorMessage, Response, SystemErrorMessage, CommonErrorMessage } from 'src/utils/common/response.util';
@@ -121,7 +121,7 @@ export class AuthService {
   public async signInUser(
     unverifieduserInfo: UserAuthInfo, 
     userAgent: string
-  ): Promise<Response> {
+  ): Promise<Response<{userInfo: IdentifyUser; jwt: UserJwtokens;}>> {
 
     const { 
       isActive, 
@@ -150,6 +150,8 @@ export class AuthService {
         id: userInfo.userId,
         agent: userAgent
       });
+
+      userInfo.userId = undefined;
 
       return new Response().body({
         userInfo,

@@ -203,10 +203,12 @@ export class SystemErrorMessage extends ResponseError {
 
 }
 
-export class Response {
-  private data: any;
+export class Response<T = any> {
+  private data: T | { error: ResponseErrorTypes };
   private code: number | string = 200;
   private response: any;
+
+  constructor() {}
 
   public res(res): Response {
     this.response = res;
@@ -218,7 +220,7 @@ export class Response {
     return this;
   }
 
-  public body(data: any): Response {
+  public body(data: T): Response {
     this.data = data;
     return this;
   }

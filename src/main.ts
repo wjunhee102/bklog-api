@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import cookieParser = require('cookie-parser');
 import { cookieConstants } from 'secret/constants';
 import { ValidationPipe } from '@nestjs/common';
+import { SocketIoAdapter } from './adapters/socket-io.adapter';
 
 async function bootstrap() {
   //undefined는 insomnia 때문
@@ -29,6 +30,7 @@ async function bootstrap() {
   //   transform: true,
   // }));
   app.use(cookieParser(cookieConstants));
+  // app.useWebSocketAdapter(new SocketIoAdapter(app, whitelist))
   app.setGlobalPrefix('/v2');
 
   await app.listen(4500);
