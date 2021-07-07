@@ -234,7 +234,7 @@ export class BklogController {
   }
 
   @Get('t-getmodifydata')
-  public async getModifyData(@Res() res, @Query("id") id, @Query("pre") preId) {
+  public async getModifyData(@Res() res, @Query("id") id, @Query("preId") preId) {
     const response: Response = await this.bklogService.getModifyData(id, preId);
 
     response.res(res).send();

@@ -65,6 +65,7 @@ export class BklogService {
    * @param id 
    */
   private async findOnePageVersion(infoToFindPageVersion: InfoToFindPageVersion): Promise<PageVersion> {
+    console.log(infoToFindPageVersion);
     return await this.pageVersionRepository.findOne({
       where: infoToFindPageVersion
     });
@@ -294,6 +295,7 @@ export class BklogService {
   }
 
   public async getModifyData(id: string, preVersionId: string): Promise<Response> {
+    console.log(id, preVersionId);
     const pageVersion: PageVersion = await this.findOnePageVersion({id, preVersionId});
 
     return pageVersion? new Response().body({ id: pageVersion.id, data: pageVersion.modifyDataList })
