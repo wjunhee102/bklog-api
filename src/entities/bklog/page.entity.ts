@@ -63,6 +63,13 @@ export class Page extends MainTable {
   })
   disclosureScope: number;
 
+  @Column({
+    name: "edit_lock",
+    type: "boolean",
+    default: false
+  })
+  editLock: boolean;
+
   @ManyToOne(() => UserProfile, userProfile => userProfile.pages, {
     nullable: true
   })

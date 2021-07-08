@@ -29,19 +29,13 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   @SubscribeMessage('roomjoin')
   handleEvent(client: Socket, data: string) {
-    client.join(data, () => { this.logger.log("join") });
-    console.log(client.adapter.rooms);
+    client.join(data, () => { this.logger.log(`join ${client.id}`) });
     client.to(data).emit("message", "hello");
   }
 
   @SubscribeMessage('update')
   handleUpdate(client: Socket, data: string[]) {
     client.to(data[0]).emit("updated", data[1]);
-  }
-
-  @SubscribeMessage('events')
-  findAll(@MessageBody() data: any): Observable<WsResponse<number>> {
-    return from([1, 2, 3]).pipe(map(item => ({ event: "events", data: item })));
   }
 
   @SubscribeMessage('identity')

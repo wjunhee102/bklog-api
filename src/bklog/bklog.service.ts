@@ -13,7 +13,7 @@ import { PageStar } from 'src/entities/bklog/page-star.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageVersionRepository } from './repositories/page-version.repository';
 import { Token } from 'src/utils/common/token.util';
-import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList, ResCreateBklog } from './bklog.type';
+import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList, ResCreateBklog, PageModifyDateType } from './bklog.type';
 import { Connection, In } from 'typeorm';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { Block } from 'src/entities/bklog/block.entity';
@@ -42,12 +42,12 @@ export class BklogService {
 
   private createPageVersion(
     page: Page, 
-    modifyDataList: ModifyBlockType, 
+    pageModifyData: PageModifyDateType, 
     requiredIdList?: RequiredPageVersionIdList
   ): PageVersion {
     const pageVersion: PageVersion = this.pageVersionRepository.create({
       page,
-      modifyDataList
+      pageModifyData
     });
 
     if(requiredIdList) {
@@ -65,7 +65,6 @@ export class BklogService {
    * @param id 
    */
   private async findOnePageVersion(infoToFindPageVersion: InfoToFindPageVersion): Promise<PageVersion> {
-    console.log(infoToFindPageVersion);
     return await this.pageVersionRepository.findOne({
       where: infoToFindPageVersion
     });
@@ -90,18 +89,18 @@ export class BklogService {
    * 나중에 수정해야함 삼항식
    * @param page 
    */
-  private async insertPageVersion(page: Page, modifyDataList: ModifyBlockType, RequiredIdList?: RequiredPageVersionIdList): Promise<PageVersion> {
-    const pageVersion: PageVersion = this.pageVersionRepository.create({
-      id: RequiredIdList? (RequiredIdList.id? RequiredIdList.id : Token.getUUID()) : Token.getUUID(),
-      preVersionId: RequiredIdList? RequiredIdList.preVersionId? RequiredIdList.preVersionId : null : null,
-      page,
-      modifyDataList
-    });
+  // private async insertPageVersion(page: Page, modifyDataList: ModifyBlockType, RequiredIdList?: RequiredPageVersionIdList): Promise<PageVersion> {
+  //   const pageVersion: PageVersion = this.pageVersionRepository.create({
+  //     id: RequiredIdList? (RequiredIdList.id? RequiredIdList.id : Token.getUUID()) : Token.getUUID(),
+  //     preVersionId: RequiredIdList? RequiredIdList.preVersionId? RequiredIdList.preVersionId : null : null,
+  //     page,
+  //     modifyDataList
+  //   });
 
-    await this.pageVersionRepository.save(pageVersion);
+  //   await this.pageVersionRepository.save(pageVersion);
 
-    return await this.findOnePageVersion({ id: pageVersion.id });
-  }
+  //   return await this.findOnePageVersion({ id: pageVersion.id });
+  // }
 
   /**
    * 
@@ -143,8 +142,6 @@ export class BklogService {
     pageVersion: string
   }> {
     const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
-
-    console.log(pageVersion, id);
 
     if(!pageVersion || pageVersion.id !== id) {
       return {
@@ -189,14 +186,17 @@ export class BklogService {
     });
 
     const pageVersion: PageVersion = this.createPageVersion(page, {
-      create: [
-        {
-          blockId: block.id,
-          set: "block",
-          payload: blockData
+        modifyData: {
+          create: [
+            {
+              blockId: block.id,
+              set: "block",
+              payload: blockData
+            }
+          ]
         }
-      ]
-    });
+      }
+    );
 
     const queryRunner = this.connection.createQueryRunner();
 
@@ -266,7 +266,6 @@ export class BklogService {
     const page = rawPage ? {
       pageInfo: Object.assign({}, rawPage, {
         blockList: undefined,
-        version: pageVersion.id,
         userProfile: undefined,
         profileId: rawPage.userProfile.id,
         userId: undefined,
@@ -278,7 +277,8 @@ export class BklogService {
           page: undefined,
           blockComment: undefined,
         })
-      })
+      }),
+      version: pageVersion.id
     } : null;
     
     return page? new Response().body(page) 
@@ -294,11 +294,15 @@ export class BklogService {
         ).notFound();
   }
 
+  /**
+   * 
+   * @param id 
+   * @param preVersionId 
+   */
   public async getModifyData(id: string, preVersionId: string): Promise<Response> {
-    console.log(id, preVersionId);
-    const pageVersion: PageVersion = await this.findOnePageVersion({id, preVersionId});
+    const pageVersion: PageVersion = await this.findOnePageVersion({ id, preVersionId });
 
-    return pageVersion? new Response().body({ id: pageVersion.id, data: pageVersion.modifyDataList })
+    return pageVersion? new Response().body({ id: pageVersion.id, data: pageVersion.pageModifyData })
     : new Response().error(
       new ResponseError()
       .build(
@@ -326,14 +330,39 @@ export class BklogService {
 
     const page: Page = await this.pageService.getPage(pageId);
 
+    if(!page) {
+      return new Response()
+        .error(
+          new ResponseError()
+          .build(
+            "페이지를 찾을 수 없습니다.",
+            "The page does not exist or you entered an invalid page id.",
+            "001",
+            "Bklog"
+          )
+        ).notFound();
+    }
+
     if(page.userId !== userId) {
       return new Response().error(...AuthErrorMessage.info).forbidden();
     }
 
-    console.log("resCheck");
-    const  resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
+    if(page.editLock) {
+      return new Response()
+        .error(
+          new ResponseError()
+          .build(
+            "수정할 수 없는 페이지입니다.",
+            "This page has an edit_lock enabled.",
+            "003",
+            "Bklog"
+          )
+        ).notFound();
+    }
 
-    if(!resCheckCurrentVersion.success) {
+    const resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
+
+    if(!resCheckCurrentVersion) {
       return new Response()
         .error(
           new ResponseError().build(
@@ -437,8 +466,12 @@ export class BklogService {
         id: pageVersions.next,
         preVersionId: pageVersions.current,
         page,
-        modifyDataList: modifyBlockDataList
+        pageModifyData: {
+          modifyData: modifyBlockDataList
+        }
       });
+
+      await queryRunner.manager.delete(PageVersion, pageVersions.current);
 
       await queryRunner.manager.save(pageVersion);
 

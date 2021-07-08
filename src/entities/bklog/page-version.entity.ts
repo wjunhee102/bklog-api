@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, ManyToOne} from "typeorm";
 import { BlockData } from "src/bklog/block/block.type";
 import { Page } from "./page.entity";
-import { ModifyBlockType } from "src/bklog/bklog.type";
+import { ModifyBlockType, PageModifyDateType } from "src/bklog/bklog.type";
 
 @Entity({name: "page-version"})
 export class PageVersion {
@@ -29,7 +29,7 @@ export class PageVersion {
     name: "block_data",
     type: "json"
   })
-  modifyDataList: ModifyBlockType;
+  pageModifyData: PageModifyDateType;
 
   @ManyToOne(() => Page)
   page: Page;

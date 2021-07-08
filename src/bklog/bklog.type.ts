@@ -92,6 +92,24 @@ export interface ModifyBlockType {
   delete?: ParamDeleteModity;
 }
 
+export interface PageModifyDateType {
+  pageInfo?: {
+    createdDate?: Date;
+    updatedDate?: Date;
+    id?: string;
+    title?: string;
+    coverImage?: string;
+    coverColor?: string;
+    lastAccessDate?: Date;
+    views?: number;
+    disclosureScope?: number;
+    version?: string;
+    profileId?: string;
+    editable?: boolean;
+  };
+  modifyData?: ModifyBlockType;
+}
+
 export interface PageVersions {
   current: string;
   next: string;

@@ -103,7 +103,7 @@ export class BlockService {
   public createBlockData(page: Page): Block {
     const block: Block = this.createBlock({
       id: Token.getUUID(),
-      styleType: "bk-h1",
+      styleType: "bk-p",
       styles: {
         color: null,
         backgroundColor: null
