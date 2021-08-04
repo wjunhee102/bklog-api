@@ -15,7 +15,7 @@ import { ConfigModule } from '@nestjs/config';
     ConfigModule.forRoot({
       envFilePath: ['.development.env', '.production.env']
     }),
-    TypeOrmModule.forRoot(ormConfig),
+    TypeOrmModule.forRoot(ormConfig()),
     AuthModule,
     BklogModule,
     UserModule,
