@@ -1,5 +1,4 @@
 import { Body, Controller, Logger, Post, Res, Get, Req } from '@nestjs/common';
-import { ValidationError } from 'Joi';
 
 import { ResponseMessage } from '../utils/common/response.util2';
 import { UserService } from './user.service';
