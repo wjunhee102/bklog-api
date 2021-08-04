@@ -262,6 +262,7 @@ export class BklogService {
     /**
      * scope 확인?
      */
+    console.log("process", process.env);
 
     const page = rawPage ? {
       pageInfo: Object.assign({}, rawPage, {
