@@ -9,7 +9,7 @@ export class AppController {
 
   @Get()
   getHello(): string {
-    Redirect('http://localhost:3000');
+    // Redirect('http://localhost:3000');
     return this.appService.getHello();
   }
 
