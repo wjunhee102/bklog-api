@@ -1,7 +1,6 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, ManyToOne} from "typeorm";
-import { BlockData } from "src/bklog/block/block.type";
 import { Page } from "./page.entity";
-import { ModifyBlockType, PageModifyDateType } from "src/bklog/bklog.type";
+import { PageModifyDateType } from "src/bklog/bklog.type";
 
 @Entity({name: "page-version"})
 export class PageVersion {

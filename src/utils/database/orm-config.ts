@@ -11,7 +11,10 @@ const ormConfig: () => TypeOrmModuleOptions = () => {
     entities: [
       "dist/src/entities/*.entity{.ts,.js}", 
       "dist/src/entities/**/*.entity{.ts,.js}",
-      "dist/src/auth/**/entities/*.entity{.ts,.js}"
+      "dist/src/auth/**/entities/*.entity{.ts,.js}",
+      "entities/**/*.entity{.ts,.js}",
+      "entities/*.entity{.ts,.js}",
+      "auth/**/entities/*.entity{.ts,.js}"
     ],
     logging: true,
     synchronize: true
