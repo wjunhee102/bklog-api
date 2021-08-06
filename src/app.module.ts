@@ -9,7 +9,6 @@ import { EventsModule } from './events/events.module';
 import ormConfig from './utils/database/orm-config';
 import { ConfigModule } from '@nestjs/config';
 
-
 @Module({
   imports: [
     ConfigModule.forRoot({
