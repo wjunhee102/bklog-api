@@ -7,7 +7,7 @@ import { SocketIoAdapter } from './adapters/socket-io.adapter';
 
 async function bootstrap() {
   //undefined는 insomnia 때문
-  const whitelist = ['https://bklog-app-deploy.vercel.app', 'http://localhost', 'http://localhost:3000', 'http://localhost:4500', 'https://bklog-app-8ux2dgda7-wjunhee102.vercel.app', undefined];
+  const whitelist = ['https://bklog-app-deploy.vercel.app', 'http://localhost', 'http://localhost:3000', 'http://localhost:4500', 'https://bklogapi.com', undefined];
   const app = await NestFactory.create(AppModule, { cors: true });
 
   app.enableCors({
