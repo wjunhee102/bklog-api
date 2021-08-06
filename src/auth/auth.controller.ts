@@ -63,6 +63,8 @@ export class AuthController {
   ) {
     const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
 
+    res.header("Access-Control-Allow-Origin", "*");
+
     if(error) {
       Logger.error(error);
       this.validationError(res);
