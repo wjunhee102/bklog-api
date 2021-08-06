@@ -14,7 +14,7 @@ const ormConfig: () => TypeOrmModuleOptions = () => {
       "dist/src/auth/**/entities/*.entity{.ts,.js}"
     ],
     logging: true,
-    synchronize: false
+    synchronize: true
   };
 } 
 

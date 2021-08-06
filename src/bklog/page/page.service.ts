@@ -40,22 +40,6 @@ export class PageService {
 
   /**
    * 
-   * @param page 
-   */
-  private async savePage(page: Page) {
-    try {
-      await this.pageRepository.save(page);
-
-      return true;
-    } catch(e) {
-      Logger.error(e);
-
-      return false;
-    }
-  }
-
-  /**
-   * 
    * @param pageIdList 
    */
   private async deletePage(pageIdList: string[]): Promise<boolean> {
@@ -69,6 +53,23 @@ export class PageService {
       return false;
     }
   }
+
+  /**
+   * 
+   * @param page 
+   */
+  public async savePage(page: Page) {
+    try {
+      await this.pageRepository.save(page);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+
 
   /**
    * 
@@ -236,8 +237,6 @@ export class PageService {
         }
       });
     
-
-
   }
 
 }

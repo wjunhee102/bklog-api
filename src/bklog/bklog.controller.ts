@@ -6,6 +6,8 @@ import { ACCESS_TOKEN, ResValitionAccessToken, REFRESH_TOKEN, TokenVailtionType 
 import { ResponseMessage } from 'src/utils/common/response.util2';
 import { ParamGetPageList, ResTokenValidation } from './bklog.type';
 import { Response, ResponseError, AuthErrorMessage } from 'src/utils/common/response.util';
+import { ValidationData } from 'src/types/validation';
+import { testSchema } from './bklog.shema';
 
 @Controller('bklog')
 export class BklogController {
@@ -253,7 +255,9 @@ export class BklogController {
   }
 
   @Get('test')
-  public async test(@Query('data') data){
+  public async test(@Query('data') data: string, @Query('data2') data2?: string){
+    // const { value, error }: ValidationData<any> = testSchema.validate({data, data2});
+    // console.log(value, error);
     const res = await this.bklogService.addTest(data);
 
     return ResponseMessage(res);

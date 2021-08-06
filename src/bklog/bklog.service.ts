@@ -262,7 +262,6 @@ export class BklogService {
     /**
      * scope 확인?
      */
-    console.log("process", process.env);
 
     const page = rawPage ? {
       pageInfo: Object.assign({}, rawPage, {
@@ -271,7 +270,8 @@ export class BklogService {
         profileId: rawPage.userProfile.id,
         userId: undefined,
         editable: userId? userId === rawPage.userId : false,
-        removedDate: undefined
+        removedDate: undefined,
+        updating: undefined
       }),
       blockList: rawPage.blockList.map((block) => {
         return Object.assign({}, block, {
@@ -340,12 +340,25 @@ export class BklogService {
             "The page does not exist or you entered an invalid page id.",
             "001",
             "Bklog"
-          )
+          ).get()
         ).notFound();
     }
 
     if(page.userId !== userId) {
       return new Response().error(...AuthErrorMessage.info).forbidden();
+    }
+
+    if(page.updating) {
+      return new Response()
+        .error(
+          new ResponseError()
+          .build(
+            "현재 수정중입니다.",
+            "The page is being edited, so please send your request again after a while.",
+            "003",
+            "Bklog"
+          ).get()
+        ).badReq();
     }
 
     if(page.editLock) {
@@ -355,9 +368,9 @@ export class BklogService {
           .build(
             "수정할 수 없는 페이지입니다.",
             "This page has an edit_lock enabled.",
-            "003",
+            "004",
             "Bklog"
-          )
+          ).get()
         ).notFound();
     }
 
@@ -369,13 +382,15 @@ export class BklogService {
           new ResponseError().build(
             "최신 버전이 아닙니다.",
             "Not the current version",
-            "002",
+            "004",
             "Bklog"
           ).get()
         ).badReq();
     }
 
-    console.log(modifyBlockDataList);
+    page.updating = true;
+
+    await this.pageService.savePage(page);
 
     const modifyData: ModifyData = {
       block: [],
@@ -390,7 +405,7 @@ export class BklogService {
           new ResponseError().build(
             "client error",
             "create param error",
-            "003",
+            "004",
             "Bklog"
           ).get()
         ).badReq();
@@ -413,7 +428,7 @@ export class BklogService {
           new ResponseError().build(
             "client error",
             "update param error",
-            "003",
+            "004",
             "Bklog"
           ).get()
         ).badReq();
@@ -486,6 +501,8 @@ export class BklogService {
 
     } finally {
       await queryRunner.release();
+      page.updating = false;
+      await this.pageService.savePage(page);
     }
 
     return new Response().body({ pageVersion: pageVersions.next });

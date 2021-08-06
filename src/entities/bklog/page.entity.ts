@@ -70,6 +70,13 @@ export class Page extends MainTable {
   })
   editLock: boolean;
 
+  @Column({
+    name: "updating",
+    type: "boolean",
+    default: false
+  })
+  updating: boolean;
+
   @ManyToOne(() => UserProfile, userProfile => userProfile.pages, {
     nullable: true
   })

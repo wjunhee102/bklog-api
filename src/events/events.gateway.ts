@@ -38,10 +38,16 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @SubscribeMessage('roomleave')
   handleLeave(client: Socket, roomId: string) {
     client.leave(roomId, () => { this.logger.log(`leave ${client.id}`) });
+    client.to(roomId, client.id);
+  }
+  
+  @SubscribeMessage('update')
+  handleUpdate(client: Socket, roomId: string) {
+    client.to(roomId).emit("update", client.id);
   }
 
-  @SubscribeMessage('update')
-  handleUpdate(client: Socket, data: string[]) {
+  @SubscribeMessage('updated')
+  handleUpdated(client: Socket, data: [string, string]) {
     client.to(data[0]).emit("updated", data[1]);
   }
 
