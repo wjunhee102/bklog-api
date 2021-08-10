@@ -25,7 +25,7 @@ async function bootstrap() {
   //   credentials: true,
   // });
   app.enableCors({
-    origin: 'https://bklog-app.web.app',
+    origin: '*',
     allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe',
     methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS"
   });
