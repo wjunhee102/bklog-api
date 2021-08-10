@@ -27,8 +27,7 @@ async function bootstrap() {
   app.enableCors({
     origin: 'https://bklog-app.web.app',
     allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe',
-    methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
-    credentials: true
+    methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS"
   });
   // app.useGlobalPipes(new ValidationPipe({
   //   whitelist: true,
