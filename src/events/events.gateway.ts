@@ -8,7 +8,7 @@ interface EditingUserInfo {
   editingId: string | null;
 }
 
-@WebSocketGateway(4600, {
+@WebSocketGateway({
   namespace: "bklog"
 })
 export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {

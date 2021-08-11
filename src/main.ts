@@ -11,7 +11,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: (origin, callback) => {
+    origin: process.env.ORIGIN? process.env.ORIGIN : (origin, callback) => {
       if (whitelist.indexOf(origin) !== -1) {
         console.log("allowed cors for:", origin);
         callback(null, true);
@@ -24,12 +24,6 @@ async function bootstrap() {
     methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
     credentials: true,
   });
-  // app.enableCors({
-  //   origin: 'https://bklog-app-deploy.vercel.app',
-  //   allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe',
-  //   methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
-  //   credentials: true
-  // });
   // app.useGlobalPipes(new ValidationPipe({
   //   whitelist: true,
   //   forbidNonWhitelisted: true,
