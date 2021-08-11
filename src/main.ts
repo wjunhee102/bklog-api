@@ -25,9 +25,10 @@ async function bootstrap() {
   //   credentials: true,
   // });
   app.enableCors({
-    origin: '*',
+    origin: 'https://bklog-app-deploy.vercel.app',
     allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe',
-    methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS"
+    methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
+    credentials: true
   });
   // app.useGlobalPipes(new ValidationPipe({
   //   whitelist: true,
