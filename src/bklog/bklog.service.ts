@@ -317,6 +317,43 @@ export class BklogService {
 
   /**
    * 
+   * @param id pageId
+   */
+  public async releaseUpdating(
+    userId: string, 
+    pageId: string
+  ): Promise<Response> {
+    const page: Page = await this.pageService.getPage(pageId);
+
+    if(!page) {
+      return new Response()
+        .error(
+          new ResponseError()
+          .build(
+            "페이지를 찾을 수 없습니다.",
+            "The page does not exist or you entered an invalid page id.",
+            "001",
+            "Bklog"
+          ).get()
+        ).notFound();
+    }
+
+    if(page.userId !== userId) {
+      return new Response().error(...AuthErrorMessage.info).forbidden();
+    }
+
+    
+
+    if(page.updating) {
+      page.updating = false;
+      await this.pageService.savePage(page);
+    }
+
+    return new Response().body("success"); 
+  }
+
+  /**
+   * 
    * @param modifyBlockDataList 
    * @param pageId 
    * @param userId 

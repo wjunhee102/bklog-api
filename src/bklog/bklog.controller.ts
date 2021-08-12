@@ -8,6 +8,7 @@ import { ParamGetPageList, ResTokenValidation } from './bklog.type';
 import { Response, ResponseError, AuthErrorMessage } from 'src/utils/common/response.util';
 import { ValidationData } from 'src/types/validation';
 import { testSchema } from './bklog.shema';
+import { throws } from 'assert';
 
 @Controller('bklog')
 export class BklogController {
@@ -212,12 +213,30 @@ export class BklogController {
 
   }
 
+  @Get('release-updating/:pageId')
+  public async releaseUpdating(@Req() req, @Res() res, @Param('pageId') pageId: string) {
+    const resCheckCookie = this.validationAccessToken(req);
+
+    if(!resCheckCookie.id) {
+
+      new Response()
+      .error(...AuthErrorMessage.info)
+      .res(res)
+      .send();
+    } else {
+
+      // 후에 page module로 이동
+      const response: Response = await this.bklogService.releaseUpdating(resCheckCookie.id, pageId);
+
+      response.res(res).send();
+    }
+  }
+
   @Post('modify')
   public async modifyBlock(@Req() req, @Body() data: any, @Res() res) {
     const resCheckCookie = this.validationAccessToken(req);
 
     if(!resCheckCookie.id) {
-      // return this.responseCheckToken(resCheckCookie.error);
 
       new Response()
       .error(...AuthErrorMessage.info)
