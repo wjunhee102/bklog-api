@@ -2,21 +2,27 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import cookieParser = require('cookie-parser');
 import { cookieConstants } from 'secret/constants';
-import { ValidationPipe } from '@nestjs/common';
-import { SocketIoAdapter } from './adapters/socket-io.adapter';
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { setWhitelist } from './config';
 
 async function bootstrap() {
-  //undefined는 insomnia 때문
-  const whitelist = ['https://bklog-app.web.app', 'https://bklog-app.vercel.app', 'http://localhost', 'http://localhost:3000', 'http://localhost:4500', 'https://bklogapi.com', undefined];
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors({
+  const whitelist = setWhitelist(process.env.ENV);
+
+  app.useGlobalPipes(new ValidationPipe({
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    transform: true,
+  }))
+  .use(cookieParser(cookieConstants))
+  .setGlobalPrefix('/v2')
+  .enableCors({
     origin: (origin, callback) => {
       if (whitelist.indexOf(origin) !== -1) {
-        console.log("allowed cors for:", origin);
         callback(null, true);
       } else {
-        console.log("blocked cors for:", origin);
+        Logger.error("blocked cors for:", origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
@@ -24,14 +30,6 @@ async function bootstrap() {
     methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
     credentials: true,
   });
-  // app.useGlobalPipes(new ValidationPipe({
-  //   whitelist: true,
-  //   forbidNonWhitelisted: true,
-  //   transform: true,
-  // }));
-  app.use(cookieParser(cookieConstants));
-  // app.useWebSocketAdapter(new SocketIoAdapter(app, whitelist))
-  app.setGlobalPrefix('/v2');
 
   await app.listen(4500);
 }
