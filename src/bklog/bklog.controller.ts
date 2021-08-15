@@ -1,14 +1,13 @@
-import { Controller, Post, Req, Res, Body, Get, Param, Query } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Get, Param, Query, ParseIntPipe, UsePipes } from '@nestjs/common';
 import { BklogService } from './bklog.service';
 import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
 import { ACCESS_TOKEN, ResValitionAccessToken, REFRESH_TOKEN, TokenVailtionType } from 'src/auth/auth.type';
 import { ResponseMessage } from 'src/utils/common/response.util2';
-import { ParamGetPageList, ResTokenValidation } from './bklog.type';
+import { ParamGetPageList, ReqModifyBlock, ResTokenValidation } from './bklog.type';
 import { Response, ResponseError, AuthErrorMessage } from 'src/utils/common/response.util';
-import { ValidationData } from 'src/types/validation';
-import { testSchema } from './bklog.shema';
-import { throws } from 'assert';
+import { reqCreatePageSchema, reqModifyBlockSchema } from './dto/bklog.shema';
+import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
 
 @Controller('bklog')
 export class BklogController {
@@ -78,10 +77,10 @@ export class BklogController {
   public async getPageListPenName(
     @Res() res,
     @Req() req, 
-    @Param('penName') penName, 
-    @Query('id') reqProfileId?, 
-    @Query('skip') skip?, 
-    @Query('take') take?
+    @Param('penName') penName: string, 
+    @Query('id') reqProfileId?: string, 
+    @Query('skip') skip?: number, 
+    @Query('take') take?: number
   ) {
 
     await this.getPageList(res, req, {
@@ -95,6 +94,7 @@ export class BklogController {
 
   }
 
+  // ? 없애야 함.
   @Get('list/id/:profileId')
   public async getPageListProfileId(
     @Res() res,
@@ -117,12 +117,12 @@ export class BklogController {
   }
 
   @Post('create-page')
+  @UsePipes(new JoiValidationPipe(reqCreatePageSchema))
   public async createPage(
     @Req() req, 
     @Res() res,
     @Body() requiredBklogInfo: ReqCreatePage
   ) {
-
     const { id, error }  = this.validationAccessToken(req);
 
     if(!id) {
@@ -155,6 +155,7 @@ export class BklogController {
   }
 
   @Post('t-create-page')
+  @UsePipes(new JoiValidationPipe(reqCreatePageSchema))
   public async createPage2(
     @Res() res,
     @Body() requiredBklogInfo: ReqCreatePage
@@ -233,7 +234,8 @@ export class BklogController {
   }
 
   @Post('modify')
-  public async modifyBlock(@Req() req, @Body() data: any, @Res() res) {
+  @UsePipes(new JoiValidationPipe(reqModifyBlockSchema))
+  public async modifyBlock(@Req() req, @Body() { data, pageId, pageVersions }: ReqModifyBlock, @Res() res) {
     const resCheckCookie = this.validationAccessToken(req);
 
     if(!resCheckCookie.id) {
@@ -244,10 +246,10 @@ export class BklogController {
       .send();
     } else {
       const response: Response = await this.bklogService.modifyBlock(
-        data.data, 
-        data.pageId, 
+        data, 
+        pageId, 
         resCheckCookie.id, 
-        data.pageVersions
+        pageVersions
       );
   
       response.res(res).send();
@@ -262,7 +264,8 @@ export class BklogController {
   }
 
   @Post('t-modify')
-  public async testModifyBlock(@Res() res, @Body() data: any) {
+  @UsePipes(new JoiValidationPipe(reqModifyBlockSchema))
+  public async testModifyBlock(@Res() res, @Body() data: ReqModifyBlock) {
     const response: Response = await this.bklogService.modifyBlock(
       data.data, 
       data.pageId, 

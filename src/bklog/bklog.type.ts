@@ -53,7 +53,9 @@ export interface ParamGetPageList {
   take?: number;
 }
 
-
+/**
+ * modify 
+ */
 export type ModifyCommand = "update" | "create" | "delete";
 export type ModifySet = "block" | "property" | "comment"; 
 
@@ -84,8 +86,6 @@ export class ParamDeleteModity {
   commentIdList?: string[];
 }
 
-
-
 export interface ModifyBlockType {
   create?: ParamCreateModifyBlock[];
   update?: ParamModifyBlock[];
@@ -113,6 +113,15 @@ export interface PageModifyDateType {
 export interface PageVersions {
   current: string;
   next: string;
+}
+
+export interface ReqModifyBlock {
+  pageId: string;
+  pageVersions: {
+    current: string;
+    next: string;
+  }
+  data: ModifyBlockType
 }
 
 export interface ResModifyBlock {

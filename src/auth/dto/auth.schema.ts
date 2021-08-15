@@ -1,14 +1,14 @@
 import * as Joi from 'joi';
-import { RequiredUserInfo, UserAuthInfo } from './private-user/types/private-user.type';
-import { TargetUser, ClientUserInfo } from './auth.type';
+import { RequiredUserInfo, UserAuthInfo } from '../private-user/types/private-user.type';
+import { TargetUser, ClientUserInfo } from '../auth.type';
 
-export const registerSchema = Joi.object({
+export const registerSchema: Joi.ObjectSchema<any> = Joi.object({
   email: Joi.string().required(),
   name: Joi.string().required(),
   password: Joi.string().required()
 });
 
-export const authInfoSchema = Joi.object<UserAuthInfo>({
+export const authInfoSchema: Joi.ObjectSchema<UserAuthInfo> = Joi.object<UserAuthInfo>({
   email: Joi.string().required(),
   password: Joi.string().required()
 });
