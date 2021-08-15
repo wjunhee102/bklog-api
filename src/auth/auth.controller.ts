@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res, Body, Logger, Get, Delete } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './auth.schema';
 import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens } from './auth.type';
@@ -7,6 +7,7 @@ import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
 import { UserAuthInfo, RequiredUserInfo, IdentifyUser } from './private-user/types/private-user.type';
 import { CommonErrorMessage, Response, AuthErrorMessage, SystemErrorMessage } from 'src/utils/common/response.util';
+import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
 
 @Controller('auth')
 export class AuthController {
@@ -42,45 +43,32 @@ export class AuthController {
   }
 
   @Post('sign-up')
+  @UsePipes(new JoiValidationPipe(requiredUserInfoSchema))
   public async signUpUser(@Res() res, @Body() requiredUserInfo: RequiredUserInfo) {
-    const { value, error }: ValidationData<RequiredUserInfo> = requiredUserInfoSchema.validate(requiredUserInfo);
-
-    if(error) {
-      Logger.error(error);
-      this.validationError(res);
-    }
-
-    const response: Response = await this.authService.signUpUser(value);
+    const response: Response = await this.authService.signUpUser(requiredUserInfo);
 
     response.res(res).send();
   }
 
   @Post('sign-in') 
+  @UsePipes(new JoiValidationPipe(authInfoSchema))
   public async signInUser(
     @Req() req, 
     @Res() res, 
     @Body() userAuthInfo: UserAuthInfo
   ) {
-    const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
-
-    if(error) {
-      Logger.error(error);
-      this.validationError(res);
+    const response: Response = await this.authService.signInUser(userAuthInfo, req.headers["user-agent"]);
+  
+    if(!response.Data.jwt) {
+      Logger.error("Authentication failure");
+      this.clearUserJwtCookie(res);
     } else {
-      const response: Response = await this.authService.signInUser(value, req.headers["user-agent"]);
-    
-      if(!response.Data.jwt) {
-        Logger.error("Authentication failure");
-        this.clearUserJwtCookie(res);
-      } else {
-        this.setUserJwtCookies(res, response.Data.jwt);
-        const userInfo = response.Data.userInfo;
-        response.body(userInfo);
-      }
-
-      response.res(res).send();
+      this.setUserJwtCookies(res, response.Data.jwt);
+      const userInfo = response.Data.userInfo;
+      response.body(userInfo);
     }
-    
+
+    response.res(res).send(); 
   }
   
   /**
@@ -159,72 +147,62 @@ export class AuthController {
    * @param userAuthInfo 
    */
   @Delete('withdrawal')
+  @UsePipes(new JoiValidationPipe(authInfoSchema))
   public async withdrawalUser(
     @Req() req,
     @Res() res,
     @Body() userAuthInfo: UserAuthInfo
   ) {
-    const { value, error }: ValidationData<UserAuthInfo> = authInfoSchema.validate(userAuthInfo);
-
-    if(error) {
-      res.send(ResponseMessage(error));
-    } else {
-      const accessToken = req.signedCookies[ACCESS_TOKEN];
-      const refreshToken = req.signedCookies[REFRESH_TOKEN];
-      
-      if(!refreshToken || !accessToken) {
-
-        this.clearUserJwtCookie(res);
-        new Response().error(...AuthErrorMessage.info).res(res).send();
-
-      } else {
-
-        const resWithdrawalUser: ResWithdrawalUser = await this.authService.withdrawalUser(
-          value, 
-          accessToken,
-          refreshToken,
-          req.headers["user-agent"]
-        );
+    const accessToken = req.signedCookies[ACCESS_TOKEN];
+    const refreshToken = req.signedCookies[REFRESH_TOKEN];
     
-        if(resWithdrawalUser.success) {
-          this.clearUserJwtCookie(res);
-          new Response().body("success").res(res).send();
-        } else {
-          new Response().error(...SystemErrorMessage.db).res(res).send();
-        } 
+    if(!refreshToken || !accessToken) {
 
-      }
+      this.clearUserJwtCookie(res);
+      new Response().error(...AuthErrorMessage.info).res(res).send();
+
+    } else {
+
+      const resWithdrawalUser: ResWithdrawalUser = await this.authService.withdrawalUser(
+        userAuthInfo, 
+        accessToken,
+        refreshToken,
+        req.headers["user-agent"]
+      );
+  
+      if(resWithdrawalUser.success) {
+        this.clearUserJwtCookie(res);
+        new Response().body("success").res(res).send();
+      } else {
+        new Response().error(...SystemErrorMessage.db).res(res).send();
+      } 
+
     }
+
   }
 
   @Post('user-activation')
+  @UsePipes(new JoiValidationPipe(activateUserSchema))
   public async activateUser(
     @Req() req, 
     @Res() res, 
     @Body() tagetUser: TargetUser
   ) {
-    const { value, error }: ValidationData<TargetUser> = activateUserSchema.validate(tagetUser);
+    const accessToken = req.signedCookies[ACCESS_TOKEN];
+    
+    if(accessToken) {
+      const result = await this.authService.activateUser(
+        accessToken,
+        req.headers["user-agent"],
+        tagetUser.email
+      );
 
-    if(error) {
-      res.send(ResponseMessage(error));
+      if(!result.success) {
+        this.clearUserJwtCookieAccess(res);
+      } 
+      res.send(ResponseMessage(result));
     } else {
-      const accessToken = req.signedCookies[ACCESS_TOKEN];
-      
-      if(accessToken) {
-        const result = await this.authService.activateUser(
-          accessToken,
-          req.headers["user-agent"],
-          value.email
-        );
-  
-        if(!result.success) {
-          this.clearUserJwtCookieAccess(res);
-        } 
-        res.send(ResponseMessage(result));
-      } else {
-        res.send(ResponseMessage("No cookies"));
-      }
-
+      res.send(ResponseMessage("No cookies"));
     }
 
   }
