@@ -19,6 +19,7 @@ async function bootstrap() {
   .setGlobalPrefix('/v2')
   .enableCors({
     origin: (origin, callback) => {
+      console.log(origin, whitelist);
       if (whitelist.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
