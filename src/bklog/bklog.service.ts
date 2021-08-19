@@ -12,9 +12,8 @@ import { Page } from 'src/entities/bklog/page.entity';
 import { PageStar } from 'src/entities/bklog/page-star.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageVersionRepository } from './repositories/page-version.repository';
-import { Token } from 'src/utils/common/token.util';
-import { InfoToFindPageVersion, ResGetPage, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList, ResCreateBklog, PageModifyDateType } from './bklog.type';
-import { Connection, In } from 'typeorm';
+import { InfoToFindPageVersion, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResModifyBlock, RequiredPageVersionIdList, ResCreateBklog, PageModifyDateType } from './bklog.type';
+import { Connection } from 'typeorm';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { Block } from 'src/entities/bklog/block.entity';
 import { TestRepository } from './block/repositories/test.repositoty';
@@ -39,26 +38,6 @@ export class BklogService {
     private readonly testRepository: TestRepository,
     private readonly test2Repository: Test2Respository,
   ){}
-
-  private createPageVersion(
-    page: Page, 
-    pageModifyData: PageModifyDateType, 
-    requiredIdList?: RequiredPageVersionIdList
-  ): PageVersion {
-    const pageVersion: PageVersion = this.pageVersionRepository.create({
-      page,
-      pageModifyData
-    });
-
-    if(requiredIdList) {
-      pageVersion.id = requiredIdList.id;
-      pageVersion.preVersionId = requiredIdList.preVersionId
-    } else {
-      pageVersion.id = Token.getUUID();
-    }
-
-    return pageVersion;
-  }
 
   /**
    * pageVersion id
@@ -109,7 +88,7 @@ export class BklogService {
    */
   private async insertPageStar(profileId: string, pageId: string): Promise<boolean> {
     try {
-      const userProfile: UserProfile = await this.userService.getUserProfile(profileId);
+      const userProfile: UserProfile = await this.userService.findOneUserProfile({ id: profileId });
       if(!userProfile) {
         return false;
       }
@@ -166,8 +145,8 @@ export class BklogService {
    */
   public async createBklog(requiredBklogInfo: RequiredBklogInfo): Promise<Response> {
 
-    const userProfile: UserProfile | null = await this.userService.getUserProfile(requiredBklogInfo.profileId);
-    
+    const userProfile: UserProfile | null = await this.userService.findOneUserProfile({ id: requiredBklogInfo.profileId});
+
     if(!userProfile) {
       return new Response().error(...AuthErrorMessage.info);
     }
@@ -185,7 +164,7 @@ export class BklogService {
       page: undefined
     });
 
-    const pageVersion: PageVersion = this.createPageVersion(page, {
+    const pageVersion: PageVersion = this.pageService.createPageVersion(page, {
         modifyData: {
           create: [
             {
@@ -232,6 +211,10 @@ export class BklogService {
   public async findPageList(factorGetPageList: ParamGetPageList, uuid?: string): Promise<Response> {
     let scope = 5;
 
+    const userProfile: UserProfile = await this.userService.findOneUserProfile(factorGetPageList.pageUserInfo);
+    
+    if(!userProfile) return new Response().error(...CommonErrorMessage.notFound).notFound();
+
     if(factorGetPageList.reqProfileId && uuid) {
       // id가 해당 유저의 팔로워인지... 맞으면 scope에 대입.
       const checkProfileId = await this.authService.checkUserIdNProfileId(uuid, factorGetPageList.reqProfileId);
@@ -249,9 +232,11 @@ export class BklogService {
         factorGetPageList.skip,
         factorGetPageList.take
       ); 
+    
+
 
     return pageInfoList? 
-      new Response().body(pageInfoList) 
+      new Response().body({ pageInfoList, userProfile }) 
       : new Response().error(...CommonErrorMessage.notFound).notFound();
   }
 
@@ -320,8 +305,8 @@ export class BklogService {
    * @param id pageId
    */
   public async releaseUpdating(
-    userId: string, 
-    pageId: string
+    pageId: string,
+    userId: string
   ): Promise<Response> {
     const page: Page = await this.pageService.getPage(pageId);
 
@@ -339,6 +324,7 @@ export class BklogService {
     }
 
     if(page.userId !== userId) {
+      console.log("error", userId, page.userId);
       return new Response().error(...AuthErrorMessage.info).forbidden();
     }
 
@@ -366,7 +352,7 @@ export class BklogService {
     pageVersions: PageVersions
   ): Promise<Response> {
 
-    const page: Page = await this.pageService.getPage(pageId);
+    const page: Page = await this.pageService.findOnePage({id: pageId});
 
     if(!page) {
       return new Response()
@@ -486,9 +472,8 @@ export class BklogService {
     await queryRunner.startTransaction();
 
     try {
-      
-      if(modifyData.block) await queryRunner.manager.save(modifyData.block);
-      if(modifyData.comment) await queryRunner.manager.save(modifyData.comment);
+      if(modifyData.block[0]) await queryRunner.manager.save(modifyData.block);
+      if(modifyData.comment[0]) await queryRunner.manager.save(modifyData.comment);
 
       if(modifyBlockDataList.delete) {
         const { commentIdList, blockIdList } = modifyBlockDataList.delete;
@@ -497,11 +482,11 @@ export class BklogService {
 
         if(blockIdList) {
 
-          const blockList: Block[] = await queryRunner.manager.find(Block, {
-            where: {
-              id: In(blockIdList)
-            }
-          });
+          // const blockList: Block[] = await queryRunner.manager.find(Block, {
+          //   where: {
+          //     id: In(blockIdList)
+          //   }
+          // });
           
           // block-comment를 찾아서 삭제하는 것으로 수정해야함.
           // await queryRunner.manager
@@ -510,7 +495,7 @@ export class BklogService {
           //   .from(BlockComment)
           //   .where("blockComment.block IN(:...blockIdList)", { blockIdList: blockIdList })
           //   .execute();
-          await queryRunner.manager.delete(Block, blockList);
+          await queryRunner.manager.delete(Block, blockIdList);
         }
         
       }
@@ -529,7 +514,7 @@ export class BklogService {
       await queryRunner.manager.save(pageVersion);
 
       await queryRunner.commitTransaction();
-
+      
     } catch(e) {
       Logger.error(e);
       await queryRunner.rollbackTransaction();
@@ -538,7 +523,11 @@ export class BklogService {
 
     } finally {
       await queryRunner.release();
+
       page.updating = false;
+      page.lastAccessDate = new Date(Date.now());
+      page.views = Number(page.views) + 1;
+
       await this.pageService.savePage(page);
     }
 
