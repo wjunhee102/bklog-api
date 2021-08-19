@@ -78,11 +78,10 @@ export class BklogController {
     @Res() res,
     @Req() req, 
     @Param('penName') penName: string, 
-    @Query('id') reqProfileId?: string, 
-    @Query('skip') skip?: number, 
-    @Query('take') take?: number
+    @Query('id') reqProfileId?, 
+    @Query('skip') skip?, 
+    @Query('take') take?
   ) {
-
     await this.getPageList(res, req, {
       pageUserInfo: {
         penName
@@ -91,7 +90,6 @@ export class BklogController {
       skip,
       take
     });
-
   }
 
   // ? 없애야 함.
@@ -113,7 +111,7 @@ export class BklogController {
       reqProfileId,
       skip,
       take
-    })
+    });
   }
 
   @Post('create-page')
@@ -263,6 +261,16 @@ export class BklogController {
     response.res(res).send();
   }
 
+  @Get('t-release-updating/:pageId')
+  public async testReleaseUpdating(@Req() req, @Res() res, @Param('pageId') pageId: string) {
+
+    // 후에 page module로 이동
+    const response: Response = await this.bklogService.releaseUpdating(pageId, "4d120c098d6a113ebe55c5cfa43beb4a");
+
+    response.res(res).send();
+  
+  }
+
   @Post('t-modify')
   @UsePipes(new JoiValidationPipe(reqModifyBlockSchema))
   public async testModifyBlock(@Res() res, @Body() data: ReqModifyBlock) {
@@ -274,36 +282,6 @@ export class BklogController {
     );
 
     response.res(res).send();
-  }
-
-  @Get('test')
-  public async test(@Query('data') data: string, @Query('data2') data2?: string){
-    // const { value, error }: ValidationData<any> = testSchema.validate({data, data2});
-    // console.log(value, error);
-    const res = await this.bklogService.addTest(data);
-
-    return ResponseMessage(res);
-  }
-
-  @Get('test2')
-  public test2(@Query('data') data, @Res() res){
-    this.bklogService.addTest2(data)
-    .then((response) => response
-      .error(
-        new ResponseError()
-        .build("test", "test", "500", "test")
-        .get()
-      )
-      .res(res)
-      .send()
-    )
-  
-  }
-
-  @Get('test-d')
-  public async deleteTest(@Query('id') id, @Res() response) {
-    const res = await this.bklogService.deleteTest(id);
-    response.status(404).send(ResponseMessage(res));
   }
 
 }
