@@ -9,6 +9,7 @@ import { PageCommentRepository } from './repositories/page-comment.repository';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageComment } from 'src/entities/bklog/page-comment.entity';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
+import { PageModifyDateType, RequiredPageVersionIdList } from '../bklog.type';
 
 @Injectable()
 export class PageService {
@@ -22,7 +23,7 @@ export class PageService {
    * page 정보 찾기
    * @param pageInfo 
    */
-  private async findOnePage(pageInfo: InfoToFindPage): Promise<Page> {
+  public async findOnePage(pageInfo: InfoToFindPage): Promise<Page> {
     return await this.pageRepository.findOne({
       where: pageInfo
     });
@@ -32,7 +33,7 @@ export class PageService {
    * 
    * @param pageInfo 
    */
-  private async findPage(pageInfo: InfoToFindPage): Promise<Page[]> {
+  public async findPage(pageInfo: InfoToFindPage): Promise<Page[]> {
     return await this.pageRepository.find({
       where: pageInfo
     });
@@ -57,6 +58,33 @@ export class PageService {
   /**
    * 
    * @param page 
+   * @param pageModifyData 
+   * @param requiredIdList 
+   */
+  public createPageVersion(
+    page: Page, 
+    pageModifyData: PageModifyDateType, 
+    requiredIdList?: RequiredPageVersionIdList
+  ): PageVersion {
+    const pageVersion: PageVersion = this.pageVersionRepository.create({
+      page,
+      pageModifyData
+    });
+
+    if(requiredIdList) {
+      pageVersion.id = requiredIdList.id;
+      pageVersion.preVersionId = requiredIdList.preVersionId
+    } else {
+      pageVersion.id = Token.getUUID();
+    }
+
+    return pageVersion;
+  }
+
+
+  /**
+   * 
+   * @param page 
    */
   public async savePage(page: Page) {
     try {
@@ -76,6 +104,7 @@ export class PageService {
    * @param requiredPageInfo 
    */
   public createPage(requiredPageInfo: RequiredPageInfo): Page {
+    requiredPageInfo.profileId = undefined;
     const page: Page = this.pageRepository.create(requiredPageInfo);
 
     page.id = Token.getUUID();

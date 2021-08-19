@@ -7,6 +7,7 @@ import { UserFollow } from 'src/entities/user/user-follow.entity';
 import { UserFollowRepository } from './repositories/user-follow.repository';
 import { UserBlockingRepository } from './repositories/user-blocking.repository';
 import { Connection } from 'typeorm';
+import { Response, ResponseError, SystemErrorMessage, AuthErrorMessage, CommonErrorMessage } from 'src/utils/common/response.util';
 import { User } from 'src/auth/private-user/entities/user.entity';
 
 
@@ -45,7 +46,7 @@ export class UserService {
    * profile 찾기
    * @param penName 
    */
-  private async findOneUserProfile(infoToFindUserProfile : InfoToFindUserProfile): Promise<UserProfile | null> {
+  public async findOneUserProfile(infoToFindUserProfile : InfoToFindUserProfile): Promise<UserProfile | null> {
     const userProfile: UserProfile | null = await this.userProfileRepository.findOne({
       where: infoToFindUserProfile
     });
@@ -142,8 +143,11 @@ export class UserService {
       .getMany();
   }
 
-  public async getUserProfile(id: string): Promise<UserProfile> {
-    return await this.findOneUserProfile({ id });
+  public async getUserProfile(userInfo: { id?: string; penName?: string;}): Promise<Response> {
+    const userProfile: UserProfile | null = await this.findOneUserProfile(userInfo);
+
+    return userProfile? new Response().body(userProfile)
+      : new Response().error(...CommonErrorMessage.notFound).notFound();
   }
              
   /**

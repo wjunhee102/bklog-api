@@ -30,7 +30,7 @@ export interface IdentifyUser {
   penName: string;
   userId: string;
   profileId: string;
-  userPhoto: string;
+  photo: string;
   bio: string;
 }
 

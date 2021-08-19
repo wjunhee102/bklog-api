@@ -1,4 +1,4 @@
-import { Body, Controller, Logger, Post, Res, Get, Req } from '@nestjs/common';
+import { Body, Controller, Logger, Post, Res, Get, Req, Param } from '@nestjs/common';
 
 import { ResponseMessage } from '../utils/common/response.util2';
 import { UserService } from './user.service';
@@ -6,6 +6,7 @@ import { emailSchema } from './user.schema';
 import { ValidationData } from 'src/types/validation';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { Response } from 'src/utils/common/response.util';
+import { userInfo } from 'os';
 
 @Controller('/user')
 export class UserController {
@@ -17,12 +18,23 @@ export class UserController {
     return ResponseMessage(error);
   }
 
-  @Get('test')
-  async getTest(@Res() res) {
-    const userProfile: UserProfile = await this.userService.getUserProfile("4e17660a0ea99a83845cbf3c90f62700");
+  @Get('/check-penanmeexists/:penName')
+  async checkPenNameExists(@Res() res, @Param('penName') penName: string) {
 
-    new Response().body(userProfile).res(res).send();
+  }
 
+  @Get('/get-userprofile/id/:id')
+  async getUserProfileProfileId(@Res() res, @Param('id') id: string) {
+    const response: Response = await this.userService.getUserProfile({id});
+    
+    response.res(res).send();
+  }
+
+  @Get('/get-userprofile/penname/:penName')
+  async getUserProfilePenName(@Res() res, @Param('penName') penName: string) {
+    const response: Response = await this.userService.getUserProfile({penName});
+    
+    response.res(res).send();
   }
 
 }

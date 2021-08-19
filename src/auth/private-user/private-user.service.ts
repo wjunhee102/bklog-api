@@ -14,8 +14,14 @@ import { UserPrivacy } from './entities/user-privacy.entity';
 import { Token } from 'src/utils/common/token.util';
 import { ResSignInUser } from '../auth.type';
 import { InfoToFindUserProfile } from 'src/user/user.type';
-import { Connection } from 'typeorm';
+import { Connection, QueryRunner } from 'typeorm';
 import { UserFollow } from 'src/entities/user/user-follow.entity';
+import { PageService } from 'src/bklog/page/page.service';
+import { BlockService } from 'src/bklog/block/block.service';
+import { Page } from 'src/entities/bklog/page.entity';
+import { Block } from 'src/entities/bklog/block.entity';
+import { PageVersion } from 'src/entities/bklog/page-version.entity';
+import { BlockData } from 'src/bklog/block/block.type';
 
 @Injectable()
 export class PrivateUserService {
@@ -25,7 +31,9 @@ export class PrivateUserService {
     private readonly userRepository: UserRepository,
     private readonly userAuthRepository: UserAuthRepository,
     private readonly userProfileRepository: UserProfileRepository,
-    private readonly userStatusRepository: UserStatusRepository
+    private readonly userStatusRepository: UserStatusRepository,
+    private readonly pageService: PageService,
+    private readonly blockService: BlockService
   ){}
 
   /**
@@ -201,17 +209,82 @@ export class PrivateUserService {
     user.userProfile = profile;
     user.userStatus = status;
 
+    const page: Page = this.pageService.createPage({
+      title: "hello world",
+      disclosureScope: 5,
+      userProfile: profile,
+      userId: user.id,
+      profileId: profile.id
+    });
+
+    const block1: Block = this.blockService.createBlock({
+      id: Token.getUUID(),
+      position: "1",
+      styleType: "bk-h1",
+      contents: [["환영합니다."]],
+      styles: {
+        color: null,
+        backgroundColor: null
+      },
+      page
+    });
+
+    const block2: Block = this.blockService.createBlock({
+      id: Token.getUUID(),
+      position: "2",
+      styleType: "bk-h1",
+      contents: [["글을 작성해보세요."]],
+      styles: {
+        color: null,
+        backgroundColor: null
+      },
+      page
+    });
+
+    const blockData1: BlockData = Object.assign({}, block1, {
+      blockComment: undefined, 
+      page: undefined
+    });
+
+    const blockData2: BlockData = Object.assign({}, block2, {
+      blockComment: undefined, 
+      page: undefined
+    });
+
+    const pageVersion: PageVersion = this.pageService.createPageVersion(page, {
+      modifyData: {
+        create: [
+          {
+            blockId: block1.id,
+            set: "block",
+            payload: blockData1
+          },
+          {
+            blockId: block2.id,
+            set: "block",
+            payload: blockData2
+          }
+        ]
+      }
+    });
+
     const queryRunner = this.connection.createQueryRunner();
 
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      await queryRunner.manager.save(status);
-      await queryRunner.manager.save(profile);
-      await queryRunner.manager.save(privacy);
-      await queryRunner.manager.save(auth);
-      await queryRunner.manager.save(user);
+      await queryRunner.manager.save([
+        status, 
+        profile, 
+        privacy, 
+        auth, 
+        user, 
+        page, 
+        block1, 
+        block2,
+        pageVersion
+      ]);
       
       await queryRunner.commitTransaction();
       
@@ -384,7 +457,7 @@ export class PrivateUserService {
             penName: user.userProfile.penName,
             userId: user.id,
             profileId: user.userProfile.id,
-            userPhoto: user.userProfile.photo,
+            photo: user.userProfile.photo,
             bio: user.userProfile.bio
           }
         } 
