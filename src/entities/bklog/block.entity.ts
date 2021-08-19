@@ -45,7 +45,7 @@ export class Block {
   })
   contents: any[];
 
-  @ManyToOne(() => Page)
+  @ManyToOne(() => Page, page => page.blockList)
   page: Page;
 
   @OneToMany(() => BlockComment, blockComment => blockComment.block)

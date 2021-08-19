@@ -18,7 +18,7 @@ export class BlockService {
     private connection: Connection
   ){}
   
-  private createBlock(requiredBlock: RequiredBlock): Block {
+  public createBlock(requiredBlock: RequiredBlock): Block {
     const block: Block = this.blockRepository.create(requiredBlock);
 
     return block;
