@@ -39,8 +39,7 @@ export const createCookieOption = (expTime:number) => {
   return {
     httpOnly: true,
     expires: new Date(Date.now() + expTime),
-    signed: true,
-    secure: true
+    signed: true
   }
 } 
 

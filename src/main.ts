@@ -4,6 +4,7 @@ import cookieParser = require('cookie-parser');
 import { cookieConstants } from 'secret/constants';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { setWhitelist } from './config';
+import session = require('express-session');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,6 +17,17 @@ async function bootstrap() {
     transform: true,
   }))
   .use(cookieParser(cookieConstants))
+  .use(session({
+    secret: cookieConstants,
+    resave: false,
+    saveUninitialized: false,
+    proxy: true,
+    cookie: {
+      httpOnly: true,
+      secure: process.env.ENV === "prod"? true : false,
+      sameSite: process.env.ENV === "prod"? true : false
+    }
+  }))
   .setGlobalPrefix('/v2')
   .enableCors({
     origin: (origin, callback) => {
@@ -29,7 +41,7 @@ async function bootstrap() {
     },
     allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe',
     methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
-    credentials: true,
+    credentials: true
   });
 
   await app.listen(4500);
