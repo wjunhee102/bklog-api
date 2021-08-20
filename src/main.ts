@@ -25,7 +25,7 @@ async function bootstrap() {
     cookie: {
       httpOnly: true,
       secure: process.env.ENV === "prod"? true : false,
-      sameSite: process.env.ENV === "prod"? true : false
+      sameSite: process.env.ENV === "prod"? 'none' : false
     }
   }))
   .setGlobalPrefix('/v2')
