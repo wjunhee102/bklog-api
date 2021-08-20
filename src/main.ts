@@ -21,7 +21,6 @@ async function bootstrap() {
     secret: cookieConstants,
     resave: false,
     saveUninitialized: false,
-    proxy: true,
     cookie: {
       httpOnly: true,
       secure: process.env.ENV === "prod"? true : false,
