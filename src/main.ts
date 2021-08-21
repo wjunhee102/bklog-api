@@ -17,16 +17,6 @@ async function bootstrap() {
     transform: true,
   }))
   .use(cookieParser(cookieConstants))
-  .use(session({
-    secret: cookieConstants,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      secure: process.env.ENV === "prod"? true : false,
-      sameSite: process.env.ENV === "prod"? 'none' : false
-    }
-  }))
   .setGlobalPrefix('/v2')
   .enableCors({
     origin: (origin, callback) => {
@@ -42,6 +32,17 @@ async function bootstrap() {
     methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
     credentials: true
   });
+
+  // .use(session({
+  //   secret: cookieConstants,
+  //   resave: false,
+  //   saveUninitialized: false,
+  //   cookie: {
+  //     httpOnly: true,
+  //     secure: process.env.ENV === "prod"? true : false,
+  //     sameSite: process.env.ENV === "prod"? 'none' : false
+  //   }
+  // }))
 
   await app.listen(4500);
 }

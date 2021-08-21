@@ -40,8 +40,8 @@ export const createCookieOption = (expTime:number) => {
     httpOnly: true,
     expires: new Date(Date.now() + expTime),
     signed: true,
-    domain: "bklog-app.vercel.app",
-    sameSite: 'none',
+    domain: "bklogapi.com",
+    sameSite: "none",
     secure: true
   }
 } 
