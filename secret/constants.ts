@@ -37,9 +37,9 @@ export const cookieExpTime =  {
  */
 export const createCookieOption = (expTime:number) => {
   return {
-    httpOnly: true,
+    httpOnly: false,
     expires: new Date(Date.now() + expTime),
-    signed: true,
+    signed: false,
     domain: "bklogapi.com",
     sameSite: "none",
     secure: true
