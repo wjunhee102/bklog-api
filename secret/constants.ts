@@ -17,9 +17,9 @@ export const jwtExpTime = {
   accessToken: "1h"
 }
 
-export const accessExpTime = 60 * 60;
-export const refreshExpTime = 60 * 60 * 24 * 7;
-export const imminentExpTime = 60 * 60 * 24 * 1;
+export const accessExpTime = 1000 * 60 * 60;
+export const refreshExpTime = 1000 * 60 * 60 * 24 * 7;
+export const imminentExpTime = 1000 * 60 * 60 * 24 * 1;
 
 export const cookieConstants = "secretKey";
 
@@ -37,10 +37,10 @@ export const cookieExpTime =  {
  */
 export const createCookieOption = (expTime:number) => {
   return {
-    httpOnly: false,
+    httpOnly: true,
     expires: new Date(Date.now() + expTime),
-    signed: false,
-    domain: "bklogapi.com",
+    signed: true,
+    domain: ".bklogapi.com",
     sameSite: "none",
     secure: true
   }

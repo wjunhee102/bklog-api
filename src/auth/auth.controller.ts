@@ -1,11 +1,10 @@
 import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './dto/auth.schema';
-import { ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens } from './auth.type';
+import { UserJwtokens, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens } from './auth.type';
 import { ResponseMessage } from 'src/utils/common/response.util2';
-import { ValidationData } from 'src/types/validation';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
-import { UserAuthInfo, RequiredUserInfo, IdentifyUser } from './private-user/types/private-user.type';
+import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-user.type';
 import { CommonErrorMessage, Response, AuthErrorMessage, SystemErrorMessage } from 'src/utils/common/response.util';
 import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
 
