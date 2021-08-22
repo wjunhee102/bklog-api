@@ -33,12 +33,12 @@ export class AuthController {
   }
 
   private clearUserJwtCookie(res) {
-    // res.clearCookie(ACCESS_TOKEN);
-    // res.clearCookie(REFRESH_TOKEN);
+    res.clearCookie(ACCESS_TOKEN);
+    res.clearCookie(REFRESH_TOKEN);
   }
 
   private clearUserJwtCookieAccess(res) {
-    // res.clearCookie(ACCESS_TOKEN);
+    res.clearCookie(ACCESS_TOKEN);
   }
 
   @Post('sign-up')
@@ -56,6 +56,7 @@ export class AuthController {
     @Res() res, 
     @Body() userAuthInfo: UserAuthInfo
   ) {
+    console.log(req.signedCookies([ACCESS_TOKEN]));
     const response: Response = await this.authService.signInUser(userAuthInfo, req.headers["user-agent"]);
   
     if(!response.Data.jwt) {
@@ -209,6 +210,7 @@ export class AuthController {
   @Get('resign-in')
   public async reSignIn(@Req() req, @Res() res) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
+    console.log(accessToken);
     if(accessToken) {
       const { response, clearToken } = await this.authService.simpleSignInUser(accessToken, req.headers["user-agent"]);
       
