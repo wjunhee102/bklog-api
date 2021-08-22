@@ -9,12 +9,12 @@ export const jwtSignOptions: SignOptions = {
 }
 
 /**
- * Access : 30분
+ * Access : 2시간
  * Refresh: 7일
  */
 export const jwtExpTime = {
   refreshToken: "7d",
-  accessToken: "1h"
+  accessToken: "2h"
 }
 
 export const accessExpTime = 1000 * 60 * 60;
@@ -27,8 +27,8 @@ export const cookieConstants = "secretKey";
  * 쿠키 발행 시간
  */
 export const cookieExpTime =  {
-  access: 1000 * 60 * 60 * 24 * 7,
-  refresh: 1000 * 60 * 60 * 24 * 7
+  access: 60 * 60 * 24 * 7,
+  refresh: 60 * 60 * 24 * 7
 }
 
 /**
