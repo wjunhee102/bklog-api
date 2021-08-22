@@ -25,8 +25,6 @@ export class BklogController {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
     const userAgent = req.headers["user-agent"];
 
-    console.log("ac",accessToken);
-
     if(!accessToken) {
       return {
         id: null,
