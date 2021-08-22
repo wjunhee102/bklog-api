@@ -56,7 +56,7 @@ export class AuthController {
     @Res() res, 
     @Body() userAuthInfo: UserAuthInfo
   ) {
-    console.log(req.signedCookies([ACCESS_TOKEN]));
+    console.log(req.signedCookies[ACCESS_TOKEN]);
     const response: Response = await this.authService.signInUser(userAuthInfo, req.headers["user-agent"]);
   
     if(!response.Data.jwt) {
