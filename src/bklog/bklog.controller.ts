@@ -25,6 +25,8 @@ export class BklogController {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
     const userAgent = req.headers["user-agent"];
 
+    console.log("ac",accessToken);
+
     if(!accessToken) {
       return {
         id: null,
@@ -183,6 +185,8 @@ export class BklogController {
   public async getPage(@Res() res, @Req() req, @Query('id') pageId): Promise<void> {
     const { id, error, accessToken } = this.validationAccessToken(req);
 
+    console.log(accessToken);
+
     if(!id && accessToken) {
       this.responseCheckToken(error, res);
     } else {
@@ -277,7 +281,7 @@ export class BklogController {
     const response: Response = await this.bklogService.modifyBlock(
       data.data, 
       data.pageId, 
-      "4d120c098d6a113ebe55c5cfa43beb4a", 
+      "46a487d9c993600abb1b0c169ce45a73", 
       data.pageVersions
     );
 
