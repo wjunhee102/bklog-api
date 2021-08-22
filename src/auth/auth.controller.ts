@@ -33,12 +33,12 @@ export class AuthController {
   }
 
   private clearUserJwtCookie(res) {
-    res.clearCookie(ACCESS_TOKEN);
-    res.clearCookie(REFRESH_TOKEN);
+    // res.clearCookie(ACCESS_TOKEN);
+    // res.clearCookie(REFRESH_TOKEN);
   }
 
   private clearUserJwtCookieAccess(res) {
-    res.clearCookie(ACCESS_TOKEN);
+    // res.clearCookie(ACCESS_TOKEN);
   }
 
   @Post('sign-up')
