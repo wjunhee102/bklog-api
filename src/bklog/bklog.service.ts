@@ -480,23 +480,7 @@ export class BklogService {
 
         if(commentIdList) await queryRunner.manager.delete(BlockComment, commentIdList);
 
-        if(blockIdList) {
-
-          // const blockList: Block[] = await queryRunner.manager.find(Block, {
-          //   where: {
-          //     id: In(blockIdList)
-          //   }
-          // });
-          
-          // block-comment를 찾아서 삭제하는 것으로 수정해야함.
-          // await queryRunner.manager
-          //   .createQueryBuilder()
-          //   .delete()
-          //   .from(BlockComment)
-          //   .where("blockComment.block IN(:...blockIdList)", { blockIdList: blockIdList })
-          //   .execute();
-          await queryRunner.manager.delete(Block, blockIdList);
-        }
+        if(blockIdList) await queryRunner.manager.delete(Block, blockIdList);
         
       }
 
