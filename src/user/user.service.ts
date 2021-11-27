@@ -208,6 +208,5 @@ export class UserService {
     return userFollowing? true : false;
   }
 
-
 }
 

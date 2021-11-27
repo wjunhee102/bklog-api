@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './dto/auth.schema';
 import { UserJwtokens, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens } from './auth.type';
@@ -23,12 +23,12 @@ export class AuthController {
     res.cookie(
       ACCESS_TOKEN, 
       jwtTokens.accessToken, 
-      createCookieOption(cookieExpTime.access)
+      createCookieOption(process.env.DOMAIN)(cookieExpTime.access)
     );
     res.cookie(
       REFRESH_TOKEN, 
       jwtTokens.refreshToken, 
-      createCookieOption(cookieExpTime.refresh)
+      createCookieOption(process.env.DOMAIN)(cookieExpTime.refresh)
     );
   }
 
@@ -214,6 +214,7 @@ export class AuthController {
       const { response, clearToken } = await this.authService.simpleSignInUser(accessToken, req.headers["user-agent"]);
       
       if(clearToken) this.clearUserJwtCookie(res);
+      console.log(response, clearToken);
       
       response.res(res).send();
     } else {
@@ -222,13 +223,31 @@ export class AuthController {
   }
 
   @Get('check-email')
-  public async checkEmailAddress(@Req() req, @Res() res) {
+  public async checkEmailAddress(@Res() res, @Query("email") email: string) {
+    if(!email) {
+      new Response()
+        .body("y")
+        .res(res)
+        .send();
+    } else {
+      const response: Response = await this.authService.checkEmailUsed(email);
 
+      response.res(res).send();
+    }
   }
 
   @Get('check-penname')
-  public async checkPenName(@Req() req, @Res() res) {
+  public async checkPenName(@Res() res, @Query("penname") penName: string) {
+    if(!penName) {
+      new Response()
+        .body("y")
+        .res(res)
+        .send();
+    } else {
+      const response: Response = await this.authService.checkPenNameUsed(penName);
 
+      response.res(res).send();
+    }
   }
 
 }

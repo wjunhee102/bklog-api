@@ -35,12 +35,12 @@ export const cookieExpTime =  {
  * 발행 시간 
  * @param expTime 
  */
-export const createCookieOption = (expTime:number) => {
+export const createCookieOption = (domain: string = "localhost") => (expTime:number) => {
   return {
     httpOnly: true,
     expires: new Date(Date.now() + expTime),
     signed: true,
-    domain: "bklog-app.vercel.app",
+    domain,
     sameSite: "none",
     secure: true
   }

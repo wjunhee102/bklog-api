@@ -22,6 +22,7 @@ import { Page } from 'src/entities/bklog/page.entity';
 import { Block } from 'src/entities/bklog/block.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { BlockData } from 'src/bklog/block/block.type';
+import { throws } from 'assert';
 
 @Injectable()
 export class PrivateUserService {

@@ -6,7 +6,6 @@ import { emailSchema } from './user.schema';
 import { ValidationData } from 'src/types/validation';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { Response } from 'src/utils/common/response.util';
-import { userInfo } from 'os';
 
 @Controller('/user')
 export class UserController {
@@ -16,11 +15,6 @@ export class UserController {
   private setParmeterError(error) {
     Logger.error(error);
     return ResponseMessage(error);
-  }
-
-  @Get('/check-penanmeexists/:penName')
-  async checkPenNameExists(@Res() res, @Param('penName') penName: string) {
-
   }
 
   @Get('/get-userprofile/id/:id')

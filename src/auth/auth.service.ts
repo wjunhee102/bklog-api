@@ -451,9 +451,9 @@ export class AuthService {
 
     if(result.error) {
       response.error(...AuthErrorMessage.failureSignIn(-1));
+      clearToken = true;
     } else {
       response.body(result.userInfo);
-      clearToken = true;
     }
 
     return {
@@ -480,5 +480,17 @@ export class AuthService {
     }
 
     return false;
+  }
+
+  public async checkPenNameUsed(penName: string): Promise<Response> {
+    const used: boolean = await this.privateUserService.checkPenName(penName);
+
+    return new Response().body(used? "y" : "n");
+  }
+
+  public async checkEmailUsed(email: string): Promise<Response> {
+    const used: boolean = await this.privateUserService.checkUsedEmailAddress(email);
+
+    return new Response().body(used? "y": "n");
   }
 }
