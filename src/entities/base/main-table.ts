@@ -11,7 +11,7 @@ export abstract class MainTable extends DateTable {
 
   @Column({
     name: "removed_at",
-    type: "date",
+    type: "datetime",
     nullable: true
   })
   removedDate: Date;

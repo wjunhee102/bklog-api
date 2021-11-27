@@ -6,6 +6,7 @@ import { Block } from './block.entity';
 import { MainTable } from '../base/main-table';
 import { PageComment } from './page-comment.entity';
 import { BlockComment } from './block-comment.entity';
+import { PageEditableList } from './page-editable-list.entity';
 
 @Entity({ name: "page" })
 export class Page extends MainTable {
@@ -55,13 +56,21 @@ export class Page extends MainTable {
   })
   userId: string;
 
-  // 0: 삭제 예정, 1: 개인, 2: following, 3: org, 4: following || org, 5: public;
+  // 0: 삭제 예정, 1: 생성자, 2: following, 3: org, 4: following || org, 5: public;
   @Column({
-    name: "disclosure_scope",
+    name: "discloure_scope",
     type: "tinyint",
-    default: 5
+    default: 1
   })
   disclosureScope: number;
+
+   // 0: 주 작성자, 1: 지정한 user, 2: following, 3: org, 4: following || org, 5: public;
+  @Column({
+    name: "editable_scope",
+    type: "tinyint",
+    default: 0
+  })
+  editableScope: number;
 
   @Column({
     name: "edit_lock",
@@ -96,5 +105,8 @@ export class Page extends MainTable {
   
   @OneToMany(() => BlockComment, blockComment => blockComment.page)
   blockComments: BlockComment[];
+
+  @OneToMany(() => PageEditableList, pageEditableList => pageEditableList.page)
+  editableList: PageEditableList[];
 
 }

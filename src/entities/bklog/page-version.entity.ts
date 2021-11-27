@@ -25,7 +25,7 @@ export class PageVersion {
   createdDate: Date;
 
   @Column({
-    name: "block_data",
+    name: "data",
     type: "json"
   })
   pageModifyData: PageModifyDateType;
