@@ -28,15 +28,13 @@ export class BklogController {
     if(!accessToken) {
       return {
         id: null,
-        accessToken: false
+        accessToken: false,
+        error: {
+          infoFalse: true,
+          expFalse: false
+        }
       }
     }
-
-    // if(!accessToken) {
-    //   return {
-    //     uuid: "4e17660a0ea99a83845cbf3c90f62700"
-    //   }
-    // }
 
     return Object.assign({}, this.authService.validateAccessTokenReturnId(accessToken, userAgent), {
       accessToken: true
@@ -45,6 +43,8 @@ export class BklogController {
 
   private responseCheckToken({ infoFalse } : TokenVailtionType ,res): void {
     const response: Response = new Response();
+
+    console.log(infoFalse);
 
     if(infoFalse) {
       this.clearUserJwtCookie(res);
@@ -183,15 +183,14 @@ export class BklogController {
   public async getPage(@Res() res, @Req() req, @Query('id') pageId): Promise<void> {
     const { id, error, accessToken } = this.validationAccessToken(req);
 
-    console.log(accessToken);
-
     if(!id && accessToken) {
       this.responseCheckToken(error, res);
     } else {
       const response: Response = await this.bklogService.getPage(pageId, id); 
       response.res(res).send();
+      console.log(response.Data);
     }
-    
+    console.log(accessToken, 'getPage');
   }
 
   @Get('t-getpage')
@@ -236,19 +235,15 @@ export class BklogController {
   @Post('modify')
   @UsePipes(new JoiValidationPipe(reqModifyBlockSchema))
   public async modifyBlock(@Req() req, @Body() { data, pageId, pageVersions }: ReqModifyBlock, @Res() res) {
-    const resCheckCookie = this.validationAccessToken(req);
+    const { id, error } = this.validationAccessToken(req);
 
-    if(!resCheckCookie.id) {
-
-      new Response()
-      .error(...AuthErrorMessage.info)
-      .res(res)
-      .send();
+    if(!id) {
+      this.responseCheckToken(error, res);
     } else {
       const response: Response = await this.bklogService.modifyBlock(
         data, 
         pageId, 
-        resCheckCookie.id, 
+        id, 
         pageVersions
       );
   
