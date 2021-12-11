@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, ManyToOne} from "typeorm";
 import { Page } from "./page.entity";
-import { PageModifyDateType } from "src/bklog/bklog.type";
+import { ModifyBklogDataType } from "src/bklog/bklog.type";
 
 @Entity({name: "page-version"})
 export class PageVersion {
@@ -28,7 +28,7 @@ export class PageVersion {
     name: "data",
     type: "json"
   })
-  pageModifyData: PageModifyDateType;
+  data: ModifyBklogDataType;
 
   @ManyToOne(() => Page)
   page: Page;

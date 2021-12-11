@@ -2,59 +2,19 @@ import { Controller, Post, Req, Res, Body, Get, Param, Query, ParseIntPipe, UseP
 import { BklogService } from './bklog.service';
 import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
-import { ACCESS_TOKEN, ResValitionAccessToken, REFRESH_TOKEN, TokenVailtionType } from 'src/auth/auth.type';
-import { ResponseMessage } from 'src/utils/common/response.util2';
-import { ParamGetPageList, ReqModifyBlock, ResTokenValidation } from './bklog.type';
-import { Response, ResponseError, AuthErrorMessage } from 'src/utils/common/response.util';
-import { reqCreatePageSchema, reqModifyBlockSchema } from './dto/bklog.shema';
+import { ACCESS_TOKEN } from 'src/auth/auth.type';
+import { ParamGetPageList, ReqUpdateBklog, ReqUpdatePageInfo } from './bklog.type';
+import { Response, AuthErrorMessage } from 'src/utils/common/response.util';
+import { reqCreatePageSchema, reqUpdateBklogSchema, reqUpdatePageInfoSchema } from './dto/bklog.shema';
 import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
+import { BaseController } from 'src/common/base.controller';
 
 @Controller('bklog')
-export class BklogController {
+export class BklogController extends BaseController {
   constructor( 
-    private readonly authService: AuthService,
+    authService: AuthService,
     private readonly bklogService: BklogService
-  ){}
-
-  private clearUserJwtCookie(res) {
-    res.clearCookie(ACCESS_TOKEN);
-    res.clearCookie(REFRESH_TOKEN);
-  }
-
-  private validationAccessToken(@Req() req): ResTokenValidation {
-    const accessToken = req.signedCookies[ACCESS_TOKEN];
-    const userAgent = req.headers["user-agent"];
-
-    if(!accessToken) {
-      return {
-        id: null,
-        accessToken: false,
-        error: {
-          infoFalse: true,
-          expFalse: false
-        }
-      }
-    }
-
-    return Object.assign({}, this.authService.validateAccessTokenReturnId(accessToken, userAgent), {
-      accessToken: true
-    });
-  }
-
-  private responseCheckToken({ infoFalse } : TokenVailtionType ,res): void {
-    const response: Response = new Response();
-
-    console.log(infoFalse);
-
-    if(infoFalse) {
-      this.clearUserJwtCookie(res);
-      response.error(...AuthErrorMessage.info);
-    } else {
-      response.error(...AuthErrorMessage.exp);
-    }
-
-    response.res(res).send();
-  }
+  ){ super(authService) }
 
   private async getPageList(
     res, 
@@ -127,7 +87,7 @@ export class BklogController {
       this.responseCheckToken(error, res);
     } else {
 
-      const checkUser: boolean = await this.authService.checkUserIdNProfileId(
+      const checkUser: boolean = await this.checkUserIdNProfileId(
         id,
         requiredBklogInfo.profileId
       );
@@ -159,7 +119,7 @@ export class BklogController {
     @Body() requiredBklogInfo: ReqCreatePage
   ): Promise<void> {
 
-    const checkUser: boolean = await this.authService.checkUserIdNProfileId(
+    const checkUser: boolean = await this.checkUserIdNProfileId(
       "4d120c098d6a113ebe55c5cfa43beb4a",
       requiredBklogInfo.profileId
     );
@@ -188,9 +148,7 @@ export class BklogController {
     } else {
       const response: Response = await this.bklogService.getPage(pageId, id); 
       response.res(res).send();
-      console.log(response.Data);
     }
-    console.log(accessToken, 'getPage');
   }
 
   @Get('t-getpage')
@@ -232,15 +190,15 @@ export class BklogController {
     }
   }
 
-  @Post('modify')
-  @UsePipes(new JoiValidationPipe(reqModifyBlockSchema))
-  public async modifyBlock(@Req() req, @Body() { data, pageId, pageVersions }: ReqModifyBlock, @Res() res) {
+  @Post('updatebklog')
+  @UsePipes(new JoiValidationPipe(reqUpdateBklogSchema))
+  public async updateBklog(@Req() req, @Res() res, @Body() { data, pageId, pageVersions }: ReqUpdateBklog) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
       this.responseCheckToken(error, res);
     } else {
-      const response: Response = await this.bklogService.modifyBlock(
+      const response: Response = await this.bklogService.updateBklog(
         data, 
         pageId, 
         id, 
@@ -258,27 +216,27 @@ export class BklogController {
     response.res(res).send();
   }
 
-  @Get('t-release-updating/:pageId')
-  public async testReleaseUpdating(@Req() req, @Res() res, @Param('pageId') pageId: string) {
+  @Post('updatepageinfo')
+  @UsePipes(new JoiValidationPipe(reqUpdatePageInfoSchema))
+  public async updatePageInfo(
+    @Req() req, 
+    @Res() res,
+    @Body() { data, pageId }: ReqUpdatePageInfo
+  ) {
+    const { id, error } = this.validationAccessToken(req);
 
-    // 후에 page module로 이동
-    const response: Response = await this.bklogService.releaseUpdating(pageId, "4d120c098d6a113ebe55c5cfa43beb4a");
-
-    response.res(res).send();
+    if(!id) {
+      this.responseCheckToken(error, res);
+    } else {
+      const response: Response = await this.bklogService.updatePageInfo(
+        data,
+        pageId,
+        id
+      );
   
+      response.res(res).send();
+    }
   }
 
-  @Post('t-modify')
-  @UsePipes(new JoiValidationPipe(reqModifyBlockSchema))
-  public async testModifyBlock(@Res() res, @Body() data: ReqModifyBlock) {
-    const response: Response = await this.bklogService.modifyBlock(
-      data.data, 
-      data.pageId, 
-      "46a487d9c993600abb1b0c169ce45a73", 
-      data.pageVersions
-    );
-
-    response.res(res).send();
-  }
 
 }

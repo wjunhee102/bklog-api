@@ -1,5 +1,6 @@
 import { UserIdList } from "src/auth/private-user/types/private-user.type";
 import { UserProfile } from "src/entities/user/user-profile.entity";
+import { ModifyPageInfoType } from "../bklog.type";
 
 export interface InfoToFindPage {
   id?: string;

@@ -6,9 +6,10 @@ import { Token } from 'src/utils/common/token.util';
 import { Page } from 'src/entities/bklog/page.entity';
 import { In, Connection, QueryRunner } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
-import { ParamModifyBlock, ParamCreateModifyBlock, ParamCreateBlock, ParamCreateComment } from '../bklog.type';
+import { ParamModifyBlock, ParamCreateModifyBlock, ParamCreateBlock, ParamCreateComment, ModifyBlockType } from '../bklog.type';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { Test } from 'src/entities/bklog/test.entity';
+import { BAD_REQ, ComposedResponseErrorType, ResponseError, ResponseErrorTypes, SystemErrorMessage } from 'src/utils/common/response.util';
 
 @Injectable()
 export class BlockService {
@@ -266,6 +267,75 @@ export class BlockService {
     });
 
     return await this.removeBlockData(idList);
+  }
+
+  public async updateModifyBlockData(
+    queryRunner: QueryRunner, 
+    page: Page,
+    modifyBlockDataList: ModifyBlockType
+  ): Promise<ComposedResponseErrorType> {
+
+    console.log(modifyBlockDataList);
+    const modifyData: ModifyData = {
+      block: [],
+      comment: []
+    }
+
+    if(modifyBlockDataList.create) {
+      const resCreate: ModifyData | null = await this.createData(modifyBlockDataList.create, page);
+
+      if(!resCreate) {
+        return [new ResponseError().build(
+            "client error",
+            "create param error",
+            "004",
+            "Bklog"
+          ).get(), BAD_REQ]
+      }
+
+      if(resCreate.block) {
+        modifyData.block = modifyData.block.concat(resCreate.block);
+      }
+
+      if(resCreate.comment) {
+        modifyData.comment = modifyData.comment.concat(resCreate.comment);
+      }
+    }
+
+    if(modifyBlockDataList.update) {
+      const resUpdate: ModifyData | null = await this.updateData(modifyBlockDataList.update);
+
+      if(!resUpdate) {
+        return [new ResponseError().build(
+            "client error",
+            "update param error",
+            "004",
+            "Bklog"
+          ).get(), BAD_REQ]
+      }
+
+      if(resUpdate.block) {
+        modifyData.block = modifyData.block.concat(resUpdate.block);
+      }
+
+      if(resUpdate.comment) {
+        modifyData.comment = modifyData.comment.concat(resUpdate.comment);
+      }
+    }
+
+    if(modifyData.block[0]) await queryRunner.manager.save(modifyData.block);
+    if(modifyData.comment[0]) await queryRunner.manager.save(modifyData.comment);
+
+    if(modifyBlockDataList.delete) {
+      const { commentIdList, blockIdList } = modifyBlockDataList.delete;
+
+      if(commentIdList) await queryRunner.manager.delete(BlockComment, commentIdList);
+
+      if(blockIdList) await queryRunner.manager.delete(Block, blockIdList);
+      
+    }
+
+    return null;
   }
 
   public async test(queryRunner: QueryRunner, test: Test) {

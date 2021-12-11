@@ -1,10 +1,5 @@
 import { BlockData } from "./block/block.type";
 import { PageUserInfo } from "./page/page.type";
-import { ResValitionAccessToken } from "../auth/auth.type";
-
-export interface ResTokenValidation extends ResValitionAccessToken {
-  accessToken: boolean;
-}
 
 export interface RequiredPageListInfo {
   penName: string;
@@ -92,22 +87,24 @@ export interface ModifyBlockType {
   delete?: ParamDeleteModity;
 }
 
-export interface PageModifyDateType {
-  pageInfo?: {
-    createdDate?: Date;
-    updatedDate?: Date;
-    id?: string;
-    title?: string;
-    coverImage?: string;
-    coverColor?: string;
-    lastAccessDate?: Date;
-    views?: number;
-    disclosureScope?: number;
-    version?: string;
-    profileId?: string;
-    editable?: boolean;
-  };
-  modifyData?: ModifyBlockType;
+export interface ModifyPageInfoType {
+  createdDate?: Date;
+  updatedDate?: Date;
+  id?: string;
+  title?: string;
+  coverImage?: string;
+  coverColor?: string;
+  lastAccessDate?: Date;
+  views?: number;
+  disclosureScope?: number;
+  version?: string;
+  profileId?: string;
+  editable?: boolean;
+}
+
+export interface ModifyBklogDataType {
+  modifyPageInfo?: ModifyPageInfoType;
+  modifyBlockData?: ModifyBlockType;
 }
 
 export interface PageVersions {
@@ -115,16 +112,21 @@ export interface PageVersions {
   next: string;
 }
 
-export interface ReqModifyBlock {
+export interface ReqUpdateBklog {
   pageId: string;
   pageVersions: {
     current: string;
     next: string;
   }
-  data: ModifyBlockType
+  data: ModifyBklogDataType
 }
 
-export interface ResModifyBlock {
+export interface ReqUpdatePageInfo {
+  pageId: string;
+  data: ModifyPageInfoType
+}
+
+export interface ResUpdateBklog {
   success: boolean,
   pageVersion: string,
   error?: {

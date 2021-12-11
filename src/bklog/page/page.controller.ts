@@ -1,11 +1,13 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, Res } from '@nestjs/common';
 import { PageService } from './page.service';
 import { PageInfoList } from './page.type';
 import { ResponseMessage } from 'src/utils/common/response.util2';
 
 @Controller('page')
 export class PageController {
-  constructor(private readonly pageService: PageService) {}
+  constructor(
+    private readonly pageService: PageService
+  ){}
 
   @Get('list/:penName')
   async getPageList(@Param() params, @Query() query) {
@@ -18,5 +20,4 @@ export class PageController {
       return ResponseMessage({success: false, pageList: null});
     }
   }
-
 }

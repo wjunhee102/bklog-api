@@ -1,17 +1,17 @@
-class ResponseErrorTypes {
+export class ResponseErrorTypes {
   code: number | string;
   type: string;
   message: string;
   detail: string;
 }
 
-type ComposedResponseErrorType = [ ResponseErrorTypes, string | number ];
+export type ComposedResponseErrorType = [ ResponseErrorTypes, string | number ];
 
-const BAD_REQ      = 400;
-const UNAUTHORIZED = 401;
-const FORBIDDEN    = 403;
-const NOT_FOUND    = 404;
-const SERVER_ERROR = 500;
+export const BAD_REQ      = 400;
+export const UNAUTHORIZED = 401;
+export const FORBIDDEN    = 403;
+export const NOT_FOUND    = 404;
+export const SERVER_ERROR = 500;
 
 /**
  * 현재 sign-up 로직이 실패한 구간을 객체로 보내주는 데 그렇게 하지 말고
@@ -24,17 +24,27 @@ const SERVER_ERROR = 500;
     super();
   }
 
+  public preBuild(
+    message: string = "알 수 없는 error가 발생했습니다.",
+    detail: string = "unknown error",
+    code: number | string = "000",
+  ): ResponseError {
+    this.code = code;
+    this.message = message;
+    this.detail = detail;
+
+    return this;
+  }
+
   public build(
     message: string = "알 수 없는 error가 발생했습니다.",
     detail: string = "unknown error",
-    code: number | string = "000" ,
+    code: number | string = "000",
     type: string = "unknown"
   ): ResponseError {
 
-    this.code = code;
+    this.preBuild(message, detail, code);
     this.type = type;
-    this.message = message;
-    this.detail = detail;
 
     return this;
   }
@@ -79,29 +89,26 @@ export class AuthErrorMessage extends ResponseError {
   }
 
   static get exp(): ComposedResponseErrorType {
-    return [ new ResponseError().build(
+    return [ new this().preBuild(
       "인증 시간이 만료되었습니다.",
       "token expiration",
-      "001",
-      "AUTH"
+      "001"
     ).get(), FORBIDDEN ];
   }
 
   static get info(): ComposedResponseErrorType {
-    return [ new ResponseError().build(
+    return [ new this().preBuild(
       "인증 정보가 불일치합니다.",
       "token information mismatch",
-      "002",
-      "AUTH"
+      "002"
     ).get(), FORBIDDEN ];
   }
 
   static get notCookie(): ComposedResponseErrorType {
-    return [ new ResponseError().build(
+    return [ new this().preBuild(
       "token이 존재하지 않습니다.",
       "token does not exist",
-      "003",
-      "AUTH"
+      "003"
     ).get(), FORBIDDEN ];
   }
 
@@ -109,20 +116,18 @@ export class AuthErrorMessage extends ResponseError {
    * 나중에 해결 방법 message에 적어 놓을 것.
    */
   static get disabledUser(): ComposedResponseErrorType {
-    return [ new ResponseError().build(
+    return [ new this().preBuild(
       "비활성화된 유저입니다.",
       "5 or more failures",
-      "004",
-      "AUTH"
+      "004"
     ).get(), FORBIDDEN ];
   }
 
   static get dormantUser(): ComposedResponseErrorType {
-    return [ new ResponseError().build(
+    return [ new this().preBuild(
       "휴면 유저입니다.",
       "users who have not been connected for a long time",
-      "005",
-      "AUTH"
+      "005"
     ).get(), FORBIDDEN ];
   }
 
@@ -135,11 +140,10 @@ export class AuthErrorMessage extends ResponseError {
       detail = `countOfFail ${count}`;
     } 
 
-    return [ new ResponseError().build(
+    return [ new this().preBuild(
       message,
       detail,
-      "006",
-      "AUTH"
+      "006"
     ).get(), FORBIDDEN ];
   }
 
@@ -164,23 +168,23 @@ export class AuthErrorMessage extends ResponseError {
 export class CommonErrorMessage extends ResponseError {
   constructor() {
     super();
+    this.type = "Common";
+    this.code = "000";
   }
 
   static get notFound(): ComposedResponseErrorType {
-    return [ new ResponseError().build(
+    return [ new this().preBuild(
       "찾을 수 없습니다.",
       "not found",
-      "001",
-      "Common"
+      "001"
     ).get(), NOT_FOUND ];
   }
 
   static get validationError(): ComposedResponseErrorType {
-    return [ new ResponseError().build(
+    return [ new this().preBuild(
       "형식에 맞지 않는 정보입니다.",
       "validation error",
-      "002",
-      "Common"
+      "002"
     ).get(), BAD_REQ ];
   }
 }
@@ -193,11 +197,10 @@ export class SystemErrorMessage extends ResponseError {
   }
   
   static get db(): ComposedResponseErrorType {
-    return [ new ResponseError().build(
+    return [ new this().preBuild(
       "잠시 후 다시 시도해주십쇼",
       "Database Error",
-      "001",
-      "System"
+      "001"
     ).get(), SERVER_ERROR ];
   }
 
