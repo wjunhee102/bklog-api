@@ -41,6 +41,16 @@ export interface ResAuthenticatedUser {
   isNotDormant: boolean;
 }
 
+export interface ResIdentifyUser {
+  email: string;
+  firstName: string;
+  lastName: string;
+  penName: string;
+  id: string;
+  photo: string;
+  bio: string;
+}
+
 export interface ResDeleteUser {
   success: boolean;
   error: {

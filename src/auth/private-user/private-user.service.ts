@@ -253,7 +253,7 @@ export class PrivateUserService {
     });
 
     const pageVersion: PageVersion = this.pageService.createPageVersion(page, {
-      modifyData: {
+      modifyBlockData: {
         create: [
           {
             blockId: block1.id,
@@ -650,8 +650,8 @@ export class PrivateUserService {
         firstName: user.firstName,
         lastName: user.lastName,
         penName: user.userProfile.penName,
-        profileId: user.userProfile.id,
-        userPhoto: user.userProfile.photo,
+        id: user.userProfile.id,
+        photo: user.userProfile.photo,
         bio: user.userProfile.bio
       },
       error: null 

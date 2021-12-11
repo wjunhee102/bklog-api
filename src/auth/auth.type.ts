@@ -1,5 +1,5 @@
 import { PublicUserInfo } from "src/types/public";
-import { ResDeleteUser } from "./private-user/types/private-user.type";
+import { ResDeleteUser, ResIdentifyUser } from "./private-user/types/private-user.type";
 import { Response } from "src/utils/common/response.util";
 
 export const ACCESS_TOKEN = "AID" as const;
@@ -51,14 +51,14 @@ interface IdentifyUser {
   firstName: string;
   lastName: string;
   penName: string;
-  profileId: string;
+  id: string;
   userPhoto: string;
   bio: string;
 }
 
 export interface ResSignInUser {
   success: boolean;
-  userInfo: IdentifyUser | null;
+  userInfo: ResIdentifyUser | null;
   jwt?: UserJwtokens | null;
   error: {
     countOfFail: number;
@@ -102,6 +102,10 @@ export type ResActivateUser = {
 export interface ResValitionAccessToken {
   id: string | null;
   error?: CookieAuthenticationFailure;
+}
+
+export interface ResTokenValidation extends ResValitionAccessToken {
+  accessToken: boolean;
 }
 
 export interface CookieAuthenticationFailure {

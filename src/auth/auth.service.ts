@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
 import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo, ACCESS, REFRESH, ResCheckAccessToken, ResReissueTokens } from './auth.type';
-import { IdentifyUser, UserAuthInfo, UserIdList, UserIdNPenName } from './private-user/types/private-user.type';
+import { ResIdentifyUser, UserAuthInfo, UserIdList, UserIdNPenName } from './private-user/types/private-user.type';
 import { RequiredUserInfo, ResAuthenticatedUser } from './private-user/types/private-user.type';
 import { PrivateUserService } from './private-user/private-user.service';
 import { ResponseError, AuthErrorMessage, Response, SystemErrorMessage, CommonErrorMessage } from 'src/utils/common/response.util';
@@ -76,7 +76,7 @@ export class AuthService {
     }
 
     const checkAgent: boolean = decodingUserJwt.agent === userAgent;
-    const checkExpTime = decodingUserJwt.exp * 1000 + refreshExpTime > Date.now();
+    const checkExpTime = decodingUserJwt.exp * 1000 > Date.now();
 
     if(!checkAgent || !checkExpTime) {
       return null;
@@ -97,8 +97,6 @@ export class AuthService {
     const emailValid: boolean = await this.checkValidEmailAddress(requiredUserInfo.email);
     const passwordValid: boolean = await this.checkValidPassword(requiredUserInfo.password);
     const penNameValid: boolean = await this.checkValidPenName(requiredUserInfo.penName);
-
-    console.log(emailValid, passwordValid, penNameValid);
 
     if(!emailValid || !passwordValid || !penNameValid) {
       return new Response().error(...CommonErrorMessage.validationError);
@@ -121,7 +119,7 @@ export class AuthService {
   public async signInUser(
     unverifieduserInfo: UserAuthInfo, 
     userAgent: string
-  ): Promise<Response<{userInfo: IdentifyUser; jwt: UserJwtokens;}>> {
+  ): Promise<Response<{userInfo: ResIdentifyUser; jwt: UserJwtokens;}>> {
 
     const { 
       isActive, 
@@ -151,10 +149,14 @@ export class AuthService {
         agent: userAgent
       });
 
-      userInfo.userId = undefined;
+      const resUserInfo = Object.assign({}, userInfo, {
+        userId: undefined,
+        profileId: undefined,
+        id: userInfo.profileId
+      })
 
       return new Response().body({
-        userInfo,
+        userInfo: resUserInfo,
         jwt
       });
     } 
@@ -215,7 +217,7 @@ export class AuthService {
     }
 
     const checkAgent: boolean = decodingUserJwt.agent === userAgent;
-    const checkExpTime = decodingUserJwt.exp * 1000 + accessExpTime > Date.now();
+    const checkExpTime = decodingUserJwt.exp * 1000 > Date.now();
 
     if(!checkAgent || !checkExpTime) {
       return {
@@ -229,7 +231,7 @@ export class AuthService {
 
     return {
       id: decodingUserJwt.id
-    };
+    }
   }
 
   /**
