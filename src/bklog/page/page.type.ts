@@ -1,12 +1,17 @@
 import { UserIdList } from "src/auth/private-user/types/private-user.type";
+import { Page } from "src/entities/bklog/page.entity";
 import { UserProfile } from "src/entities/user/user-profile.entity";
-import { ModifyPageInfoType } from "../bklog.type";
 
 export interface InfoToFindPage {
   id?: string;
   profileId?: string;
   userId?: string;
   disclosureScope?: number;
+}
+
+export interface InfoToFindPageEditor {
+  page?: Page;
+  userProfile?: UserProfile;
 }
 
 export interface ReqCreatePage {

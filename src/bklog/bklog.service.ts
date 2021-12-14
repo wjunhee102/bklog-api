@@ -16,14 +16,10 @@ import { InfoToFindPageVersion, ParamGetPageList, ModifyBlockType, ModifySet, Pa
 import { Connection, QueryRunner } from 'typeorm';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { Block } from 'src/entities/bklog/block.entity';
-import { TestRepository } from './block/repositories/test.repositoty';
-import { Test } from 'src/entities/bklog/test.entity';
-import { Test2 } from 'src/entities/bklog/test2.entity';
-import { Test2Respository } from './block/repositories/test2.repository';
 import { Response, ResponseError, SystemErrorMessage, AuthErrorMessage, CommonErrorMessage, ComposedResponseErrorType, ResponseErrorTypes } from 'src/utils/common/response.util';
 import { AuthService } from 'src/auth/auth.service';
 import { BklogErrorMessage } from './utils';
-import { async } from 'rxjs';
+import { PageEditor } from 'src/entities/bklog/page-editor.entity';
 
 @Injectable()
 export class BklogService {
@@ -33,27 +29,8 @@ export class BklogService {
     private readonly blockService: BlockService,
     private readonly userService: UserService,
     private readonly authService: AuthService,
-    private readonly pageStarRepository: PageStarRepository,
-    private readonly testRepository: TestRepository,
-    private readonly test2Repository: Test2Respository,
+    private readonly pageStarRepository: PageStarRepository
   ){}
-
-  /**
-   * 나중에 수정해야함 삼항식
-   * @param page 
-   */
-  // private async insertPageVersion(page: Page, modifyDataList: ModifyBlockType, RequiredIdList?: RequiredPageVersionIdList): Promise<PageVersion> {
-  //   const pageVersion: PageVersion = this.pageVersionRepository.create({
-  //     id: RequiredIdList? (RequiredIdList.id? RequiredIdList.id : Token.getUUID()) : Token.getUUID(),
-  //     preVersionId: RequiredIdList? RequiredIdList.preVersionId? RequiredIdList.preVersionId : null : null,
-  //     page,
-  //     modifyDataList
-  //   });
-
-  //   await this.pageVersionRepository.save(pageVersion);
-
-  //   return await this.findOnePageVersion({ id: pageVersion.id });
-  // }
 
   /**
    * 
@@ -89,6 +66,83 @@ export class BklogService {
   private async insertPageComment() {
     
   }
+ 
+
+  // Page editor
+
+   /**
+   * 
+   * @param pageId 
+   * @param profileId 
+   * @param targetProfileId 
+   * @param callback 
+   */
+  public async containerEditPageEditor(
+    pageId: string, 
+    profileId: string, 
+    targetProfileId: string, 
+    callback: (pageId: string, profileId: string) => Promise<Response>
+  ): Promise<Response> {
+    const resultCheck = await this.pageService.checkPageEditor(pageId, profileId, 1);
+
+    if(resultCheck) return new Response().error(...resultCheck);
+
+    return await callback(pageId, targetProfileId);
+  }
+
+  /**
+   * 
+   * @param pageId 
+   * @param profileId 
+   */
+  public async addPageEditor(pageId: string, profileId: string): Promise<Response<string>> {
+    const page: Page | null = await this.pageService.findOnePage({ id: pageId });
+    const userProfile: UserProfile | null = await this.userService.findOneUserProfile({ id: profileId });
+
+    if(!page || !userProfile) {
+      return new Response().error(...BklogErrorMessage.notFound);
+    }
+
+    const prePageEditor: PageEditor | null = await this.pageService.findOnePageEditor(page.id, userProfile.id);
+
+    if(prePageEditor) {
+      return new Response().error(
+        new BklogErrorMessage()
+        .preBuild(
+          "list안에 존재합니다.",
+          "Exists on the list of editors",
+          "006"
+        )
+      )
+    }
+
+    const pageEditor: PageEditor | null = await this.pageService.createPageEditor(page, userProfile);
+
+    const result: boolean = await this.pageService.savePageEditor(pageEditor);
+
+    if(!result) {
+      return new Response().error(...SystemErrorMessage.db);
+    }
+
+    return new Response().body("success").status(201);
+  }
+
+  /**
+   * 
+   * @param pageId 
+   * @param profileId 
+   */
+  public async excludeFromPageEditorlist(pageId: string, profileId: string): Promise<Response> {
+    const result: ComposedResponseErrorType | null = await this.pageService.removePageEditor(pageId, profileId);
+
+    if(result) {
+      return new Response().error(...result);
+    }
+
+    return new Response().body("success");
+  }
+
+  // Page
 
   /**
    * 
@@ -96,7 +150,7 @@ export class BklogService {
    */
   public async createBklog(requiredBklogInfo: RequiredBklogInfo): Promise<Response> {
 
-    const userProfile: UserProfile | null = await this.userService.findOneUserProfile({ id: requiredBklogInfo.profileId});
+    const userProfile: UserProfile | null = await this.userService.findOneUserProfile({ id: requiredBklogInfo.profileId });
 
     if(!userProfile) {
       return new Response().error(...AuthErrorMessage.info);
@@ -128,6 +182,8 @@ export class BklogService {
       }
     );
 
+    const pageEditor: PageEditor = this.pageService.createPageEditor(page, userProfile, 0);
+
     const queryRunner = this.connection.createQueryRunner();
 
     await queryRunner.connect();
@@ -137,6 +193,7 @@ export class BklogService {
       await queryRunner.manager.save(page);
       await queryRunner.manager.save(block);
       await queryRunner.manager.save(pageVersion);
+      await queryRunner.manager.save(pageEditor);
 
       await queryRunner.commitTransaction();
 
@@ -224,6 +281,22 @@ export class BklogService {
 
   /**
    * 
+   * @param modifyPageInfo 
+   * @param pageId 
+   * @param userId 
+   */
+  public async updatePageInfo(
+    modifyPageInfo: ModifyPageInfoType,
+    pageId: string,
+    userId: string
+  ): Promise<Response> {
+    return this.pageService.updatePageInfo(modifyPageInfo, pageId, userId);
+  }
+
+  // Bklog
+
+   /**
+   * 
    * @param id 
    * @param preVersionId 
    */
@@ -266,288 +339,10 @@ export class BklogService {
     return new Response().body("success"); 
   }
 
-  /**
-   * 
-   * @param modifyBlockDataList 
-   * @param pageId 
-   * @param userId 
-   * @param pageVersions 
-   */
-  public async modifyBlock(
-    modifyBlockDataList: ModifyBlockType, 
-    pageId: string, 
-    userId: string, 
-    pageVersions: PageVersions
-  ): Promise<Response> {
-
-    const page: Page = await this.pageService.findOnePage({id: pageId});
-
-    if(!page) {
-      return new Response()
-        .error(
-          new ResponseError()
-          .build(
-            "페이지를 찾을 수 없습니다.",
-            "The page does not exist or you entered an invalid page id.",
-            "001",
-            "Bklog"
-          ).get()
-        ).notFound();
-    }
-
-    if(page.userId !== userId) {
-      return new Response().error(...AuthErrorMessage.info).forbidden();
-    }
-
-    if(page.updating) {
-      return new Response()
-        .error(
-          new ResponseError()
-          .build(
-            "현재 수정중입니다.",
-            "The page is being edited, so please send your request again after a while.",
-            "003",
-            "Bklog"
-          ).get()
-        ).badReq();
-    }
-
-    if(page.editLock) {
-      return new Response()
-        .error(
-          new ResponseError()
-          .build(
-            "수정할 수 없는 페이지입니다.",
-            "This page has an edit_lock enabled.",
-            "004",
-            "Bklog"
-          ).get()
-        ).notFound();
-    }
-
-    const resCheckCurrentVersion = await this.pageService.checkCurrentPageVersion(pageVersions.current, page);
-
-    if(!resCheckCurrentVersion) {
-      return new Response()
-        .error(
-          new ResponseError().build(
-            "최신 버전이 아닙니다.",
-            "Not the current version",
-            "004",
-            "Bklog"
-          ).get()
-        ).badReq();
-    }
-
-    page.updating = true;
-
-    await this.pageService.savePage(page);
-
-    const modifyData: ModifyData = {
-      block: [],
-      comment: []
-    }
-
-    if(modifyBlockDataList.create) {
-      const resCreate: ModifyData | null = await this.blockService.createData(modifyBlockDataList.create, page);
-
-      if(!resCreate) {
-        return new Response().error(
-          new ResponseError().build(
-            "client error",
-            "create param error",
-            "004",
-            "Bklog"
-          ).get()
-        ).badReq();
-      }
-
-      if(resCreate.block) {
-        modifyData.block = modifyData.block.concat(resCreate.block);
-      }
-
-      if(resCreate.comment) {
-        modifyData.comment = modifyData.comment.concat(resCreate.comment);
-      }
-    }
-
-    if(modifyBlockDataList.update) {
-      const resUpdate: ModifyData | null = await this.blockService.updateData(modifyBlockDataList.update);
-
-      if(!resUpdate) {
-        return new Response().error(
-          new ResponseError().build(
-            "client error",
-            "update param error",
-            "004",
-            "Bklog"
-          ).get()
-        ).badReq();
-      }
-
-      if(resUpdate.block) {
-        modifyData.block = modifyData.block.concat(resUpdate.block);
-      }
-
-      if(resUpdate.comment) {
-        modifyData.comment = modifyData.comment.concat(resUpdate.comment);
-      }
-    }
-
-    const queryRunner = this.connection.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      if(modifyData.block[0]) await queryRunner.manager.save(modifyData.block);
-      if(modifyData.comment[0]) await queryRunner.manager.save(modifyData.comment);
-
-      if(modifyBlockDataList.delete) {
-        const { commentIdList, blockIdList } = modifyBlockDataList.delete;
-
-        if(commentIdList) await queryRunner.manager.delete(BlockComment, commentIdList);
-
-        if(blockIdList) await queryRunner.manager.delete(Block, blockIdList);
-        
-      }
-
-      const pageVersion: PageVersion = queryRunner.manager.create(PageVersion, {
-        id: pageVersions.next,
-        preVersionId: pageVersions.current,
-        page,
-        data: {
-          modifyBlockData: modifyBlockDataList
-        }
-      });
-
-      await queryRunner.manager.delete(PageVersion, pageVersions.current);
-
-      await queryRunner.manager.save(pageVersion);
-
-      await queryRunner.commitTransaction();
-      
-    } catch(e) {
-      Logger.error(e);
-      await queryRunner.rollbackTransaction();
-
-      return new Response().error(...SystemErrorMessage.db);
-
-    } finally {
-      await queryRunner.release();
-
-      page.updating = false;
-      page.lastAccessDate = new Date(Date.now());
-      page.views = Number(page.views) + 1;
-
-      await this.pageService.savePage(page);
-    }
-
-    return new Response().body({ pageVersion: pageVersions.next });
-  }
-
-  /**
-   * 
-   * @param modifyBlockDataList 
-   * @param pageId 
-   * @param userId 
-   * @param pageVersions 
-   */
-  public async updateBklog2(
-    { 
-      modifyBlockData,
-      modifyPageInfo
-    }: ModifyBklogDataType, 
-    pageId: string, 
-    userId: string, 
-    pageVersions: PageVersions
-  ): Promise<Response> {
-
-    const page: Page = await this.pageService.findOnePage({id: pageId});
-
-    if(!page) {
-      return new Response().error(...BklogErrorMessage.notFound);
-    }
-
-    if(page.userId !== userId) {
-      return new Response().error(...AuthErrorMessage.info);
-    }
-
-    if(page.updating) {
-      return new Response().error(...BklogErrorMessage.updating);
-    }
-
-    if(page.editLock) {
-      return new Response().error(...BklogErrorMessage.editLock);
-    }
-
-    const resCheckCurrentVersion = await this.pageService.checkCurrentPageVersion(pageVersions.current, page);
-
-    if(!resCheckCurrentVersion) {
-      return new Response().error(...BklogErrorMessage.notFoundVersion);
-    }
-
-    page.updating = true;
-
-    await this.pageService.savePage(page);
-
-    const queryRunner = this.connection.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-
-      if(modifyPageInfo) {
-        await this.pageService.updateModfiyPageInfo(queryRunner, page, modifyPageInfo);
-      }
-
-      if(modifyBlockData) {
-        const resultUpdateBlock = await this.blockService.updateModifyBlockData(queryRunner, page, modifyBlockData);
-
-        if(resultUpdateBlock) {
-          await queryRunner.rollbackTransaction();
-
-          return new Response().error(...resultUpdateBlock);
-        }
-
-      }
-      
-      const pageVersion: PageVersion = queryRunner.manager.create(PageVersion, {
-        id: pageVersions.next,
-        preVersionId: pageVersions.current,
-        page,
-        data: {
-          modifyBlockData,
-          modifyPageInfo
-        }
-      });
-
-      await queryRunner.manager.delete(PageVersion, pageVersions.current);
-
-      await queryRunner.manager.save(pageVersion);
-
-      await queryRunner.commitTransaction();
-      
-    } catch(e) {
-      Logger.error(e);
-      await queryRunner.rollbackTransaction();
-
-      return new Response().error(...SystemErrorMessage.db);
-
-    } finally {
-      await queryRunner.release();
-
-      page.updating = false;
-      page.lastAccessDate = new Date(Date.now());
-      page.views = Number(page.views) + 1;
-
-      await this.pageService.savePage(page);
-    }
-
-    return new Response().body({ pageVersion: pageVersions.next });
-  }
-
+   /**
+    * 
+    * @param ModifyBklogDataType
+    */
   private callbackUpdateBklog({ 
     modifyBlockData,
     modifyPageInfo
@@ -572,6 +367,13 @@ export class BklogService {
     
   }
 
+  /**
+   * 
+   * @param ModifyBklogDataType
+   * @param pageId 
+   * @param userId 
+   * @param pageVersions 
+   */
   public async updateBklog(
     { 
       modifyBlockData,
@@ -579,94 +381,20 @@ export class BklogService {
     }: ModifyBklogDataType, 
     pageId: string, 
     userId: string, 
+    profileId: string,
     pageVersions: PageVersions
   ): Promise<Response<ResUpdateBklog | ResponseErrorTypes>> {
 
     return await this.pageService.containerUpdateBklog(
       pageId, 
       userId, 
+      profileId,
       pageVersions, {
        modifyBlockData,
        modifyPageInfo 
       },
       this.callbackUpdateBklog({ modifyBlockData, modifyPageInfo })
     )
-  }
-
-  public async updatePageInfo(
-    modifyPageInfo: ModifyPageInfoType,
-    pageId: string,
-    userId: string
-  ): Promise<Response> {
-    return this.pageService.updatePageInfo(modifyPageInfo, pageId, userId);
-  }
-
-  public async deleteTest(id: number) {
-    const test: Test[] = await this.testRepository.find({
-      where: {
-        data: "안녕하세요8"
-      },
-      select: ["id"]
-    });
-
-    const queryRunner = this.connection.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-      await queryRunner.manager
-        .createQueryBuilder()
-        .delete()
-        .from(Test2)
-        .where("test2.testId IN (:...test)", { test: test.map(test => test.id)} )
-        .execute();
-
-      await queryRunner.commitTransaction();
-
-    } catch(e) {
-      Logger.error(e);
-      queryRunner.rollbackTransaction();
-
-      return false;
-    } finally {
-      queryRunner.release();
-    }
-
-    return true;
-    // return this.test2Repository
-    //   .createQueryBuilder("test2")
-    //   .delete()
-    //   .where("test2.testId IN (:...tests)", { tests: test.map(test => test.id) })
-    //   .execute();
-
-    // console.log(test);
-
-    // return await this.test2Repository
-    //   .createQueryBuilder("test2")
-    //   .where("test2.testId IN (:...tests)", { tests: test.map(test => test.id) })
-    //   .getMany()
-  }
-
-  public async deleteTest2() {
-    const test2: Test2[] = await this.test2Repository.find({
-      where: {
-        data: "안녕하세요"
-      }
-    });
-
-    const queryRunner = this.connection.createQueryRunner();
-
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    try {
-
-    } catch(e) {
-
-    } finally {
-
-    }
   }
 
 }

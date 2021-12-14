@@ -6,7 +6,7 @@ import { Block } from './block.entity';
 import { MainTable } from '../base/main-table';
 import { PageComment } from './page-comment.entity';
 import { BlockComment } from './block-comment.entity';
-import { PageEditableList } from './page-editable-list.entity';
+import { PageEditor } from './page-editor.entity';
 
 @Entity({ name: "page" })
 export class Page extends MainTable {
@@ -106,7 +106,7 @@ export class Page extends MainTable {
   @OneToMany(() => BlockComment, blockComment => blockComment.page)
   blockComments: BlockComment[];
 
-  @OneToMany(() => PageEditableList, pageEditableList => pageEditableList.page)
-  editableList: PageEditableList[];
+  @OneToMany(() => PageEditor, pageEditor => pageEditor.page)
+  editorList: PageEditor[];
 
 }

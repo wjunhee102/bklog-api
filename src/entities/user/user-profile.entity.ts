@@ -7,7 +7,7 @@ import { ChildTable } from "../base/child-table";
 import { UserFollow } from "./user-follow.entity";
 import { UserBlocking } from "./user-blocking.entity";
 import { BlockComment } from "../bklog/block-comment.entity";
-import { PageEditableList } from "../bklog/page-editable-list.entity";
+import { PageEditor } from "../bklog/page-editor.entity";
 
 /**
  * id는 uuid
@@ -85,7 +85,7 @@ export class UserProfile extends ChildTable {
   @OneToMany(() => BlockComment, blockComment => blockComment.userProfile)
   blockComments: BlockComment[];
 
-  @OneToMany(() => PageEditableList, pageEditableList => pageEditableList.userProfile)
-  editableList: PageEditableList[];
+  @OneToMany(() => PageEditor, pageEditor => pageEditor.userProfile)
+  editableList: PageEditor[];
 
 }

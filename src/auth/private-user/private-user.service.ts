@@ -23,6 +23,7 @@ import { Block } from 'src/entities/bklog/block.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { BlockData } from 'src/bklog/block/block.type';
 import { throws } from 'assert';
+import { PageEditor } from 'src/entities/bklog/page-editor.entity';
 
 @Injectable()
 export class PrivateUserService {
@@ -218,6 +219,8 @@ export class PrivateUserService {
       profileId: profile.id
     });
 
+    const pageEditor: PageEditor = this.pageService.createPageEditor(page, profile);
+
     const block1: Block = this.blockService.createBlock({
       id: Token.getUUID(),
       position: "1",
@@ -284,7 +287,8 @@ export class PrivateUserService {
         page, 
         block1, 
         block2,
-        pageVersion
+        pageVersion,
+        pageEditor
       ]);
       
       await queryRunner.commitTransaction();

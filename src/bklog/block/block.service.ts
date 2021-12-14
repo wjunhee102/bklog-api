@@ -8,8 +8,8 @@ import { In, Connection, QueryRunner } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
 import { ParamModifyBlock, ParamCreateModifyBlock, ParamCreateBlock, ParamCreateComment, ModifyBlockType } from '../bklog.type';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
-import { Test } from 'src/entities/bklog/test.entity';
 import { BAD_REQ, ComposedResponseErrorType, ResponseError, ResponseErrorTypes, SystemErrorMessage } from 'src/utils/common/response.util';
+import { BklogErrorMessage } from '../utils';
 
 @Injectable()
 export class BlockService {
@@ -236,10 +236,11 @@ export class BlockService {
       };
 
       for(const { blockId, set, payload } of paramModifyBlockList) {
-        const idx = blockList.findIndex((block) => block.id === blockId);
+        const idx = blockList.findIndex((block) => block.id === blockId)
 
         switch(set) {
           case "block":
+            // update block과 기존 block이 싱크가 안맞을때가 있음.
             modifyData.block.push(Object.assign(blockList[idx], payload));
             
           break;
@@ -275,7 +276,6 @@ export class BlockService {
     modifyBlockDataList: ModifyBlockType
   ): Promise<ComposedResponseErrorType> {
 
-    console.log(modifyBlockDataList);
     const modifyData: ModifyData = {
       block: [],
       comment: []
@@ -285,12 +285,7 @@ export class BlockService {
       const resCreate: ModifyData | null = await this.createData(modifyBlockDataList.create, page);
 
       if(!resCreate) {
-        return [new ResponseError().build(
-            "client error",
-            "create param error",
-            "004",
-            "Bklog"
-          ).get(), BAD_REQ]
+        return [new BklogErrorMessage().preBuild("client error", "create data error", "005"), BAD_REQ]
       }
 
       if(resCreate.block) {
@@ -306,12 +301,7 @@ export class BlockService {
       const resUpdate: ModifyData | null = await this.updateData(modifyBlockDataList.update);
 
       if(!resUpdate) {
-        return [new ResponseError().build(
-            "client error",
-            "update param error",
-            "004",
-            "Bklog"
-          ).get(), BAD_REQ]
+        return [new BklogErrorMessage().preBuild("client error", "update data error", "005"), BAD_REQ];
       }
 
       if(resUpdate.block) {
@@ -336,11 +326,6 @@ export class BlockService {
     }
 
     return null;
-  }
-
-  public async test(queryRunner: QueryRunner, test: Test) {
-    await queryRunner.manager.save(test);
-    await queryRunner.manager.save({});
   }
 
 }

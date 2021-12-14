@@ -4,16 +4,16 @@ import { PageService } from './page.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PageRepository } from './repositories/page.repository';
 import { PageVersionRepository } from '../repositories/page-version.repository';
-import { PageComment } from 'src/entities/bklog/page-comment.entity';
-import { PageEditableListRepository } from './repositories/page-editable-list.repository';
+import { PageEditorRepository } from './repositories/page-editor.repository';
+import { PageCommentRepository } from './repositories/page-comment.repository';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       PageRepository,
       PageVersionRepository,
-      PageEditableListRepository,
-      PageComment
+      PageEditorRepository,
+      PageCommentRepository
     ])
   ],
   controllers: [PageController],

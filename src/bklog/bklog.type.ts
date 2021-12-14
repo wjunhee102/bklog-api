@@ -113,6 +113,7 @@ export interface PageVersions {
 }
 
 export interface ReqUpdateBklog {
+  profileId: string;
   pageId: string;
   pageVersions: {
     current: string;
@@ -135,4 +136,10 @@ export interface ResUpdateBklog {
     paramError?: boolean,
     dataBaseError?: boolean
   }
+}
+
+export interface ReqEditPageEditor {
+  pageId: string;
+  profileId: string;
+  targetProfileId: string;
 }

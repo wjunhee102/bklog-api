@@ -3,9 +3,9 @@ import { BklogService } from './bklog.service';
 import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
 import { ACCESS_TOKEN } from 'src/auth/auth.type';
-import { ParamGetPageList, ReqUpdateBklog, ReqUpdatePageInfo } from './bklog.type';
+import { ParamGetPageList, ReqEditPageEditor, ReqUpdateBklog, ReqUpdatePageInfo } from './bklog.type';
 import { Response, AuthErrorMessage } from 'src/utils/common/response.util';
-import { reqCreatePageSchema, reqUpdateBklogSchema, reqUpdatePageInfoSchema } from './dto/bklog.shema';
+import { reqCreatePageSchema, reqEditPageEditorSchema, reqUpdateBklogSchema, reqUpdatePageInfoSchema } from './dto/bklog.shema';
 import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
 import { BaseController } from 'src/common/base.controller';
 
@@ -87,12 +87,12 @@ export class BklogController extends BaseController {
       this.responseCheckToken(error, res);
     } else {
 
-      const checkUser: boolean = await this.checkUserIdNProfileId(
+      const checkProfileId: boolean = await this.checkUserIdNProfileId(
         id,
         requiredBklogInfo.profileId
       );
 
-      if(!checkUser) {
+      if(!checkProfileId) {
         this.clearUserJwtCookie(res);
 
         new Response()
@@ -140,7 +140,7 @@ export class BklogController extends BaseController {
   }
 
   @Get('getpage')
-  public async getPage(@Res() res, @Req() req, @Query('id') pageId): Promise<void> {
+  public async getPage(@Res() res, @Req() req, @Query('id') pageId: string): Promise<void> {
     const { id, error, accessToken } = this.validationAccessToken(req);
 
     if(!id && accessToken) {
@@ -152,7 +152,7 @@ export class BklogController extends BaseController {
   }
 
   @Get('t-getpage')
-  public async testGetPage(@Res() res, @Req() req, @Query('id') pageId) {
+  public async testGetPage(@Res() res, @Req() req, @Query('id') pageId: string) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
 
     if(accessToken) {
@@ -169,6 +169,61 @@ export class BklogController extends BaseController {
       response.res(res).send();
     }
 
+  }
+
+  @Post('add-pageeditor')
+  @UsePipes(new JoiValidationPipe(reqEditPageEditorSchema))
+  public async addPageEditor(@Req() req, @Res() res, @Body() { pageId, profileId, targetProfileId }: ReqEditPageEditor) {
+    const { id, error } = this.validationAccessToken(req);
+
+    if(!id) {
+      this.responseCheckToken(error, res);
+    } else {
+      const checkProfileId: boolean = await this.checkUserIdNProfileId(id, profileId);
+      let response: Response;
+
+      if(!checkProfileId) {
+        this.clearUserJwtCookie(res);
+        response = new Response().error(...AuthErrorMessage.info);
+      } else {
+        response = await this.bklogService.containerEditPageEditor(
+          pageId, 
+          profileId, 
+          targetProfileId,
+          this.bklogService.addPageEditor
+        );
+      }
+
+      response.res(res).send();
+    }
+
+  }
+
+  @Post('exclude-pageeditor')
+  @UsePipes(new JoiValidationPipe(reqEditPageEditorSchema))
+  public async excludeFromPageEditorList(@Req() req, @Res() res, @Body() { pageId, profileId, targetProfileId }: ReqEditPageEditor) {
+    const { id, error } = this.validationAccessToken(req);
+
+    if(!id) {
+      this.responseCheckToken(error, res);
+    } else {
+      const checkProfileId: boolean = await this.checkUserIdNProfileId(id, profileId);
+      let response: Response;
+
+      if(!checkProfileId) {
+        this.clearUserJwtCookie(res);
+        response = new Response().error(...AuthErrorMessage.info);
+      } else {
+        response = await this.bklogService.containerEditPageEditor(
+          pageId,
+          profileId,
+          targetProfileId,
+          this.bklogService.excludeFromPageEditorlist
+        );
+      }
+
+      response.res(res).send();
+    }
   }
 
   @Get('release-updating/:pageId')
@@ -192,25 +247,30 @@ export class BklogController extends BaseController {
 
   @Post('updatebklog')
   @UsePipes(new JoiValidationPipe(reqUpdateBklogSchema))
-  public async updateBklog(@Req() req, @Res() res, @Body() { data, pageId, pageVersions }: ReqUpdateBklog) {
+  public async updateBklog(@Req() req, @Res() res, @Body() { data, pageId, profileId, pageVersions }: ReqUpdateBklog) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
       this.responseCheckToken(error, res);
     } else {
-      const response: Response = await this.bklogService.updateBklog(
-        data, 
-        pageId, 
-        id, 
-        pageVersions
-      );
-  
+      const checkProfileId: boolean = await this.checkUserIdNProfileId(id, profileId);
+      let response: Response;
+
+      if(!checkProfileId) {
+
+        this.clearUserJwtCookie(res);
+        response = new Response().error(...AuthErrorMessage.info);
+
+      } else {
+        response = await this.bklogService.updateBklog(data, pageId, id, profileId, pageVersions);
+      }
+
       response.res(res).send();
     }
   }
 
   @Get('getmodifydata')
-  public async getModifyData(@Res() res, @Query("id") id, @Query("preId") preId) {
+  public async getModifyData(@Res() res, @Query("id") id, @Query("preId") preId: string) {
     const response: Response = await this.bklogService.getModifyData(id, preId);
 
     response.res(res).send();
@@ -236,6 +296,13 @@ export class BklogController extends BaseController {
   
       response.res(res).send();
     }
+  }
+
+  @Get('test')
+  public async test(@Req() req) {
+    console.log(req.headers['X-FORWARDED-FOR'])
+    
+    return "success";
   }
 
 

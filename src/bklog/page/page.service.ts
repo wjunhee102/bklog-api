@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PageRepository } from './repositories/page.repository';
-import { InfoToFindPage, RequiredPageInfo, PageInfoList, PageUserInfo } from './page.type';
+import { InfoToFindPage, RequiredPageInfo, PageInfoList, PageUserInfo, InfoToFindPageEditor } from './page.type';
 import { Page } from 'src/entities/bklog/page.entity';
 import { Token } from 'src/utils/common/token.util';
 import { Brackets, Connection, In, QueryRunner } from 'typeorm';
@@ -10,8 +10,10 @@ import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageComment } from 'src/entities/bklog/page-comment.entity';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { InfoToFindPageVersion, ModifyBklogDataType, ModifyPageInfoType, PageVersions, RequiredPageVersionIdList } from '../bklog.type';
-import { AuthErrorMessage, CommonErrorMessage, ComposedResponseErrorType, Response, ResponseError, SystemErrorMessage } from 'src/utils/common/response.util';
+import { AuthErrorMessage, ComposedResponseErrorType, Response, ResponseError, SystemErrorMessage } from 'src/utils/common/response.util';
 import { BklogErrorMessage } from '../utils';
+import { PageEditorRepository } from './repositories/page-editor.repository';
+import { PageEditor } from 'src/entities/bklog/page-editor.entity';
 
 @Injectable()
 export class PageService {
@@ -19,83 +21,11 @@ export class PageService {
     private connection: Connection,
     private readonly pageRepository: PageRepository,
     private readonly pageVersionRepository: PageVersionRepository,
-    private readonly pageCommentRepository : PageCommentRepository
+    private readonly pageCommentRepository : PageCommentRepository,
+    private readonly pageEditorRespository: PageEditorRepository
   ){}
 
-  /**
-   * pageVersion id
-   * @param id 
-   */
-  public async findOnePageVersion(infoToFindPageVersion: InfoToFindPageVersion): Promise<PageVersion> {
-    return await this.pageVersionRepository.findOne({
-      where: infoToFindPageVersion
-    });
-  }
-
-  /**
-   * 
-   * @param page 
-   */
-  public async findOneCurrentPageVersion(page: Page) {
-    return await this.pageVersionRepository.findOne({
-      where: {
-        page
-      },
-      order: {
-        createdDate: "DESC"
-      }
-    });
-  }
-
-  /**
-   * page 정보 찾기
-   * @param pageInfo 
-   */
-  public async findOnePage(pageInfo: InfoToFindPage): Promise<Page> {
-    return await this.pageRepository.findOne({
-      where: pageInfo
-    });
-  }
-
-  /**
-   * 
-   * @param id 
-   */
-  public async checkCurrentPageVersion(id: string, page: Page): Promise<string | null> {
-    const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
-    console.log("page version", pageVersion, id, page);
-    if(!pageVersion || pageVersion.id !== id) {
-      return null;
-    } 
-
-    return pageVersion.id;
-  }
-
-  /**
-   * 
-   * @param pageInfo 
-   */
-  public async findPage(pageInfo: InfoToFindPage): Promise<Page[]> {
-    return await this.pageRepository.find({
-      where: pageInfo
-    });
-  }
-
-  /**
-   * 
-   * @param pageIdList 
-   */
-  private async deletePage(pageIdList: string[]): Promise<boolean> {
-    try {
-      await this.pageRepository.delete(pageIdList);
-
-      return true;
-    } catch(e) {
-      Logger.error(e);
-
-      return false;
-    }
-  }
+  // create
 
   /**
    * 
@@ -123,6 +53,106 @@ export class PageService {
     return pageVersion;
   }
 
+  /**
+   * 
+   * @param page 
+   * @param userProfile 
+   */
+  public createPageEditor(
+    page: Page,
+    userProfile: UserProfile,
+    authority: number = 2
+  ) {
+    const pageEditor: PageEditor = this.pageEditorRespository.create({
+      page,
+      userProfile,
+      authority
+    });
+
+    return pageEditor;
+  }
+
+  // find
+
+  /**
+   * pageVersion id
+   * @param id 
+   */
+  public async findOnePageVersion(infoToFindPageVersion: InfoToFindPageVersion): Promise<PageVersion> {
+    return this.pageVersionRepository.findOne({
+      where: infoToFindPageVersion
+    });
+  }
+
+  /**
+   * 
+   * @param page 
+   */
+  public async findOneCurrentPageVersion(page: Page) {
+    return this.pageVersionRepository.findOne({
+      where: {
+        page
+      },
+      order: {
+        createdDate: "DESC"
+      }
+    });
+  }
+  
+  /**
+   * 
+   * @param infoToFindEditor 
+   */
+  public async findOnePageEditor(pageId: string, profileId: string) {
+    return this.pageEditorRespository.findOne({
+      where: {
+        page: {
+          id: pageId
+        },
+        userProfile: {
+          id: profileId
+        }
+      }
+    });
+  }
+
+  /**
+   * page 정보 찾기
+   * @param pageInfo 
+   */
+  public async findOnePage(pageInfo: InfoToFindPage): Promise<Page> {
+    return await this.pageRepository.findOne({
+      where: pageInfo
+    });
+  }
+
+  /**
+   * 
+   * @param pageInfo 
+   */
+  public async findPage(pageInfo: InfoToFindPage): Promise<Page[]> {
+    return await this.pageRepository.find({
+      where: pageInfo
+    });
+  }
+
+  // save
+
+  /**
+   * 
+   * @param pageEditor 
+   */
+  public async savePageEditor(pageEditor: PageEditor) {
+    try {
+      await this.pageEditorRespository.save(pageEditor);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
 
   /**
    * 
@@ -140,6 +170,120 @@ export class PageService {
     }
   }
 
+  // delete
+
+  /**
+   * 
+   * @param pageIdList 
+   */
+  private async deletePage(pageIdList: string[]): Promise<boolean> {
+    try {
+      await this.pageRepository.delete(pageIdList);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+
+  /**
+   * 
+   * @param versionIdList 
+   */
+  private async deletePageVersion(versionIdList: string[]): Promise<boolean> {
+    try {
+      await this.pageVersionRepository.delete(versionIdList);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+
+  private async deletePageComment(commentIdList: string[]): Promise<boolean> {
+    try {
+      await this.pageCommentRepository.delete(commentIdList);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+
+  /**
+   * 
+   * @param pageEditorIdList 
+   */
+  private async deletePageEditor(pageEditorIdList: number[] | string[]): Promise<boolean> {
+    try {
+      await this.pageEditorRespository.delete(pageEditorIdList);
+
+      return true;
+    } catch(e) {
+      Logger.error(e);
+
+      return false;
+    }
+  }
+
+  // check
+
+  /**
+   * 
+   * @param page 
+   * @param userId 
+   */
+  public checkPage(
+    page: Page
+  ): ComposedResponseErrorType | null {
+
+    if(!page) {
+      return BklogErrorMessage.notFound;
+    }
+
+    if(page.updating) {
+      return BklogErrorMessage.updating;
+    }
+
+    if(page.editLock) {
+      return BklogErrorMessage.editLock;
+    }
+
+    return null;
+  }
+
+  /**
+   * 
+   * @param id 
+   */
+  public async checkCurrentPageVersion(id: string, page: Page): Promise<string | null> {
+    const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
+    console.log("page version", pageVersion, id, page);
+    if(!pageVersion || pageVersion.id !== id) {
+      return null;
+    } 
+
+    return pageVersion.id;
+  }
+
+  /**
+   * 
+   * @param pageId 
+   * @param profileId 
+   */
+  public async checkPageEditor(pageId: string, profileId: string, authorized: number = 2): Promise<ComposedResponseErrorType | null> {
+    const pageEditor: PageEditor | null = await this.findOnePageEditor(pageId, profileId);
+
+    if(pageEditor && pageEditor.authority <= authorized) return null;
+
+    return BklogErrorMessage.authorized;
+  }
 
   /**
    * 
@@ -179,6 +323,8 @@ export class PageService {
     return page;
   }
 
+  // remove
+
   /**
    * 
    * @param pageId 
@@ -196,115 +342,15 @@ export class PageService {
     return false;
   }
 
-  public checkPage(
-    page: Page, 
-    userId: string
-  ): ComposedResponseErrorType | null {
+  public async removePageEditor(pageId: string, userProfileId: string): Promise<ComposedResponseErrorType | null> {
+    const pageEditor: PageEditor = await this.findOnePageEditor(pageId, userProfileId);
 
-    if(!page) {
+    if(!pageEditor) {
       return BklogErrorMessage.notFound;
-    }
-
-    if(page.userId !== userId) {
-      return AuthErrorMessage.info;
-    }
-
-    if(page.updating) {
-      return BklogErrorMessage.updating;
-    }
-
-    if(page.editLock) {
-      return BklogErrorMessage.editLock;
-    }
-
-    return null;
-  }
-
-  // /**
-  //  * 
-  //  * @param profileId 
-  //  * @param scope 
-  //  */
-  // public async findPublicPageList(
-  //   { id, penName }: PageUserInfo, 
-  //   scope:number = 4
-  // ): Promise<PageInfoList[]> {
-
-  //   if(id || penName) { 
-
-  //     const pageList: Page[] = await this.pageRepository
-  //       .createQueryBuilder("page")
-  //       .leftJoinAndSelect(
-  //         "page.userProfile", 
-  //         "user-profile"
-  //       )
-  //       .where("page.disclosureScope >= :scope", { scope })
-  //       .andWhere(new Brackets(qb => {
-  //         qb.where("user-profile.id = :id", { id })
-  //           .orWhere("user-profile.penName = :penName", { penName })
-  //       }))
-  //       .select([
-  //         "page.id",
-  //         "page.title",
-  //         "page.disclosureScope"
-  //       ])
-  //       .orderBy("page.disclosureScope", "DESC")
-  //       .addOrderBy("page.title", "ASC")
-  //       .getMany();
-
-  //     if(pageList[0]) {
-  //       return pageList;
-  //     }
-
-  //   } 
-
-  //   return null;
-  // }
-
-    /**
-   * 
-   * @param profileId 
-   * @param scope 
-   */
-  public async findPublicPageList(
-    { id, penName }: PageUserInfo, 
-    reqScope:number = 5,
-    skip: number = 0,
-    take: number = 50,
-  ): Promise<PageInfoList[]> {
-
-    if(id || penName) {
-      let scope = reqScope === 0? 5 : reqScope; 
-
-      const pageList: Page[] = await this.pageRepository
-        .createQueryBuilder("page")
-        .leftJoinAndSelect(
-          "page.userProfile", 
-          "user-profile"
-        )
-        .where("page.disclosureScope >= :scope", { scope })
-        .andWhere(new Brackets(qb => {
-          qb.where("user-profile.id = :id", { id })
-            .orWhere("user-profile.penName = :penName", { penName })
-        }))
-        .select([
-          "page.id",
-          "page.title",
-          "page.disclosureScope"
-        ])
-        .orderBy("page.disclosureScope", "DESC")
-        .addOrderBy("page.title", "ASC")
-        .skip(skip)
-        .take(take)
-        .getMany();
-
-      if(pageList[0]) {
-        return pageList;
-      }
-
     } 
 
-    return null;
+    return await this.deletePageEditor([pageEditor.id])? 
+      null : SystemErrorMessage.db;
   }
 
   public async removeAllPage(userProfile: UserProfile) {
@@ -329,10 +375,21 @@ export class PageService {
         where: {
           page: In(pageIdList),
           userProfile
-        }
+        },
+        select: ["id"]
+      });
+
+    const pageEditorIdList: PageEditor[] = await this.pageEditorRespository
+      .find({
+        where: {
+          page: In(pageIdList)
+        },
+        select: ["id"]
       });
     
   }
+
+  // update
 
   public async updateModfiyPageInfo(
     queryRunner: QueryRunner,
@@ -353,10 +410,14 @@ export class PageService {
   ): Promise<Response> {
     const page: Page = await this.findOnePage({id: pageId});
 
-    const resCheckPage = this.checkPage(page, userId);
+    const resCheckPage = this.checkPage(page);
 
     if(resCheckPage) {
       return new Response().error(...resCheckPage);
+    }
+
+    if(page.userId !== userId) {
+      return new Response().error(...AuthErrorMessage.info);
     }
 
     const updatedPage = Object.assign({}, page, modifyPageInfo);
@@ -366,9 +427,18 @@ export class PageService {
     return result? new Response().body("success") : new Response().error(...SystemErrorMessage.db);
   }
 
+  /**
+   * 
+   * @param pageId 
+   * @param profileId 
+   * @param pageVersions 
+   * @param data 
+   * @param callback 
+   */
   public async containerUpdateBklog(
     pageId: string, 
-    userId: string, 
+    userId: string,
+    profileId: string, 
     pageVersions: PageVersions,
     data: ModifyBklogDataType,
     callback?: (queryRunner: QueryRunner, page: Page) => Promise<ComposedResponseErrorType | null>
@@ -376,11 +446,19 @@ export class PageService {
 
     const page: Page = await this.findOnePage({id: pageId});
 
-    const resCheckPage = this.checkPage(page, userId);
+    const resCheckPage = this.checkPage(page);
 
     if(resCheckPage) {
       return new Response().error(...resCheckPage);
     }
+
+    if(page.userId !== userId) {
+      const resCheckEditor = await this.checkPageEditor(page.id, profileId, page.editableScope === 0? 0 : 2);
+
+      if(resCheckEditor) {
+        return new Response().error(...resCheckEditor);
+      }
+    } 
 
     const resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
 
@@ -434,7 +512,55 @@ export class PageService {
       await this.savePage(page);
     }
 
-    return new Response().body({ pageVersion: pageVersions.next });
+    return new Response().body({ pageVersion: pageVersions.next }).status(201);
+  }
+
+  // provide
+
+  /**
+   * 
+   * @param profileId 
+   * @param scope 
+   */
+  public async findPublicPageList(
+    { id, penName }: PageUserInfo, 
+    reqScope:number = 5,
+    skip: number = 0,
+    take: number = 50,
+  ): Promise<PageInfoList[]> {
+
+    if(id || penName) {
+      let scope = reqScope === 0? 5 : reqScope; 
+
+      const pageList: Page[] = await this.pageRepository
+        .createQueryBuilder("page")
+        .leftJoinAndSelect(
+          "page.userProfile", 
+          "user-profile"
+        )
+        .where("page.disclosureScope >= :scope", { scope })
+        .andWhere(new Brackets(qb => {
+          qb.where("user-profile.id = :id", { id })
+            .orWhere("user-profile.penName = :penName", { penName })
+        }))
+        .select([
+          "page.id",
+          "page.title",
+          "page.disclosureScope"
+        ])
+        .orderBy("page.disclosureScope", "DESC")
+        .addOrderBy("page.title", "ASC")
+        .skip(skip)
+        .take(take)
+        .getMany();
+
+      if(pageList[0]) {
+        return pageList;
+      }
+
+    } 
+
+    return null;
   }
 
 }
