@@ -131,6 +131,14 @@ export class AuthErrorMessage extends ResponseError {
     ).get(), FORBIDDEN ];
   }
 
+  static notFound(detail: string = "not found"): ComposedResponseErrorType {
+    return [ new this().preBuild(
+      "정보를 찾을 수 없습니다.",
+      detail,
+      "006"
+    ).get(), NOT_FOUND];
+  }
+
   static failureSignIn(count: number): ComposedResponseErrorType {
     let message = "가입하지 않은 아이디이거나, 잘못된 비밀번호입니다.";
     let detail = "non-existent user";

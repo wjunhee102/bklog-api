@@ -4,7 +4,7 @@ import { RequiredBlock, BlockData, BlockUpdateProps, ModifyData } from './block.
 import { Block } from 'src/entities/bklog/block.entity';
 import { Token } from 'src/utils/common/token.util';
 import { Page } from 'src/entities/bklog/page.entity';
-import { In, Connection, QueryRunner } from 'typeorm';
+import { In, Connection, QueryRunner, Like, Any } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
 import { ParamModifyBlock, ParamCreateModifyBlock, ParamCreateBlock, ParamCreateComment, ModifyBlockType } from '../bklog.type';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
@@ -319,10 +319,20 @@ export class BlockService {
     if(modifyBlockDataList.delete) {
       const { commentIdList, blockIdList } = modifyBlockDataList.delete;
 
-      if(commentIdList) await queryRunner.manager.delete(BlockComment, commentIdList);
+      if(blockIdList) {
+        await queryRunner.manager.delete(Block, blockIdList);
+        const blockCommentIdList = await queryRunner.manager.find(BlockComment, {
+          where: {
+            block: {
+              id: In(blockIdList)
+            }
+          }
+        });
+       
+        if(blockCommentIdList[0]) commentIdList.push(...blockCommentIdList.map(comment => comment.id));
+      }
 
-      if(blockIdList) await queryRunner.manager.delete(Block, blockIdList);
-      
+      if(commentIdList) await queryRunner.manager.delete(BlockComment, commentIdList);
     }
 
     return null;

@@ -305,5 +305,11 @@ export class BklogController extends BaseController {
     return "success";
   }
 
+  @Get('test-remove-page')
+  public async testRemovePage(@Res() res, @Query('pageid') pageId: string) {
+    const response: Response = await this.bklogService.testRemovePage(pageId);
+
+    response.res(res).send();
+  }
 
 }

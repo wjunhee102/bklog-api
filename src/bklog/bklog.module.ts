@@ -10,8 +10,6 @@ import { PageVersionRepository } from './repositories/page-version.repository';
 import { BlockCommentRepository } from './block/repositories/block-comment.repository';
 import { PageCommentRepository } from './page/repositories/page-comment.repository';
 import { PageStarRepository } from './page/repositories/page-star.repository';
-import { TestRepository } from './block/repositories/test.repositoty';
-import { Test2Respository } from './block/repositories/test2.repository';
 
 @Module({
   imports: [
@@ -21,9 +19,7 @@ import { Test2Respository } from './block/repositories/test2.repository';
       PageVersionRepository,
       PageStarRepository,
       PageCommentRepository,
-      BlockCommentRepository,
-      TestRepository,
-      Test2Respository
+      BlockCommentRepository
     ]),
     PageModule,
     BlockModule,

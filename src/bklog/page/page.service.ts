@@ -3,7 +3,7 @@ import { PageRepository } from './repositories/page.repository';
 import { InfoToFindPage, RequiredPageInfo, PageInfoList, PageUserInfo, InfoToFindPageEditor } from './page.type';
 import { Page } from 'src/entities/bklog/page.entity';
 import { Token } from 'src/utils/common/token.util';
-import { Brackets, Connection, In, QueryRunner } from 'typeorm';
+import { Any, Brackets, Connection, In, QueryRunner } from 'typeorm';
 import { PageVersionRepository } from '../repositories/page-version.repository';
 import { PageCommentRepository } from './repositories/page-comment.repository';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
@@ -14,6 +14,9 @@ import { AuthErrorMessage, ComposedResponseErrorType, Response, ResponseError, S
 import { BklogErrorMessage } from '../utils';
 import { PageEditorRepository } from './repositories/page-editor.repository';
 import { PageEditor } from 'src/entities/bklog/page-editor.entity';
+import { Block } from 'src/entities/bklog/block.entity';
+import { BlockComment } from 'src/entities/bklog/block-comment.entity';
+import { PageStar } from 'src/entities/bklog/page-star.entity';
 
 @Injectable()
 export class PageService {
@@ -26,6 +29,20 @@ export class PageService {
   ){}
 
   // create
+
+  /**
+   * 
+   * @param requiredPageInfo 
+   */
+  public createPage(requiredPageInfo: RequiredPageInfo): Page {
+    requiredPageInfo.profileId = undefined;
+    const page: Page = this.pageRepository.create(requiredPageInfo);
+
+    page.id = Token.getUUID();
+
+    return page;
+  }
+
 
   /**
    * 
@@ -72,6 +89,22 @@ export class PageService {
     return pageEditor;
   }
 
+  /**
+   * 
+   * @param requiredPageInfo 
+   * @param data 
+   */
+  public preCreateBklog(
+    requiredPageInfo: RequiredPageInfo, 
+    data: ModifyBklogDataType,  
+  ): [Page, PageVersion, PageEditor] {
+    const page: Page = this.createPage(requiredPageInfo);
+    const pageVersion: PageVersion = this.createPageVersion(page, data);
+    const pageEditor: PageEditor = this.createPageEditor(page, requiredPageInfo.userProfile, 0);
+
+    return [page, pageVersion, pageEditor];
+  }
+
   // find
 
   /**
@@ -81,6 +114,17 @@ export class PageService {
   public async findOnePageVersion(infoToFindPageVersion: InfoToFindPageVersion): Promise<PageVersion> {
     return this.pageVersionRepository.findOne({
       where: infoToFindPageVersion
+    });
+  }
+
+  public async findPageVeriosn(page: Page): Promise<PageVersion[]> {
+    return this.pageVersionRepository.find({
+      where: {
+        page
+      },
+      order: {
+        createdDate: "DESC"
+      }
     });
   }
 
@@ -264,7 +308,7 @@ export class PageService {
    */
   public async checkCurrentPageVersion(id: string, page: Page): Promise<string | null> {
     const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
-    console.log("page version", pageVersion, id, page);
+
     if(!pageVersion || pageVersion.id !== id) {
       return null;
     } 
@@ -286,20 +330,6 @@ export class PageService {
   }
 
   /**
-   * 
-   * @param requiredPageInfo 
-   */
-  public createPage(requiredPageInfo: RequiredPageInfo): Page {
-    requiredPageInfo.profileId = undefined;
-    const page: Page = this.pageRepository.create(requiredPageInfo);
-
-    page.id = Token.getUUID();
-
-    return page;
-  }
-
-
-  /**
    * scope 추가해야함.
    * @param id 
    */
@@ -315,31 +345,41 @@ export class PageService {
       return null
     }
 
-    page.lastAccessDate = new Date(Date.now());
-    page.views = Number(page.views) + 1;
+    try {
+      page.lastAccessDate = new Date(Date.now());
+      page.views = Number(page.views) + 1;
 
-    await this.savePage(page);
+      await this.savePage(page);
 
-    return page;
+      return page;
+    } catch(e) {
+      Logger.error(e);
+
+      return null;
+    }
+    
   }
 
-  // remove
+  public async removePageVersion({
+    page, 
+    saveCount = 5, 
+    pageVersionList
+  }: {
+    page?: Page;
+    saveCount?: number;
+    pageVersionList?: PageVersion[];
+  }): Promise<ComposedResponseErrorType | null> {
+    if(!page && !pageVersionList) return null;
+    let targetPageVersionList: PageVersion[] = pageVersionList? pageVersionList : await this.findPageVeriosn(page);
 
-  /**
-   * 
-   * @param pageId 
-   * @param userId 
-   */
-  public async removePage(pageId: string, userId: string): Promise<boolean> {
-    const page: Page | null  = await this.findOnePage({id: pageId, userId});
-
-    if(page) {
-      const result = await this.deletePage([page.id]);
-
-      return result;
+    if(targetPageVersionList.length < saveCount + 1) {
+      console.log("!error");
+      return null;
     }
 
-    return false;
+    const deleteList = targetPageVersionList.slice(saveCount).map(version => version.id);
+
+    return await this.deletePageVersion(deleteList)? null : SystemErrorMessage.db;
   }
 
   public async removePageEditor(pageId: string, userProfileId: string): Promise<ComposedResponseErrorType | null> {
@@ -353,40 +393,165 @@ export class PageService {
       null : SystemErrorMessage.db;
   }
 
-  public async removeAllPage(userProfile: UserProfile) {
-    const pageIdList: Page[] = await this.pageRepository
-      .find({
+  public async removePage(pageId: string): Promise<ComposedResponseErrorType | null> {
+    const queryRunner = this.connection.createQueryRunner();
+
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      const page: Page = await this.pageRepository.findOne({
+        where: {
+          id: pageId
+        },
+        relations: ["versionList", "pageStar", "pageComments", "blockList", "blockComments", "editorList"]
+      });
+
+      if(!page) {
+        return BklogErrorMessage.notFound;
+      }
+
+      if(page.blockComments[0]) {
+        await queryRunner.manager.delete(BlockComment, page.blockComments.map(com => com.id));
+      }
+
+      if(page.blockList[0]) {
+        await queryRunner.manager.delete(Block, page.blockList.map(block => block.id));
+      }
+
+      if(page.editorList[0]) {
+        await queryRunner.manager.delete(PageEditor, page.editorList.map(edi => edi.id));
+      }
+
+      if(page.versionList[0]) {
+        await queryRunner.manager.delete(PageVersion, page.versionList.map(ver => ver.id));
+      }
+
+      if(page.pageStar[0]) {
+        await queryRunner.manager.delete(PageStar, page.pageStar.map(star => star.id));
+      }
+
+      if(page.pageComments[0]) {
+        await queryRunner.manager.delete(PageComment, page.pageComments.map(com => com.id));
+      }
+
+      await queryRunner.manager.delete(Page, pageId);
+
+      await queryRunner.commitTransaction();
+
+      return null;
+    } catch(e) {
+      Logger.error(e);
+      await queryRunner.rollbackTransaction();
+
+      return SystemErrorMessage.db;
+    } finally {
+      queryRunner.release();
+    }
+
+  }
+
+  /**
+   * 
+   * @param queryRunner 
+   * @param userProfile 
+   */
+  public async removeAllPage(queryRunner: QueryRunner, userProfile: UserProfile): Promise<null> {
+    const pageList: Page[] = await queryRunner.manager
+      .find(Page, {
         where: {
           userProfile
         },
         select: ["id"]
       });
 
-    const pageVersionIdList: PageVersion[] = await this.pageVersionRepository
-      .find({
+    if(!pageList[0]) {
+      return Promise.reject("not found page");
+    }
+
+    const pageIdList = pageList.map(page => page.id);
+
+    const pageVersionIdList: PageVersion[] = await queryRunner.manager
+      .find(PageVersion, {
         where: {
-          page: In(pageIdList)
+          page: {
+            id: In(pageIdList)
+          }
         },
         select: ["id"]
       });
 
-    const pageCommentIdList: PageComment[] = await this.pageCommentRepository
-      .find({
+    const pageCommentIdList: PageComment[] = await queryRunner.manager
+      .find(PageComment, {
+        where: [
+          {page: {
+            id: In(pageIdList)
+          }},
+          {userProfile}
+        ],
+        select: ["id"]
+      });
+
+    const pageEditorIdList: PageEditor[] = await queryRunner.manager
+      .find(PageEditor, {
+        where: [
+          {page: {
+            id: In(pageIdList)
+          }},
+          {userProfile}
+        ]
+      });
+
+    const pageStarList: PageStar[] = await queryRunner.manager
+      .find(PageStar, {
+        where: [
+          {page: {
+            id: In(pageIdList)
+          }},
+          {userProfile}
+        ],
+        select: ["id"]
+      });
+
+    const blockList: Block[] = await queryRunner.manager
+      .find(Block, {
         where: {
-          page: In(pageIdList),
-          userProfile
+          page: {
+            id: In(pageList.map(page => page.id))
+          } 
         },
         select: ["id"]
       });
 
-    const pageEditorIdList: PageEditor[] = await this.pageEditorRespository
-      .find({
-        where: {
-          page: In(pageIdList)
-        },
-        select: ["id"]
-      });
+    console.log(blockList);
+
+    if(blockList[0]) {
+      console.log(blockList);
+      const blockCommentList: BlockComment[] = await queryRunner.manager
+        .find(BlockComment, {
+          where: [
+            {page: {
+              id: In(pageIdList)
+            }},
+            {userProfile}
+          ],
+          select: ["id"]
+        });
     
+      if(blockCommentList[0]) {
+        await queryRunner.manager.delete(BlockComment, blockCommentList.map(com => com.id));
+      }
+
+      await queryRunner.manager.delete(Block, blockList.map(block => block.id));
+    }
+    
+    if(pageVersionIdList[0]) await queryRunner.manager.delete(PageVersion, pageVersionIdList.map(version => version.id));
+    if(pageCommentIdList[0]) await queryRunner.manager.delete(PageComment, pageCommentIdList.map(com => com.id));
+    if(pageEditorIdList[0]) await queryRunner.manager.delete(PageEditor, pageEditorIdList.map(edi => edi.id));
+    if(pageStarList[0]) await queryRunner.manager.delete(PageStar, pageStarList.map(star => star.id));
+    await queryRunner.manager.delete(Page, pageList.map(page => page.id));
+
+    return null;
   }
 
   // update
@@ -406,7 +571,8 @@ export class PageService {
   public async updatePageInfo(
     modifyPageInfo: ModifyPageInfoType,
     pageId: string,
-    userId: string
+    userId: string,
+    profileId?: string
   ): Promise<Response> {
     const page: Page = await this.findOnePage({id: pageId});
 
@@ -417,7 +583,17 @@ export class PageService {
     }
 
     if(page.userId !== userId) {
-      return new Response().error(...AuthErrorMessage.info);
+      if(profileId) {
+        const checkPageEditor = await this.checkPageEditor(pageId, profileId, 1);
+
+        if(checkPageEditor) {
+          return new Response().error(...checkPageEditor);
+        }
+
+      } else {
+        return new Response().error(...BklogErrorMessage.authorized);
+      }
+      
     }
 
     const updatedPage = Object.assign({}, page, modifyPageInfo);
@@ -491,7 +667,7 @@ export class PageService {
         data
       });
 
-      await queryRunner.manager.delete(PageVersion, pageVersions.current);
+      // await queryRunner.manager.delete(PageVersion, pageVersions.current);
 
       await queryRunner.manager.save(pageVersion);
 

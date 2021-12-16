@@ -6,8 +6,6 @@ import { BlockData, ModifyData } from './block/block.type';
 import { UserService } from 'src/user/user.service';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { PageStarRepository } from './page/repositories/page-star.repository';
-import { PageCommentRepository } from './page/repositories/page-comment.repository';
-import { BlockCommentRepository } from './block/repositories/block-comment.repository';
 import { Page } from 'src/entities/bklog/page.entity';
 import { PageStar } from 'src/entities/bklog/page-star.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
@@ -250,11 +248,17 @@ export class BklogService {
 
   public async getPage(pageId: string, userId?: string | null): Promise<Response> {
     const rawPage: Page | null = await this.pageService.getPage(pageId);
-    const pageVersion: PageVersion = await this.pageService.findOneCurrentPageVersion(rawPage);
+    const pageVersionList: PageVersion[] = await this.pageService.findPageVeriosn(rawPage);
+    const pageVersion: PageVersion = pageVersionList[0];
+    const result = await this.pageService.removePageVersion({ pageVersionList, saveCount: 5 });
 
+    if(result) {
+      return new Response().error(...result);
+    }
     /**
      * scope 확인?
      */
+
 
     const page = rawPage ? {
       pageInfo: Object.assign({}, rawPage, {
@@ -325,7 +329,6 @@ export class BklogService {
     }
 
     if(page.userId !== userId) {
-      console.log("error", userId, page.userId);
       return new Response().error(...AuthErrorMessage.info);
     }
 
@@ -395,6 +398,12 @@ export class BklogService {
       },
       this.callbackUpdateBklog({ modifyBlockData, modifyPageInfo })
     )
+  }
+
+  public async testRemovePage(pageId: string): Promise<Response> {
+    const result = await this.pageService.removePage(pageId);
+
+    return result? new Response().error(...result) : new Response().body("success");
   }
 
 }
