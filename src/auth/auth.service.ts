@@ -388,6 +388,12 @@ export class AuthService {
     }
   }
 
+  public async testDeleteUser(email: string): Promise<Response> {
+    const result = await this.privateUserService.testDeleteUser(email);
+    
+    return result? new Response().error(...result) : new Response().body("success");
+  }
+
   /**
    * 
    * @param accessToken 

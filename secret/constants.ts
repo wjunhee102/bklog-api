@@ -24,7 +24,7 @@ export const imminentExpTime = 1000 * 60 * 60 * 24 * 1;
 export const cookieConstants = "secretKey";
 
 /**
- * 쿠키 발행 시간
+ * 쿠키 발행 시간 하루
  */
 export const cookieExpTime =  {
   access: 1000 * 60 * 60 * 24 * 1,
@@ -34,15 +34,16 @@ export const cookieExpTime =  {
 /**
  * 발행 시간 
  * @param expTime 
+ * secure 설정시 safari에는 쿠키 설정이 안됨
  */
 export const createCookieOption = (domain: string = "localhost") => (expTime:number) => {
   return {
     httpOnly: true,
-    expires: new Date(Date.now() + expTime),
+    maxAge: expTime,
     signed: true,
     domain,
-    sameSite: "none",
-    secure: true
+    sameSite: "Lax",
+    secure: false
   }
 } 
 

@@ -23,7 +23,7 @@ async function bootstrap() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.ENV === "prod"? true : false,
+      secure: process.env.ENV === "prod"? false : false,
       sameSite: process.env.ENV === "prod"? 'none' : false
     }
   }))

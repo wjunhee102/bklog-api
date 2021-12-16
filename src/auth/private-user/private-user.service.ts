@@ -24,6 +24,7 @@ import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { BlockData } from 'src/bklog/block/block.type';
 import { throws } from 'assert';
 import { PageEditor } from 'src/entities/bklog/page-editor.entity';
+import { AuthErrorMessage, ComposedResponseErrorType, SystemErrorMessage } from 'src/utils/common/response.util';
 
 @Injectable()
 export class PrivateUserService {
@@ -211,65 +212,63 @@ export class PrivateUserService {
     user.userProfile = profile;
     user.userStatus = status;
 
-    const page: Page = this.pageService.createPage({
-      title: "hello world",
-      disclosureScope: 5,
-      userProfile: profile,
-      userId: user.id,
-      profileId: profile.id
-    });
-
-    const pageEditor: PageEditor = this.pageService.createPageEditor(page, profile);
-
-    const block1: Block = this.blockService.createBlock({
+    const blockData1: BlockData = {
       id: Token.getUUID(),
       position: "1",
+      type: "text",
       styleType: "bk-h1",
       contents: [["환영합니다."]],
       styles: {
         color: null,
         backgroundColor: null
-      },
-      page
-    });
+      }
+    }
 
-    const block2: Block = this.blockService.createBlock({
+    const blockData2: BlockData = {
       id: Token.getUUID(),
       position: "2",
+      type: "text",
       styleType: "bk-h1",
       contents: [["글을 작성해보세요."]],
       styles: {
         color: null,
         backgroundColor: null
-      },
-      page
-    });
-
-    const blockData1: BlockData = Object.assign({}, block1, {
-      blockComment: undefined, 
-      page: undefined
-    });
-
-    const blockData2: BlockData = Object.assign({}, block2, {
-      blockComment: undefined, 
-      page: undefined
-    });
-
-    const pageVersion: PageVersion = this.pageService.createPageVersion(page, {
-      modifyBlockData: {
-        create: [
-          {
-            blockId: block1.id,
-            set: "block",
-            payload: blockData1
-          },
-          {
-            blockId: block2.id,
-            set: "block",
-            payload: blockData2
-          }
-        ]
       }
+    }
+
+    const pageElements = this.pageService.preCreateBklog({
+        title: "hello world",
+        disclosureScope: 5,
+        userProfile: profile,
+        userId: user.id,
+        profileId: profile.id
+      },
+      {
+        modifyBlockData: {
+          create: [
+            {
+              blockId: blockData1.id,
+              set: "block",
+              payload: blockData1
+            },
+            {
+              blockId: blockData2.id,
+              set: "block",
+              payload: blockData2
+            }
+          ]
+        }
+      }
+    );
+
+    const block1: Block = this.blockService.createBlock({
+      ...blockData1,
+      page: pageElements[0]
+    });
+
+    const block2: Block = this.blockService.createBlock({
+      ...blockData2,
+      page: pageElements[0]
     });
 
     const queryRunner = this.connection.createQueryRunner();
@@ -284,11 +283,9 @@ export class PrivateUserService {
         privacy, 
         auth, 
         user, 
-        page, 
+        ...pageElements,
         block1, 
         block2,
-        pageVersion,
-        pageEditor
       ]);
       
       await queryRunner.commitTransaction();
@@ -310,56 +307,46 @@ export class PrivateUserService {
    * user 데이터 삭제
    * @param user 
    */
-  private async deleteUser(user: User) {
+  private async deleteUser(user: User): Promise<ComposedResponseErrorType | null> {
     const { userProfile, userAuth, userStatus } = user;
+    const { userPrivacy }: UserAuth = userAuth;
+  
+    const queryRunner = this.connection.createQueryRunner();
 
-    if(userProfile && userAuth && userStatus ) {
-      const { userPrivacy } = userAuth;
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-      if(userPrivacy) {
+    try {
+      await this.pageService.removeAllPage(queryRunner, userProfile);
 
-        const queryRunner = this.connection.createQueryRunner();
+      const userFollowList: UserFollow[] = await queryRunner.manager.find(UserFollow, {
+        where: [
+          {userProfile},
+          {relativeProfile: userProfile}
+        ],
+        select: ["id"]
+      });
 
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
+      if(userFollowList[0]) await queryRunner.manager.delete(UserFollow, userFollowList.map(user => user.id));
 
-        try {
+      await queryRunner.manager.remove(User, user);
+      await queryRunner.manager.remove(UserProfile, userProfile);
+      await queryRunner.manager.remove(UserStatus, userStatus);
+      await queryRunner.manager.remove(UserAuth, userAuth);
+      await queryRunner.manager.remove(UserPrivacy, userPrivacy);
 
-          await queryRunner.manager.remove(User, user);
-          await queryRunner.manager.createQueryBuilder()
-            .delete()
-            .from(UserFollow)
-            .where("userfollow.userProfileId :userProfileid", {userProfileId: userProfile.id})
-            .execute();
-            
-          await queryRunner.manager.delete(UserFollow, {
-            userProfile: userProfile
-          });
-          await queryRunner.manager.delete(UserFollow, {
-            userProfile: userProfile
-          });
-          await queryRunner.manager.remove(UserProfile, userProfile);
+      await queryRunner.commitTransaction();
 
-        } catch(e) {
-          Logger.error(e);
-          await queryRunner.rollbackTransaction();
+      return null;
+    } catch(e) {
+      Logger.error(e);
+      await queryRunner.rollbackTransaction();
 
-        } finally {
-          await queryRunner.release();
-        }
-
-        
-        // await this.userRepository.remove(user);
-        // await this.userAuthRepository.remove(userAuth);
-        // await this.userPrivacyRepository.remove(userPrivacy);
-        // await this.userProfileRepository.remove(userProfile);
-        // await this.userStatusRepository.remove(userStatus);
-
-        return true;
-      }
+      return SystemErrorMessage.db;
+    } finally {
+      console.log("success");
+      await queryRunner.release();
     }
-
-    return false;
   }
 
   /**
@@ -415,6 +402,10 @@ export class PrivateUserService {
     return resComparePassword;
   }
 
+  /**
+   * 
+   * @param userAuthInfo 
+   */
   public async authenticateUser(
     userAuthInfo: UserAuthInfo
   ): Promise<ResAuthenticatedUser> {
@@ -537,7 +528,7 @@ export class PrivateUserService {
   }
 
   /**
-   * 회원 가입
+   * 회원 탈퇴
    * @param userAuthInfo 
    */
   public async withdrawalUser(userAuthInfo: UserAuthInfo & { id: string }): Promise<ResDeleteUser> {
@@ -583,7 +574,13 @@ export class PrivateUserService {
           user.userProfile = userProfile;
           user.userAuth.userPrivacy = userPrivacy;
           
-          result.success = await this.deleteUser(user);
+          const resultDelete = await this.deleteUser(user);
+
+          if(!resultDelete) {
+            result.success = true;
+          }
+
+          return result;
         }
       } else {
         Logger.error("Login information does not match.");
@@ -596,6 +593,24 @@ export class PrivateUserService {
     }
 
     return result;
+  }
+
+  public async testDeleteUser(email: string): Promise<ComposedResponseErrorType | null> {
+    const user: User = await this.findOneUserAuth({ email });
+    if(!user) return AuthErrorMessage.notFound("not user");
+
+    const { userAuth } = user;
+
+    const { userPrivacy }: UserAuth = await this.userAuthRepository.findOne({
+      where: {
+        id: userAuth.id
+      },
+      relations: ["userPrivacy"]
+    });
+
+    user.userAuth.userPrivacy = userPrivacy;
+
+    return await this.deleteUser(user);
   }
 
   public async changeActivationUser(email: string, isActive: boolean) {

@@ -250,4 +250,11 @@ export class AuthController {
     }
   }
 
+  @Get('test-delete-user')
+  public async testDeleteUser(@Res() res, @Query("email") email: string) {
+    const response: Response = await this.authService.testDeleteUser(email);
+
+    response.res(res).send();
+  }
+
 }
