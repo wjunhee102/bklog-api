@@ -355,37 +355,16 @@ export class AuthService {
    * @param userAgent 
    */
   public async withdrawalUser(
-    userInfo: UserAuthInfo, 
-    accessToken: string, 
-    refreshToken: string,
-    userAgent: string
-  ): Promise<ResWithdrawalUser> {
-    const validationAccessToken = this.validationAccessToken(accessToken, userAgent);
-    if(validationAccessToken) {
-      return {
-        success: false,
-        error: validationAccessToken
-      }
-    }
-    const tokenVailtionRes: { id: string } | null = this.validationRefreshToken(
-      refreshToken,
-      userAgent
-    );
+    userInfo: UserAuthInfo & { id: string }
+  ): Promise<Response> {
 
-    if(tokenVailtionRes) {
-      const resDeleteUser = await this.privateUserService.withdrawalUser(
-        Object.assign(userInfo, {id: tokenVailtionRes.id})
-      );
+    const resDeleteUser = await this.privateUserService.withdrawalUser(userInfo);
 
-      return resDeleteUser;
+    if(resDeleteUser) {
+      return new Response().error(...resDeleteUser);
     }
     
-    return {
-      success: false,
-      error: {
-        cookie: false
-      }
-    }
+    return new Response().body("success");
   }
 
   public async testDeleteUser(email: string): Promise<Response> {

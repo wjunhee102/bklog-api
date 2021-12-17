@@ -531,68 +531,56 @@ export class PrivateUserService {
    * 회원 탈퇴
    * @param userAuthInfo 
    */
-  public async withdrawalUser(userAuthInfo: UserAuthInfo & { id: string }): Promise<ResDeleteUser> {
-    const result: ResDeleteUser = {
-      success: false,
-      error: {
-        idValid: false,
-        emailValid: false,
-        passwordValid: false
-      }
+  public async withdrawalUser({id, email, password}: UserAuthInfo & { id: string }): Promise<ComposedResponseErrorType | null> {
+
+    const user: User = await this.findOneUserAuth({ id , email });
+
+    if(!user) {
+      return AuthErrorMessage.failureSignIn();
     }
-    const user: User = await this.findOneUserAuth({email: userAuthInfo.email});
-    if(user) {
-      result.error.emailValid = true;
 
-      if(user.id === userAuthInfo.id) {
-        result.error.idValid = true;
+    const comparedPassword = await Bcrypt.compare(
+      password,
+      user.userAuth.password
+    );
 
-        const comparedPassword = await Bcrypt.compare(
-          userAuthInfo.password,
-          user.userAuth.password
-        );
+    if(comparedPassword) {
+      return AuthErrorMessage.failureSignIn();
+    }
 
-        if(comparedPassword) {
-          result.error.passwordValid = true;
-
-          const userProfile: UserProfile = await this.userProfileRepository
-            .findOne({
-              relations: ["follows", "followers"],
-              where: {
-                id: user.userProfile.id
-              }
-            });
-
-          const { userPrivacy } = await this.userAuthRepository
-            .createQueryBuilder("userAuth")
-            .leftJoinAndSelect("userAuth.userPrivacy", "user-privacy")
-            .where({
-              id: user.userAuth.id
-            })
-            .getOne();
-
-          user.userProfile = userProfile;
-          user.userAuth.userPrivacy = userPrivacy;
-          
-          const resultDelete = await this.deleteUser(user);
-
-          if(!resultDelete) {
-            result.success = true;
-          }
-
-          return result;
+    const userProfile: UserProfile = await this.userProfileRepository
+      .findOne({
+        where: {
+          id: user.userProfile.id
         }
-      } else {
-        Logger.error("Login information does not match.");
+      });
 
-        user.userStatus.lastAccessTime = new Date(Date.now());
+    const { userPrivacy } = await this.userAuthRepository
+          .createQueryBuilder("userAuth")
+          .leftJoinAndSelect("userAuth.userPrivacy", "user-privacy")
+          .where({
+            id: user.userAuth.id
+          })
+          .getOne();
 
-        await this.saveUserStatus(user.userStatus);
-      }
-
+    if(!userProfile || !userPrivacy) {
+      return AuthErrorMessage.notFound("userProfile, userPrivacy");
     }
 
-    return result;
+    user.userProfile = userProfile;
+    user.userAuth.userPrivacy = userPrivacy;
+    
+    const resultDelete = await this.deleteUser(user);
+    
+    if(resultDelete) {
+      user.userStatus.lastAccessTime = new Date(Date.now());
+
+      await this.saveUserStatus(user.userStatus);
+
+      return resultDelete;
+    }
+    
+    return null;
   }
 
   public async testDeleteUser(email: string): Promise<ComposedResponseErrorType | null> {

@@ -139,11 +139,11 @@ export class AuthErrorMessage extends ResponseError {
     ).get(), NOT_FOUND];
   }
 
-  static failureSignIn(count: number): ComposedResponseErrorType {
+  static failureSignIn(count: number = 0): ComposedResponseErrorType {
     let message = "가입하지 않은 아이디이거나, 잘못된 비밀번호입니다.";
     let detail = "non-existent user";
 
-    if(count !== -1) {
+    if(count > 0) {
       message = `잘못된 비밀번호입니다. (실패 횟수 ${count})`;
       detail = `countOfFail ${count}`;
     } 

@@ -1,12 +1,13 @@
 import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './dto/auth.schema';
-import { UserJwtokens, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens } from './auth.type';
+import { UserJwtokens, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens, TokenVailtionType, ResValitionAccessToken } from './auth.type';
 import { ResponseMessage } from 'src/utils/common/response.util2';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
 import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-user.type';
 import { CommonErrorMessage, Response, AuthErrorMessage, SystemErrorMessage } from 'src/utils/common/response.util';
 import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
+import { ResTokenValidation } from 'src/auth/auth.type';
 
 @Controller('auth')
 export class AuthController {
@@ -39,6 +40,39 @@ export class AuthController {
 
   private clearUserJwtCookieAccess(res) {
     res.clearCookie(ACCESS_TOKEN);
+  }
+
+  private validationAccessToken(@Req() req): ResTokenValidation {
+    const accessToken = req.signedCookies[ACCESS_TOKEN];
+    const userAgent = req.headers["user-agent"];
+
+    if(!accessToken) {
+      return {
+        id: null,
+        accessToken: false,
+        error: {
+          infoFalse: true,
+          expFalse: false
+        }
+      }
+    }
+
+    return Object.assign({}, this.authService.validateAccessTokenReturnId(accessToken, userAgent), {
+      accessToken: true
+    });
+  }
+
+  private responseCheckToken({ infoFalse } : TokenVailtionType ,res): void {
+    const response: Response = new Response();
+
+    if(infoFalse) {
+      this.clearUserJwtCookie(res);
+      response.error(...AuthErrorMessage.info);
+    } else {
+      response.error(...AuthErrorMessage.exp);
+    }
+
+    response.res(res).send();
   }
 
   @Post('sign-up')
@@ -137,48 +171,7 @@ export class AuthController {
       new Response().error(...AuthErrorMessage.info).res(res).send();
     }
     
-  }
-
-  /**
-   * Response message 수정해야 함.
-   * @param req 
-   * @param res 
-   * @param userAuthInfo 
-   */
-  @Delete('withdrawal')
-  @UsePipes(new JoiValidationPipe(authInfoSchema))
-  public async withdrawalUser(
-    @Req() req,
-    @Res() res,
-    @Body() userAuthInfo: UserAuthInfo
-  ) {
-    const accessToken = req.signedCookies[ACCESS_TOKEN];
-    const refreshToken = req.signedCookies[REFRESH_TOKEN];
-    
-    if(!refreshToken || !accessToken) {
-
-      this.clearUserJwtCookie(res);
-      new Response().error(...AuthErrorMessage.info).res(res).send();
-
-    } else {
-
-      const resWithdrawalUser: ResWithdrawalUser = await this.authService.withdrawalUser(
-        userAuthInfo, 
-        accessToken,
-        refreshToken,
-        req.headers["user-agent"]
-      );
-  
-      if(resWithdrawalUser.success) {
-        this.clearUserJwtCookie(res);
-        new Response().body("success").res(res).send();
-      } else {
-        new Response().error(...SystemErrorMessage.db).res(res).send();
-      } 
-
-    }
-
-  }
+  }  
 
   @Post('user-activation')
   @UsePipes(new JoiValidationPipe(activateUserSchema))
@@ -255,6 +248,23 @@ export class AuthController {
     const response: Response = await this.authService.testDeleteUser(email);
 
     response.res(res).send();
+  }
+
+  @Delete('withdrawal')
+  @UsePipes(new JoiValidationPipe(authInfoSchema))
+  public async deleteUser(@Req() req, @Res() res, @Body() userInfo: UserAuthInfo) {
+    const { id, error } = this.validationAccessToken(req);
+
+    if(!id) {
+      this.responseCheckToken(error, res);
+    } else {
+      const response: Response = await this.authService.withdrawalUser(Object.assign({}, {
+        ...userInfo, 
+        id
+      }));
+
+      response.res(res).send();
+    }
   }
 
 }
