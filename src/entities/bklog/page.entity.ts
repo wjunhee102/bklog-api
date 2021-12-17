@@ -64,7 +64,7 @@ export class Page extends MainTable {
   })
   disclosureScope: number;
 
-   // 0: 주 작성자, 1: 지정한 user, 2: following, 3: org, 4: following || org, 5: public;
+   // 0: 주 작성자, 1: master, 2: default;
   @Column({
     name: "editable_scope",
     type: "tinyint",

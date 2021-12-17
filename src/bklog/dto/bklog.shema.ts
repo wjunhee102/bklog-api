@@ -1,6 +1,6 @@
 import * as Joi from 'joi';
 import { ReqCreatePage } from 'src/bklog/page/page.type';
-import { ReqEditPageEditor, ReqUpdateBklog, ReqUpdatePageInfo } from '../bklog.type';
+import { ReqDeletePage, ReqEditPageEditor, ReqUpdateBklog, ReqUpdatePageInfo } from '../bklog.type';
 
 export const reqCreatePageSchema: Joi.ObjectSchema<ReqCreatePage> = Joi.object({
   profileId: Joi.string().required(),
@@ -27,4 +27,9 @@ export const reqEditPageEditorSchema: Joi.ObjectSchema<ReqEditPageEditor> = Joi.
   pageId: Joi.string().required(),
   profileId: Joi.string().required(),
   targetProfileId: Joi.string().required()
+});
+
+export const reqDeletePageSchema: Joi.ObjectSchema<ReqDeletePage> = Joi.object({
+  pageId: Joi.string().required(),
+  profileId: Joi.string().required()
 });

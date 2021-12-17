@@ -143,3 +143,8 @@ export interface ReqEditPageEditor {
   profileId: string;
   targetProfileId: string;
 }
+
+export interface ReqDeletePage {
+  pageId: string;
+  profileId: string;
+}

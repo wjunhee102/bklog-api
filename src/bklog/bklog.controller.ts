@@ -1,11 +1,11 @@
-import { Controller, Post, Req, Res, Body, Get, Param, Query, ParseIntPipe, UsePipes } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Get, Param, Query, ParseIntPipe, UsePipes, Delete } from '@nestjs/common';
 import { BklogService } from './bklog.service';
 import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
 import { ACCESS_TOKEN } from 'src/auth/auth.type';
-import { ParamGetPageList, ReqEditPageEditor, ReqUpdateBklog, ReqUpdatePageInfo } from './bklog.type';
+import { ParamGetPageList, ReqDeletePage, ReqEditPageEditor, ReqUpdateBklog, ReqUpdatePageInfo } from './bklog.type';
 import { Response, AuthErrorMessage } from 'src/utils/common/response.util';
-import { reqCreatePageSchema, reqEditPageEditorSchema, reqUpdateBklogSchema, reqUpdatePageInfoSchema } from './dto/bklog.shema';
+import { reqCreatePageSchema, reqDeletePageSchema, reqEditPageEditorSchema, reqUpdateBklogSchema, reqUpdatePageInfoSchema } from './dto/bklog.shema';
 import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
 import { BaseController } from 'src/common/base.controller';
 
@@ -296,6 +296,35 @@ export class BklogController extends BaseController {
   
       response.res(res).send();
     }
+  }
+
+  @Delete('delete-page')
+  @UsePipes(new JoiValidationPipe(reqDeletePageSchema))
+  public async deletePage(
+    @Req() req, 
+    @Res() res, 
+    @Body() { pageId, profileId }: ReqDeletePage
+  ) {
+    const { id, error } = this.validationAccessToken(req);
+
+    if(!id) {
+      this.responseCheckToken(error, res);
+    } else {
+      const checkProfileId: boolean = await this.checkUserIdNProfileId(id, profileId);
+      let response: Response;
+
+      if(!checkProfileId) {
+
+        this.clearUserJwtCookie(res);
+        response = new Response().error(...AuthErrorMessage.info);
+
+      } else {
+        response = await this.bklogService.deletePage(pageId, id, profileId);
+      }
+
+      response.res(res).send();
+    }
+
   }
 
   @Get('test')

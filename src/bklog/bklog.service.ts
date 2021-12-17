@@ -406,4 +406,32 @@ export class BklogService {
     return result? new Response().error(...result) : new Response().body("success");
   }
 
+  /**
+   * 
+   * @param pageId 
+   * @param userId 
+   * @param profileId 
+   */
+  public async deletePage(
+    pageId: string, 
+    userId: string, 
+    profileId: string
+  ): Promise<Response> {
+    const page: Page = await this.pageService.findOnePage({ id: pageId });
+
+    if(!page) {
+      return new Response().error(...BklogErrorMessage.notFound);
+    }
+
+    if(page.userId !== userId) {
+      const resultCheckEditor = await this.pageService.checkPageEditor(pageId, profileId, page.editableScope);
+
+      if(resultCheckEditor) return new Response().error(...BklogErrorMessage.authorized);
+    }
+
+    const result = await this.pageService.removePage(pageId);
+
+    return result? new Response().error(...result) : new Response().body("success");
+  }
+
 }
