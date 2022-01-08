@@ -87,12 +87,9 @@ export class BklogController extends BaseController {
       this.responseCheckToken(error, res);
     } else {
 
-      const checkProfileId: boolean = await this.checkUserIdNProfileId(
-        id,
-        requiredBklogInfo.profileId
-      );
+      const profileId: string | null = await this.getProfileId(id);
 
-      if(!checkProfileId) {
+      if(!profileId) {
         this.clearUserJwtCookie(res);
 
         new Response()
@@ -102,39 +99,15 @@ export class BklogController extends BaseController {
 
       } else {
         const response: Response = await this.bklogService.createBklog(
-          Object.assign(requiredBklogInfo, { userId: id })
+          Object.assign(requiredBklogInfo, { 
+            userId: id,
+            profileId
+          })
         );  
         
         response.res(res).send();
       }
 
-    }
-    
-  }
-
-  @Post('t-create-page')
-  @UsePipes(new JoiValidationPipe(reqCreatePageSchema))
-  public async createPage2(
-    @Res() res,
-    @Body() requiredBklogInfo: ReqCreatePage
-  ): Promise<void> {
-
-    const checkUser: boolean = await this.checkUserIdNProfileId(
-      "4d120c098d6a113ebe55c5cfa43beb4a",
-      requiredBklogInfo.profileId
-    );
-
-    if(!checkUser) {
-      this.clearUserJwtCookie(res);
-
-      new Response().error(...AuthErrorMessage.info).res(res).send();
-        
-    } else {
-      const response: Response = await this.bklogService.createBklog(
-        Object.assign( requiredBklogInfo, { userId: "4d120c098d6a113ebe55c5cfa43beb4a" })
-      );  
-      
-      response.res(res).send();
     }
     
   }
@@ -146,7 +119,16 @@ export class BklogController extends BaseController {
     if(!id && accessToken) {
       this.responseCheckToken(error, res);
     } else {
-      const response: Response = await this.bklogService.getPage(pageId, id); 
+      let response: Response;
+      const profileId: string | null = await this.getProfileId(id);
+  
+      if(!profileId) {
+        this.clearUserJwtCookie(res);
+        response = new Response().error(...AuthErrorMessage.info);
+      } else {
+        response = await this.bklogService.getPage(pageId, profileId); 
+        
+      }
       response.res(res).send();
     }
   }
@@ -173,16 +155,16 @@ export class BklogController extends BaseController {
 
   @Post('add-pageeditor')
   @UsePipes(new JoiValidationPipe(reqEditPageEditorSchema))
-  public async addPageEditor(@Req() req, @Res() res, @Body() { pageId, profileId, targetProfileId }: ReqEditPageEditor) {
+  public async addPageEditor(@Req() req, @Res() res, @Body() { pageId, targetProfileId }: ReqEditPageEditor) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
       this.responseCheckToken(error, res);
     } else {
-      const checkProfileId: boolean = await this.checkUserIdNProfileId(id, profileId);
+      const profileId: string | null = await this.getProfileId(id);
       let response: Response;
 
-      if(!checkProfileId) {
+      if(!profileId) {
         this.clearUserJwtCookie(res);
         response = new Response().error(...AuthErrorMessage.info);
       } else {
@@ -201,16 +183,16 @@ export class BklogController extends BaseController {
 
   @Post('exclude-pageeditor')
   @UsePipes(new JoiValidationPipe(reqEditPageEditorSchema))
-  public async excludeFromPageEditorList(@Req() req, @Res() res, @Body() { pageId, profileId, targetProfileId }: ReqEditPageEditor) {
+  public async excludeFromPageEditorList(@Req() req, @Res() res, @Body() { pageId, targetProfileId }: ReqEditPageEditor) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
       this.responseCheckToken(error, res);
     } else {
-      const checkProfileId: boolean = await this.checkUserIdNProfileId(id, profileId);
+      const profileId: string | null = await this.getProfileId(id);
       let response: Response;
 
-      if(!checkProfileId) {
+      if(!profileId) {
         this.clearUserJwtCookie(res);
         response = new Response().error(...AuthErrorMessage.info);
       } else {
@@ -247,16 +229,16 @@ export class BklogController extends BaseController {
 
   @Post('updatebklog')
   @UsePipes(new JoiValidationPipe(reqUpdateBklogSchema))
-  public async updateBklog(@Req() req, @Res() res, @Body() { data, pageId, profileId, pageVersions }: ReqUpdateBklog) {
+  public async updateBklog(@Req() req, @Res() res, @Body() { data, pageId, pageVersions }: ReqUpdateBklog) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
       this.responseCheckToken(error, res);
     } else {
-      const checkProfileId: boolean = await this.checkUserIdNProfileId(id, profileId);
+      const profileId: string | null = await this.getProfileId(id);
       let response: Response;
 
-      if(!checkProfileId) {
+      if(!profileId) {
 
         this.clearUserJwtCookie(res);
         response = new Response().error(...AuthErrorMessage.info);
@@ -288,12 +270,25 @@ export class BklogController extends BaseController {
     if(!id) {
       this.responseCheckToken(error, res);
     } else {
-      const response: Response = await this.bklogService.updatePageInfo(
-        data,
-        pageId,
-        id
-      );
-  
+
+      const profileId: string | null = await this.getProfileId(id);
+      let response: Response;
+
+      if(!profileId) {
+
+        this.clearUserJwtCookie(res);
+        response = new Response().error(...AuthErrorMessage.info);
+
+      } else {
+
+        response = await this.bklogService.updatePageInfo(
+          data,
+          pageId,
+          id,
+          profileId
+        );
+      }
+      
       response.res(res).send();
     }
   }
@@ -303,21 +298,19 @@ export class BklogController extends BaseController {
   public async deletePage(
     @Req() req, 
     @Res() res, 
-    @Body() { pageId, profileId }: ReqDeletePage
+    @Body() { pageId }: ReqDeletePage
   ) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
       this.responseCheckToken(error, res);
     } else {
-      const checkProfileId: boolean = await this.checkUserIdNProfileId(id, profileId);
+      const profileId: string | null = await this.getProfileId(id);
       let response: Response;
 
-      if(!checkProfileId) {
-
+      if(!profileId) {
         this.clearUserJwtCookie(res);
         response = new Response().error(...AuthErrorMessage.info);
-
       } else {
         response = await this.bklogService.deletePage(pageId, id, profileId);
       }

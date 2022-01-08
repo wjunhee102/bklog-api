@@ -64,4 +64,8 @@ export class BaseController {
   ): Promise<boolean> {
     return this.authService.checkUserIdNPenName(userId, penName);
   }
+
+  public async getProfileId(userId: string): Promise<string | null> {
+    return this.authService.getProfileId(userId);
+  }
 }

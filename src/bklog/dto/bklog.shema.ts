@@ -3,13 +3,11 @@ import { ReqCreatePage } from 'src/bklog/page/page.type';
 import { ReqDeletePage, ReqEditPageEditor, ReqUpdateBklog, ReqUpdatePageInfo } from '../bklog.type';
 
 export const reqCreatePageSchema: Joi.ObjectSchema<ReqCreatePage> = Joi.object({
-  profileId: Joi.string().required(),
   title: Joi.string().required(),
   disclosureScope: Joi.number().required()
 });
 
 export const reqUpdateBklogSchema: Joi.ObjectSchema<ReqUpdateBklog> = Joi.object({
-  profileId: Joi.string().required(),
   pageId: Joi.string().required(),
   pageVersions: {
     current: Joi.string().required(),
@@ -25,11 +23,9 @@ export const reqUpdatePageInfoSchema: Joi.ObjectSchema<ReqUpdatePageInfo> = Joi.
 
 export const reqEditPageEditorSchema: Joi.ObjectSchema<ReqEditPageEditor> = Joi.object({
   pageId: Joi.string().required(),
-  profileId: Joi.string().required(),
   targetProfileId: Joi.string().required()
 });
 
 export const reqDeletePageSchema: Joi.ObjectSchema<ReqDeletePage> = Joi.object({
-  pageId: Joi.string().required(),
-  profileId: Joi.string().required()
+  pageId: Joi.string().required()
 });

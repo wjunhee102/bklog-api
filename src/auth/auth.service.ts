@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { jwtExpTime, accessExpTime, refreshExpTime } from 'secret/constants';
-import { JwtUserPayload, TokenVailtionRes, ResSignInUser, UserJwtokens, ResSignUpUser, ResWithdrawalUser, ResValitionAccessToken, ClientUserInfo, ACCESS, REFRESH, ResCheckAccessToken, ResReissueTokens } from './auth.type';
+import { jwtExpTime, accessExpTime } from 'secret/constants';
+import { JwtUserPayload, TokenVailtionRes, UserJwtokens, ResValitionAccessToken, ACCESS, REFRESH, ResCheckAccessToken, ResReissueTokens } from './auth.type';
 import { ResIdentifyUser, UserAuthInfo, UserIdList, UserIdNPenName } from './private-user/types/private-user.type';
 import { RequiredUserInfo, ResAuthenticatedUser } from './private-user/types/private-user.type';
 import { PrivateUserService } from './private-user/private-user.service';
-import { ResponseError, AuthErrorMessage, Response, SystemErrorMessage, CommonErrorMessage } from 'src/utils/common/response.util';
+import { AuthErrorMessage, Response, SystemErrorMessage, CommonErrorMessage } from 'src/utils/common/response.util';
 
 @Injectable()
 export class AuthService {
@@ -479,5 +479,11 @@ export class AuthService {
     const used: boolean = await this.privateUserService.checkUsedEmailAddress(email);
 
     return new Response().body(used? "y": "n");
+  }
+
+  public async getProfileId(userId: string): Promise<string | null> {
+    const res = await this.privateUserService.getUserIdNProfileId(userId);
+
+    return res? res.profileId : null;
   }
 }
