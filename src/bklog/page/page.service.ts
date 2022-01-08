@@ -132,10 +132,12 @@ export class PageService {
    * 
    * @param page 
    */
-  public async findOneCurrentPageVersion(page: Page) {
+  public async findOneCurrentPageVersion(id: string) {
     return this.pageVersionRepository.findOne({
       where: {
-        page
+        page: {
+          id
+        }
       },
       order: {
         createdDate: "DESC"
@@ -306,8 +308,8 @@ export class PageService {
    * 
    * @param id 
    */
-  public async checkCurrentPageVersion(id: string, page: Page): Promise<string | null> {
-    const pageVersion: PageVersion = await this.findOneCurrentPageVersion(page);
+  public async checkCurrentPageVersion(id: string, pageId: string): Promise<string | null> {
+    const pageVersion: PageVersion = await this.findOneCurrentPageVersion(pageId);
 
     if(!pageVersion || pageVersion.id !== id) {
       return null;
@@ -619,7 +621,7 @@ export class PageService {
     data: ModifyBklogDataType,
     callback?: (queryRunner: QueryRunner, page: Page) => Promise<ComposedResponseErrorType | null>
   ): Promise<Response> {
-
+    console.log(pageVersions);
     const page: Page = await this.findOnePage({id: pageId});
 
     const resCheckPage = this.checkPage(page);
@@ -636,7 +638,7 @@ export class PageService {
       }
     } 
 
-    const resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page);
+    const resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page.id);
 
     if(!resCheckCurrentVersion) {
       return new Response().error(...BklogErrorMessage.notFoundVersion);
@@ -667,8 +669,6 @@ export class PageService {
         data
       });
 
-      // await queryRunner.manager.delete(PageVersion, pageVersions.current);
-
       await queryRunner.manager.save(pageVersion);
 
       await queryRunner.commitTransaction();
@@ -688,7 +688,7 @@ export class PageService {
       await this.savePage(page);
     }
 
-    return new Response().body({ pageVersion: pageVersions.next }).status(201);
+    return new Response().body({ pageVersion: pageVersions.next }).status(200);
   }
 
   // provide
@@ -722,7 +722,9 @@ export class PageService {
         .select([
           "page.id",
           "page.title",
-          "page.disclosureScope"
+          "page.disclosureScope",
+          "page.emoji",
+          "page.parentId"
         ])
         .orderBy("page.disclosureScope", "DESC")
         .addOrderBy("page.title", "ASC")

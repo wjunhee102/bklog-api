@@ -15,7 +15,6 @@ export interface InfoToFindPageEditor {
 }
 
 export interface ReqCreatePage {
-  profileId: string;
   title: string;
   disclosureScope: number;
 }

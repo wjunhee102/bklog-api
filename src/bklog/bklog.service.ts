@@ -2,22 +2,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RequiredPageInfo, PageInfoList, RequiredBklogInfo } from './page/page.type';
 import { PageService } from './page/page.service';
 import { BlockService } from './block/block.service';
-import { BlockData, ModifyData } from './block/block.type';
+import { BlockData } from './block/block.type';
 import { UserService } from 'src/user/user.service';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { PageStarRepository } from './page/repositories/page-star.repository';
 import { Page } from 'src/entities/bklog/page.entity';
 import { PageStar } from 'src/entities/bklog/page-star.entity';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
-import { PageVersionRepository } from './repositories/page-version.repository';
-import { InfoToFindPageVersion, ParamGetPageList, ModifyBlockType, ModifySet, PageVersions, ResUpdateBklog, RequiredPageVersionIdList, ResCreateBklog, ModifyBklogDataType, ModifyPageInfoType } from './bklog.type';
+import { ParamGetPageList, PageVersions, ResUpdateBklog, ModifyBklogDataType, ModifyPageInfoType } from './bklog.type';
 import { Connection, QueryRunner } from 'typeorm';
-import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { Block } from 'src/entities/bklog/block.entity';
-import { Response, ResponseError, SystemErrorMessage, AuthErrorMessage, CommonErrorMessage, ComposedResponseErrorType, ResponseErrorTypes } from 'src/utils/common/response.util';
+import { Response, SystemErrorMessage, AuthErrorMessage, CommonErrorMessage, ComposedResponseErrorType, ResponseErrorTypes } from 'src/utils/common/response.util';
 import { AuthService } from 'src/auth/auth.service';
 import { BklogErrorMessage } from './utils';
 import { PageEditor } from 'src/entities/bklog/page-editor.entity';
+import { Token } from 'src/utils/common/token.util';
 
 @Injectable()
 export class BklogService {
@@ -214,22 +213,26 @@ export class BklogService {
    * 
    * @param factorGetPageList 
    */
-  public async findPageList(factorGetPageList: ParamGetPageList, uuid?: string): Promise<Response> {
+  public async findPageList(factorGetPageList: ParamGetPageList, userId?: string): Promise<Response> {
     let scope = 5;
 
     const userProfile: UserProfile = await this.userService.findOneUserProfile(factorGetPageList.pageUserInfo);
     
     if(!userProfile) return new Response().error(...CommonErrorMessage.notFound).notFound();
 
-    if(factorGetPageList.reqProfileId && uuid) {
+    if(factorGetPageList.reqProfileId && userId) {
       // id가 해당 유저의 팔로워인지... 맞으면 scope에 대입.
-      const checkProfileId = await this.authService.checkUserIdNProfileId(uuid, factorGetPageList.reqProfileId);
+      const reqProfileId = factorGetPageList.reqProfileId;
 
-      if(!checkProfileId) {
-        return new Response().error(...AuthErrorMessage.info).unauthorized();
-      }
+      const checkProfileId = await this.authService.checkUserIdNProfileId(userId, reqProfileId);
+
+      if(!checkProfileId) return new Response().error(...AuthErrorMessage.info).unauthorized();
+
+      if(reqProfileId === userProfile.id) scope = 1;
       
     }
+
+    console.log(userId, factorGetPageList.reqProfileId, scope);
     
     const pageInfoList: PageInfoList[] | null = await 
       this.pageService.findPublicPageList(
@@ -238,19 +241,18 @@ export class BklogService {
         factorGetPageList.skip,
         factorGetPageList.take
       ); 
-    
-
 
     return pageInfoList? 
       new Response().body({ pageInfoList, userProfile }) 
       : new Response().error(...CommonErrorMessage.notFound).notFound();
   }
 
-  public async getPage(pageId: string, userId?: string | null): Promise<Response> {
+  public async getPage(pageId: string, profileId?: string | null): Promise<Response> {
     const rawPage: Page | null = await this.pageService.getPage(pageId);
     const pageVersionList: PageVersion[] = await this.pageService.findPageVeriosn(rawPage);
     const pageVersion: PageVersion = pageVersionList[0];
     const result = await this.pageService.removePageVersion({ pageVersionList, saveCount: 5 });
+    let editable: boolean = false;
 
     if(result) {
       return new Response().error(...result);
@@ -258,7 +260,16 @@ export class BklogService {
     /**
      * scope 확인?
      */
+    if(profileId) {
 
+      if(profileId === rawPage.userProfile.id) {
+        editable = true;
+      } else {
+        const disclosureScope: number = rawPage.disclosureScope;
+        const editableScope: number   = rawPage.editableScope;
+      }
+
+    }
 
     const page = rawPage ? {
       pageInfo: Object.assign({}, rawPage, {
@@ -266,7 +277,7 @@ export class BklogService {
         userProfile: undefined,
         profileId: rawPage.userProfile.id,
         userId: undefined,
-        editable: userId? userId === rawPage.userId : false,
+        editable,
         removedDate: undefined,
         updating: undefined
       }),
@@ -289,12 +300,36 @@ export class BklogService {
    * @param pageId 
    * @param userId 
    */
+  public async updatePageInfo2(
+    modifyPageInfo: ModifyPageInfoType,
+    pageId: string,
+    userId: string,
+    profileId: string
+  ): Promise<Response> {
+    return this.pageService.updatePageInfo(modifyPageInfo, pageId, userId, profileId);
+  }
+
   public async updatePageInfo(
     modifyPageInfo: ModifyPageInfoType,
     pageId: string,
-    userId: string
+    userId: string,
+    profileId: string
   ): Promise<Response> {
-    return this.pageService.updatePageInfo(modifyPageInfo, pageId, userId);
+    const pageVersion: PageVersion | null = await this.pageService.findOneCurrentPageVersion(pageId);
+
+    if(!pageVersion) return new Response().error(...BklogErrorMessage.notFoundVersion);
+
+    return this.pageService.containerUpdateBklog(
+      pageId, 
+      userId, 
+      profileId, 
+      {
+        current: pageVersion.id,
+        next: Token.getUUID()
+      }, 
+      { modifyPageInfo },
+      this.callbackUpdatePageInfo(modifyPageInfo)  
+    );
   }
 
   // Bklog
@@ -305,6 +340,7 @@ export class BklogService {
    * @param preVersionId 
    */
   public async getModifyData(id: string, preVersionId: string): Promise<Response> {
+    console.log("getModify", id, preVersionId);
     if(id === preVersionId) {
       return new Response().body({ id: id, data: {}});
     }
@@ -340,6 +376,12 @@ export class BklogService {
     }
 
     return new Response().body("success"); 
+  }
+
+  private callbackUpdatePageInfo(modifyPageInfo: ModifyPageInfoType) {
+    return async (queryRunner: QueryRunner, page: Page): Promise<null> => {
+      return await this.pageService.updateModfiyPageInfo(queryRunner, page, modifyPageInfo);
+    }
   }
 
    /**

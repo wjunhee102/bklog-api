@@ -12,10 +12,27 @@ import { PageEditor } from './page-editor.entity';
 export class Page extends MainTable {
 
   @Column({
+    name: "parent_page_id",
+    type: "varchar",
+    width: 255,
+    nullable: true,
+    default: null
+  })
+  parentPageId: string; 
+
+  @Column({
     type: "varchar",
     width: 100
   })
   title: string;
+
+  @Column({
+    type: "varchar",
+    width: 50,
+    nullable: true,
+    default: null
+  })
+  emoji: string;
 
   @Column({
     name: "cover_image",
