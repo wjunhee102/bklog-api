@@ -5,10 +5,10 @@ import { UserProfile } from "./user-profile.entity";
 @Entity({name: "user-follow"})
 export class UserFollow extends ChildTable {
   
-  @ManyToOne(() => UserProfile, userProfile => userProfile.followers)
-  userProfile: UserProfile;
+  @ManyToOne(() => UserProfile, userProfile => userProfile.followerList)
+  userProfile!: UserProfile;
 
-  @ManyToOne(() => UserProfile, userProfile => userProfile.followings)
-  relativeProfile: UserProfile;
+  @ManyToOne(() => UserProfile, userProfile => userProfile.followingList)
+  relativeProfile!: UserProfile;
 
 }

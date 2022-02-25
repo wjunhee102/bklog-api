@@ -9,12 +9,12 @@ export class PageStar extends SubTable {
   @CreateDateColumn({
     name: "created_at"
   })
-  createdDate: Date;
+  createdDate!: Date;
 
-  @ManyToOne(() => UserProfile, userProfile => userProfile.pageStars)
-  userProfile: UserProfile;
+  @ManyToOne(() => UserProfile, userProfile => userProfile.pageStarList)
+  userProfile!: UserProfile;
 
   @ManyToOne(() => Page, page => page.pageStar)
-  page: Page;
+  page!: Page;
 
 }

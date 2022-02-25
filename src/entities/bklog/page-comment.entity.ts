@@ -7,9 +7,9 @@ import { UserProfile } from "../user/user-profile.entity";
 export class PageComment extends CommentTable {
   
   @ManyToOne(() => Page)
-  page: Page;
+  page!: Page;
 
-  @ManyToOne(() => UserProfile, userProfile => userProfile.pageComments)
-  userProfile: UserProfile;
+  @ManyToOne(() => UserProfile, userProfile => userProfile.pageCommentList)
+  userProfile!: UserProfile;
 
 }

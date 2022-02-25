@@ -10,9 +10,9 @@ export class PageController {
   ){}
 
   @Get('list/:penName')
-  async getPageList(@Param() params, @Query() query) {
+  async getPageList(@Param() params: any, @Query() query: any) {
     console.log(params,"2323", query? true : false);
-    const pageInfoList: PageInfoList[] | null = await this.pageService.findPublicPageList(params.penName);
+    const pageInfoList = await this.pageService.findPublicPageList(params.penName);
 
     if(pageInfoList) {
       return ResponseMessage({success: true, pageList: pageInfoList});

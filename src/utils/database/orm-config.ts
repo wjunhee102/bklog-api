@@ -4,10 +4,10 @@ const ormConfig: () => TypeOrmModuleOptions = () => {
   return {
     type: "mysql",
     host: "localhost",
-    port: process.env.DATABASE_PORT? parseInt(process.env.DATABASE_PORT) : 3307,
+    port: process.env.DATABASE_PORT? parseInt(process.env.DATABASE_PORT) : 3306,
     username: process.env.DATABASE_USER? process.env.DATABASE_USER : "junhee",
     password: process.env.DATABASE_PASSWORD? process.env.DATABASE_PASSWORD : "password",
-    database: process.env.DATABASE? process.env.DATABASE : "test",
+    database: process.env.DATABASE? process.env.DATABASE : "bklog",
     entities: [
       "dist/src/entities/*.entity{.ts,.js}", 
       "dist/src/entities/**/*.entity{.ts,.js}",
@@ -16,7 +16,7 @@ const ormConfig: () => TypeOrmModuleOptions = () => {
       "entities/*.entity{.ts,.js}",
       "auth/**/entities/*.entity{.ts,.js}"
     ],
-    logging: false,
+    logging: true,
     synchronize: true
   };
 } 

@@ -2,16 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { RequiredPageInfo, PageInfoList, RequiredBklogInfo } from './page/page.type';
 import { PageService } from './page/page.service';
 import { BlockService } from './block/block.service';
-import { BlockData } from './block/block.type';
+import { BlockData, UnionBlockData } from './block/type';
 import { UserService } from 'src/user/user.service';
-import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { PageStarRepository } from './page/repositories/page-star.repository';
 import { Page } from 'src/entities/bklog/page.entity';
-import { PageStar } from 'src/entities/bklog/page-star.entity';
-import { PageVersion } from 'src/entities/bklog/page-version.entity';
-import { ParamGetPageList, PageVersions, ResUpdateBklog, ModifyBklogDataType, ModifyPageInfoType } from './bklog.type';
+import { ParamGetPageList, PageVersions, ResUpdateBklog, PageInfo, PageInfoProps, ModifyBklogData } from './bklog.type';
 import { Connection, QueryRunner } from 'typeorm';
-import { Block } from 'src/entities/bklog/block.entity';
 import { Response, SystemErrorMessage, AuthErrorMessage, CommonErrorMessage, ComposedResponseErrorType, ResponseErrorTypes } from 'src/utils/common/response.util';
 import { AuthService } from 'src/auth/auth.service';
 import { BklogErrorMessage } from './utils';
@@ -36,16 +32,15 @@ export class BklogService {
    */
   private async insertPageStar(profileId: string, pageId: string): Promise<boolean> {
     try {
-      const userProfile: UserProfile = await this.userService.findOneUserProfile({ id: profileId });
-      if(!userProfile) {
-        return false;
-      }
-      const page: Page = await this.pageService.getPage(pageId);
-      if(!page) {
-        return false;
-      }
+      const userProfile = await this.userService.findOneUserProfile({ id: profileId });
+      
+      if(!userProfile) return false;
+      
+      const page = await this.pageService.getPage(pageId);
+      
+      if(!page) return false;
 
-      const pageStar: PageStar = await this.pageStarRepository.create({
+      const pageStar = await this.pageStarRepository.create({
         userProfile,
         page
       });
@@ -93,33 +88,30 @@ export class BklogService {
    * @param profileId 
    */
   public async addPageEditor(pageId: string, profileId: string): Promise<Response<string>> {
-    const page: Page | null = await this.pageService.findOnePage({ id: pageId });
-    const userProfile: UserProfile | null = await this.userService.findOneUserProfile({ id: profileId });
+    const page = await this.pageService.findOnePage({ id: pageId });
 
-    if(!page || !userProfile) {
-      return new Response().error(...BklogErrorMessage.notFound);
-    }
+    if(!page) return new Response().error(...BklogErrorMessage.notFound);
 
-    const prePageEditor: PageEditor | null = await this.pageService.findOnePageEditor(page.id, userProfile.id);
+    const userProfile = await this.userService.findOneUserProfile({ id: profileId });
 
-    if(prePageEditor) {
-      return new Response().error(
+    if(!userProfile) return new Response().error(...BklogErrorMessage.notFound);
+
+    const prePageEditor: PageEditor | undefined = await this.pageService.findOnePageEditor(page.id, userProfile.id);
+
+    if(prePageEditor) return new Response().error(
         new BklogErrorMessage()
         .preBuild(
           "list안에 존재합니다.",
           "Exists on the list of editors",
           "006"
-        )
-      )
-    }
+        ));
+    
 
-    const pageEditor: PageEditor | null = await this.pageService.createPageEditor(page, userProfile);
+    const pageEditor = await this.pageService.createPageEditor(page, userProfile);
 
-    const result: boolean = await this.pageService.savePageEditor(pageEditor);
+    const result = await this.pageService.savePageEditor(pageEditor);
 
-    if(!result) {
-      return new Response().error(...SystemErrorMessage.db);
-    }
+    if(!result) return new Response().error(...SystemErrorMessage.db);
 
     return new Response().body("success").status(201);
   }
@@ -130,11 +122,9 @@ export class BklogService {
    * @param profileId 
    */
   public async excludeFromPageEditorlist(pageId: string, profileId: string): Promise<Response> {
-    const result: ComposedResponseErrorType | null = await this.pageService.removePageEditor(pageId, profileId);
+    const result = await this.pageService.removePageEditor(pageId, profileId);
 
-    if(result) {
-      return new Response().error(...result);
-    }
+    if(result) return new Response().error(...result);
 
     return new Response().body("success");
   }
@@ -147,31 +137,29 @@ export class BklogService {
    */
   public async createBklog(requiredBklogInfo: RequiredBklogInfo): Promise<Response> {
 
-    const userProfile: UserProfile | null = await this.userService.findOneUserProfile({ id: requiredBklogInfo.profileId });
+    const userProfile = await this.userService.findOneUserProfile({ id: requiredBklogInfo.profileId });
 
-    if(!userProfile) {
-      return new Response().error(...AuthErrorMessage.info);
-    }
+    if(!userProfile) return new Response().error(...AuthErrorMessage.info);
     
     const requiredPageInfo: RequiredPageInfo = Object.assign(requiredBklogInfo, {
       userProfile
     });
 
-    const page: Page = this.pageService.createPage(requiredPageInfo);
+    const page = this.pageService.createPage(requiredPageInfo);
 
-    const block: Block = this.blockService.createBlockData(page);
+    const block = this.blockService.createBlockData(page);
 
     const blockData: BlockData = Object.assign({}, block, {
       blockComment: undefined, 
       page: undefined
     });
 
-    const pageVersion: PageVersion = this.pageService.createPageVersion(page, {
-        modifyBlockData: {
+    const pageVersion = this.pageService.createPageVersion(page, {
+        blockData: {
           create: [
             {
-              blockId: block.id,
-              set: "block",
+              id: block.id,
+              type: block.type,
               payload: blockData
             }
           ]
@@ -179,7 +167,7 @@ export class BklogService {
       }
     );
 
-    const pageEditor: PageEditor = this.pageService.createPageEditor(page, userProfile, 0);
+    const pageEditor = this.pageService.createPageEditor(page, userProfile, 0);
 
     const queryRunner = this.connection.createQueryRunner();
 
@@ -216,7 +204,7 @@ export class BklogService {
   public async findPageList(factorGetPageList: ParamGetPageList, userId?: string): Promise<Response> {
     let scope = 5;
 
-    const userProfile: UserProfile = await this.userService.findOneUserProfile(factorGetPageList.pageUserInfo);
+    const userProfile = await this.userService.findOneUserProfile(factorGetPageList.pageUserInfo);
     
     if(!userProfile) return new Response().error(...CommonErrorMessage.notFound).notFound();
 
@@ -231,8 +219,6 @@ export class BklogService {
       if(reqProfileId === userProfile.id) scope = 1;
       
     }
-
-    console.log(userId, factorGetPageList.reqProfileId, scope);
     
     const pageInfoList: PageInfoList[] | null = await 
       this.pageService.findPublicPageList(
@@ -247,51 +233,66 @@ export class BklogService {
       : new Response().error(...CommonErrorMessage.notFound).notFound();
   }
 
-  public async getPage(pageId: string, profileId?: string | null): Promise<Response> {
-    const rawPage: Page | null = await this.pageService.getPage(pageId);
-    const pageVersionList: PageVersion[] = await this.pageService.findPageVeriosn(rawPage);
-    const pageVersion: PageVersion = pageVersionList[0];
-    const result = await this.pageService.removePageVersion({ pageVersionList, saveCount: 5 });
-    let editable: boolean = false;
+  public async getPage(pageId: string, profileId?: string | null): Promise<Response<{
+    pageInfo: PageInfo;
+    blockList: UnionBlockData[];
+    version: string;
+  } | { error: ResponseErrorTypes }>> {
+    const page = await this.pageService.getPage(pageId);
 
-    if(result) {
-      return new Response().error(...result);
-    }
+    if(!page) return new Response().error(...BklogErrorMessage.notFound)
+
+    const pageVersionList = await this.pageService.findPageVeriosn(page);
+
+    if(!pageVersionList[0]) return new Response().error(...BklogErrorMessage.notFoundVersion)
+
+    const pageVersion = pageVersionList[0];
+
+    const result = await this.pageService.removePageVersion({ pageVersionList, saveCount: 5 });
+    
+    let editable = false;
+
+    if(result) return new Response().error(...result);
+
     /**
      * scope 확인?
      */
     if(profileId) {
 
-      if(profileId === rawPage.userProfile.id) {
+      if(profileId === page.userProfile.id) {
         editable = true;
       } else {
-        const disclosureScope: number = rawPage.disclosureScope;
-        const editableScope: number   = rawPage.editableScope;
+        const disclosureScope = page.disclosureScope;
+        const editableScope   = page.editableScope;
       }
 
     }
 
-    const page = rawPage ? {
-      pageInfo: Object.assign({}, rawPage, {
+    console.log("page", page);
+    
+    return new Response<{
+      pageInfo: PageInfo;
+      blockList: UnionBlockData[];
+      version: string;
+    } >().body({
+      pageInfo: Object.assign({}, page, {
+        versionList: undefined,
         blockList: undefined,
         userProfile: undefined,
-        profileId: rawPage.userProfile.id,
+        profileId: page.userProfile.id,
         userId: undefined,
         editable,
         removedDate: undefined,
         updating: undefined
       }),
-      blockList: rawPage.blockList.map((block) => {
+      blockList: page.blockList.map((block) => {
         return Object.assign({}, block, {
           page: undefined,
           blockComment: undefined,
         })
       }),
       version: pageVersion.id
-    } : null;
-    
-    return page? new Response().body(page) 
-      : new Response().error(...BklogErrorMessage.notFound)
+    });
   }
 
   /**
@@ -301,7 +302,7 @@ export class BklogService {
    * @param userId 
    */
   public async updatePageInfo2(
-    modifyPageInfo: ModifyPageInfoType,
+    modifyPageInfo: PageInfoProps,
     pageId: string,
     userId: string,
     profileId: string
@@ -310,12 +311,12 @@ export class BklogService {
   }
 
   public async updatePageInfo(
-    modifyPageInfo: ModifyPageInfoType,
+    modifyPageInfo: PageInfoProps,
     pageId: string,
     userId: string,
     profileId: string
   ): Promise<Response> {
-    const pageVersion: PageVersion | null = await this.pageService.findOneCurrentPageVersion(pageId);
+    const pageVersion = await this.pageService.findOneCurrentPageVersion(pageId);
 
     if(!pageVersion) return new Response().error(...BklogErrorMessage.notFoundVersion);
 
@@ -327,7 +328,7 @@ export class BklogService {
         current: pageVersion.id,
         next: Token.getUUID()
       }, 
-      { modifyPageInfo },
+      { pageInfo: modifyPageInfo },
       this.callbackUpdatePageInfo(modifyPageInfo)  
     );
   }
@@ -344,7 +345,7 @@ export class BklogService {
     if(id === preVersionId) {
       return new Response().body({ id: id, data: {}});
     }
-    const pageVersion: PageVersion = await this.pageService.findOnePageVersion({ id, preVersionId });
+    const pageVersion = await this.pageService.findOnePageVersion({ id, preVersionId });
 
     return pageVersion? new Response().body({ id: pageVersion.id, data: pageVersion.data })
     : new Response().error(...BklogErrorMessage.notFoundVersion);
@@ -358,7 +359,7 @@ export class BklogService {
     pageId: string,
     userId: string
   ): Promise<Response> {
-    const page: Page = await this.pageService.getPage(pageId);
+    const page = await this.pageService.getPage(pageId);
 
     if(!page) {
       return new Response().error(...BklogErrorMessage.notFound);
@@ -378,7 +379,7 @@ export class BklogService {
     return new Response().body("success"); 
   }
 
-  private callbackUpdatePageInfo(modifyPageInfo: ModifyPageInfoType) {
+  private callbackUpdatePageInfo(modifyPageInfo: PageInfoProps) {
     return async (queryRunner: QueryRunner, page: Page): Promise<null> => {
       return await this.pageService.updateModfiyPageInfo(queryRunner, page, modifyPageInfo);
     }
@@ -389,16 +390,16 @@ export class BklogService {
     * @param ModifyBklogDataType
     */
   private callbackUpdateBklog({ 
-    modifyBlockData,
-    modifyPageInfo
-  }: ModifyBklogDataType) {
+    pageInfo,
+    blockData
+  }: ModifyBklogData) {
     return async (queryRunner: QueryRunner, page: Page): Promise<ComposedResponseErrorType | null> => {
-      if(modifyPageInfo) {
-        await this.pageService.updateModfiyPageInfo(queryRunner, page, modifyPageInfo);
+      if(pageInfo) {
+        await this.pageService.updateModfiyPageInfo(queryRunner, page, pageInfo);
       }
   
-      if(modifyBlockData) {
-        const resultUpdateBlock = await this.blockService.updateModifyBlockData(queryRunner, page, modifyBlockData);
+      if(blockData) {
+        const resultUpdateBlock = await this.blockService.updateModifyBlockData(queryRunner, page, blockData);
   
         if(resultUpdateBlock) {
           await queryRunner.rollbackTransaction();
@@ -420,25 +421,20 @@ export class BklogService {
    * @param pageVersions 
    */
   public async updateBklog(
-    { 
-      modifyBlockData,
-      modifyPageInfo
-    }: ModifyBklogDataType, 
+    modifyBklogData: ModifyBklogData, 
     pageId: string, 
     userId: string, 
     profileId: string,
     pageVersions: PageVersions
   ): Promise<Response<ResUpdateBklog | ResponseErrorTypes>> {
-
+    console.log("modifyBklogData", modifyBklogData);
     return await this.pageService.containerUpdateBklog(
       pageId, 
       userId, 
       profileId,
-      pageVersions, {
-       modifyBlockData,
-       modifyPageInfo 
-      },
-      this.callbackUpdateBklog({ modifyBlockData, modifyPageInfo })
+      pageVersions, 
+      modifyBklogData,
+      this.callbackUpdateBklog(modifyBklogData)
     )
   }
 
@@ -459,11 +455,9 @@ export class BklogService {
     userId: string, 
     profileId: string
   ): Promise<Response> {
-    const page: Page = await this.pageService.findOnePage({ id: pageId });
+    const page = await this.pageService.findOnePage({ id: pageId });
 
-    if(!page) {
-      return new Response().error(...BklogErrorMessage.notFound);
-    }
+    if(!page) return new Response().error(...BklogErrorMessage.notFound);
 
     if(page.userId !== userId) {
       const resultCheckEditor = await this.pageService.checkPageEditor(pageId, profileId, page.editableScope);

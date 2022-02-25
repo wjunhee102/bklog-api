@@ -8,20 +8,20 @@ export class PageEditor {
   @PrimaryGeneratedColumn({
     type: "bigint"
   })
-  id: number;
+  id!: number;
 
   // 0: 생성자, 1: 주 작성자,  2: 일반 작성자
   @Column({
-    name: "authority",
-    type: "tinyint",
-    default: 2
+    name!: "authority",
+    type!: "tinyint",
+    default!: 2
   })
-  authority: number;
+  authority!: number;
 
   @ManyToOne(() => Page, Page => Page.editorList)
-  page: Page;
+  page!: Page;
 
   @ManyToOne(() => UserProfile, userProfile => userProfile.editableList)
-  userProfile: UserProfile;
+  userProfile!: UserProfile;
 
 }

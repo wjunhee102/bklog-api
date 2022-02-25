@@ -11,7 +11,7 @@ export class UserPrivacy extends ChildTable {
     nullable: true,
     default: null
   })
-  socailSecurityNumberF: string;
+  socailSecurityNumberF!: string;
 
   @Column({
     name: "social_security_number_b",
@@ -20,7 +20,7 @@ export class UserPrivacy extends ChildTable {
     nullable: true,
     default: null
   })
-  socailSecurityNumberB: string;
+  socailSecurityNumberB!: string;
 
   @Column({
     type: "varchar",
@@ -28,7 +28,7 @@ export class UserPrivacy extends ChildTable {
     nullable: true,
     default: "Republic of Korea"
   })
-  country: string;
+  country!: string;
 
   @Column({
     type: "varchar",
@@ -36,7 +36,7 @@ export class UserPrivacy extends ChildTable {
     nullable: true,
     default: null
   })
-  state: string;
+  state!: string;
 
   @Column({
     type: "varchar",
@@ -44,7 +44,7 @@ export class UserPrivacy extends ChildTable {
     nullable: true,
     default: null
   })
-  detailedAddress: string;
+  detailedAddress!: string;
 
   @Column({
     name: "phone_number",
@@ -53,18 +53,18 @@ export class UserPrivacy extends ChildTable {
     nullable: true,
     default: null
   })
-  phoneNumber: string;
+  phoneNumber!: string;
 
   @Column({
     name: "last_info_access_time",
     type: "date",
     nullable: true
   })
-  lastInfoAccessTime: Date;
+  lastInfoAccessTime!: Date;
 
   @UpdateDateColumn({
     name: "update_at"
   })
-  updatedDate: Date;
+  updatedDate!: Date;
   
 }

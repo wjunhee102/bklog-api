@@ -12,20 +12,20 @@ export class User extends MainTable {
     type: "varchar",
     length: 20
   })
-  firstName: string;
+  firstName!: string;
 
   @Column({
     name: "last_name",
     type: "varchar",
     length: 20
   })
-  lastName: string;
+  lastName!: string;
 
   @Column({
     type: "varchar",
     length: 100
   })
-  email: string;
+  email!: string;
 
   @Column({
     name: "last_sign_in_date",
@@ -33,18 +33,18 @@ export class User extends MainTable {
     nullable: true,
     default: null
   })
-  lastSignInDate: Date;
+  lastSignInDate!: Date;
 
   @OneToOne(()=> UserAuth)
   @JoinColumn()
-  userAuth: UserAuth;
+  userAuth!: UserAuth;
 
   @OneToOne(()=> UserProfile) 
   @JoinColumn()
-  userProfile: UserProfile;
+  userProfile!: UserProfile;
 
   @OneToOne(()=> UserStatus)
   @JoinColumn()
-  userStatus: UserStatus;
+  userStatus!: UserStatus;
   
 }

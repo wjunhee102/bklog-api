@@ -5,7 +5,7 @@ import { UserAuthRepository } from './repositories/user-auth.repository';
 import { UserRepository } from './repositories/user.repository';
 import { UserProfileRepository } from 'src/user/repositories/user-profile.repository';
 import { UserStatusRepository } from 'src/user/repositories/user-status.repository';
-import { UserAuthInfo, RequiredUserInfo, ResAuthenticatedUser, InfoToFindUser, ResDeleteUser, UserIdList, UserIdNPenName } from './types/private-user.type';
+import { UserAuthInfo, RequiredUserInfo, ResAuthenticatedUser, InfoToFindUser, UserIdList, UserIdNPenName } from './types/private-user.type';
 import { UserStatus } from 'src/entities/user/user-status.entity';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
 import { User } from './entities/user.entity';
@@ -14,16 +14,12 @@ import { UserPrivacy } from './entities/user-privacy.entity';
 import { Token } from 'src/utils/common/token.util';
 import { ResSignInUser } from '../auth.type';
 import { InfoToFindUserProfile } from 'src/user/user.type';
-import { Connection, QueryRunner } from 'typeorm';
+import { Connection } from 'typeorm';
 import { UserFollow } from 'src/entities/user/user-follow.entity';
 import { PageService } from 'src/bklog/page/page.service';
 import { BlockService } from 'src/bklog/block/block.service';
-import { Page } from 'src/entities/bklog/page.entity';
 import { Block } from 'src/entities/bklog/block.entity';
-import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { BlockData } from 'src/bklog/block/block.type';
-import { throws } from 'assert';
-import { PageEditor } from 'src/entities/bklog/page-editor.entity';
 import { AuthErrorMessage, ComposedResponseErrorType, SystemErrorMessage } from 'src/utils/common/response.util';
 
 @Injectable()
@@ -53,7 +49,7 @@ export class PrivateUserService {
    * 
    * @param userId 
    */
-  private findOneUserProfileUserId(userId: string): Promise<User> {
+  private findOneUserProfileUserId(userId: string) {
     return this.userRepository.findOne({
       relations: ["userProfile"],
       where: {
@@ -63,7 +59,7 @@ export class PrivateUserService {
     });
   }
 
-  private findOneUserNProfileId(userId: string): Promise<User> {
+  private findOneUserNProfileId(userId: string) {
     return this.userRepository.findOne({
       relations: ["userProfile"],
       where: {
@@ -76,7 +72,7 @@ export class PrivateUserService {
    * 
    * @param userId 
    */
-  private async findOneUserAuth(userInfo: InfoToFindUser): Promise<User> {
+  private async findOneUserAuth(userInfo: InfoToFindUser) {
     return await this.userRepository
     .createQueryBuilder("user")
     .leftJoinAndSelect("user.userAuth", "user-auth")
@@ -90,8 +86,8 @@ export class PrivateUserService {
    * profile 찾기
    * @param penName 
    */
-  private async findOneUserProfile(infoToFindUserProfile : InfoToFindUserProfile): Promise<UserProfile | null> {
-    const userProfile: UserProfile | null = await this.userProfileRepository.findOne({
+  private async findOneUserProfile(infoToFindUserProfile : InfoToFindUserProfile) {
+    const userProfile = await this.userProfileRepository.findOne({
       where: infoToFindUserProfile
     });
 
@@ -99,7 +95,7 @@ export class PrivateUserService {
   }
  
 
-  private async saveUser(user: User) {
+  private async saveUser(user: User): Promise<boolean> {
     try {
       await this.userRepository.save(user);
 
@@ -244,16 +240,16 @@ export class PrivateUserService {
         profileId: profile.id
       },
       {
-        modifyBlockData: {
+        blockData: {
           create: [
             {
-              blockId: blockData1.id,
-              set: "block",
+              id: blockData1.id,
+              type: blockData1.type,
               payload: blockData1
             },
             {
-              blockId: blockData2.id,
-              set: "block",
+              id: blockData2.id,
+              type: blockData2.type,
               payload: blockData2
             }
           ]
@@ -261,12 +257,12 @@ export class PrivateUserService {
       }
     );
 
-    const block1: Block = this.blockService.createBlock({
+    const block1 = this.blockService.createBlock({
       ...blockData1,
       page: pageElements[0]
     });
 
-    const block2: Block = this.blockService.createBlock({
+    const block2 = this.blockService.createBlock({
       ...blockData2,
       page: pageElements[0]
     });
@@ -309,7 +305,7 @@ export class PrivateUserService {
    */
   private async deleteUser(user: User): Promise<ComposedResponseErrorType | null> {
     const { userProfile, userAuth, userStatus } = user;
-    const { userPrivacy }: UserAuth = userAuth;
+    const { userPrivacy } = userAuth;
   
     const queryRunner = this.connection.createQueryRunner();
 
@@ -319,7 +315,7 @@ export class PrivateUserService {
     try {
       await this.pageService.removeAllPage(queryRunner, userProfile);
 
-      const userFollowList: UserFollow[] = await queryRunner.manager.find(UserFollow, {
+      const userFollowList = await queryRunner.manager.find(UserFollow, {
         where: [
           {userProfile},
           {relativeProfile: userProfile}
@@ -354,9 +350,11 @@ export class PrivateUserService {
    * @param id 
    */
   public async checkAdmin(id: string) {
-    const { firstName }: User = await this.findOneUser({ id });
+    const user = await this.findOneUser({ id });
+
+    if(!user) return false;
     
-    return firstName === "admin"? true : false;
+    return user.firstName === "admin"? true : false;
   }
 
   /**
@@ -364,7 +362,7 @@ export class PrivateUserService {
    * @param penName 
    */
   public async checkPenName(penName: string): Promise<boolean> {
-    const userProfile: UserProfile | null = await this.findOneUserProfile({ penName });
+    const userProfile = await this.findOneUserProfile({ penName });
 
     return userProfile? true : false;
   }
@@ -384,17 +382,14 @@ export class PrivateUserService {
    */
   public async registerUser(requiredUserInfo: RequiredUserInfo): Promise<boolean> {
     const resCreateUser = await this.createUser(requiredUserInfo);
-    if(!resCreateUser) {
-      return false;
-    } 
+    
+    if(!resCreateUser) return false;
 
     const user = await this.findOneUserAuth({email: requiredUserInfo.email});
 
-    if(requiredUserInfo.email !== user.email) {
-      return false;
-    }
+    if(!user || requiredUserInfo.email !== user.email) return false;
 
-    const resComparePassword: boolean = await this.comparePassword(
+    const resComparePassword = await this.comparePassword(
       requiredUserInfo.password,
       user.userAuth.password
     );
@@ -418,58 +413,60 @@ export class PrivateUserService {
 
     const user = await this.findOneUserAuth({email: userAuthInfo.email});
 
-    if(user) {
-      const comparedPassword = await Bcrypt.compare(
-        userAuthInfo.password,
-        user.userAuth.password
-      );
-    
-      if(!comparedPassword) {
-        user.userAuth.countOfFailures += 1;
-        result.countOfFail = user.userAuth.countOfFailures;
+    if(!user) return result;
 
-        if(user.userAuth.countOfFailures >= 5) {
-          user.userStatus.isActive = false;
-          await this.userStatusRepository.save(user.userStatus);
-          result.isActive = user.userStatus.isActive;
-        }
+    const comparedPassword = await Bcrypt.compare(
+      userAuthInfo.password,
+      user.userAuth.password
+    );
+  
+    if(!comparedPassword) {
+      user.userAuth.countOfFailures += 1;
+      result.countOfFail = user.userAuth.countOfFailures;
 
-      } else {
-        if(user.userStatus.isActive && user.userStatus.isNotDormant) {
-          const date = new Date(Date.now());
+      if(user.userAuth.countOfFailures >= 5) {
+        user.userStatus.isActive = false;
 
-          user.userAuth.countOfFailures = 0;
-          user.lastSignInDate = date;
-          user.userStatus.lastAccessTime = date;
+        await this.userStatusRepository.save(user.userStatus);
 
-          result.isActive = true;
-          result.isNotDormant = true;
-          result.countOfFail = 0;
-
-          result.userInfo = {
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            penName: user.userProfile.penName,
-            userId: user.id,
-            profileId: user.userProfile.id,
-            photo: user.userProfile.photo,
-            bio: user.userProfile.bio
-          }
-        } 
-        
+        result.isActive = user.userStatus.isActive;
       }
 
-      await this.saveUserStatus(user.userStatus);
-      await this.saveUserAuth(user.userAuth);
-      await this.saveUser(user);
+    } else {
+      if(user.userStatus.isActive && user.userStatus.isNotDormant) {
+        const date = new Date(Date.now());
+
+        user.userAuth.countOfFailures = 0;
+        user.lastSignInDate = date;
+        user.userStatus.lastAccessTime = date;
+
+        result.isActive = true;
+        result.isNotDormant = true;
+        result.countOfFail = 0;
+
+        result.userInfo = {
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          penName: user.userProfile.penName,
+          userId: user.id,
+          profileId: user.userProfile.id,
+          photo: user.userProfile.photo,
+          bio: user.userProfile.bio
+        }
+      } 
+      
     }
+
+    await this.saveUserStatus(user.userStatus);
+    await this.saveUserAuth(user.userAuth);
+    await this.saveUser(user);
 
     return result;
   }
 
   public async updateAccessTime(userId: string): Promise<boolean> {
-    const user: User = await this.userRepository
+    const user = await this.userRepository
       .createQueryBuilder("user")
       .leftJoinAndSelect("user.userStatus", "user-status")
       .where({
@@ -477,13 +474,13 @@ export class PrivateUserService {
       })
       .getOne();
 
-    if(user) {
-      user.userStatus.lastAccessTime = new Date(Date.now());
+    if(!user) return false;
 
-      await this.saveUserStatus(user.userStatus);
-    }
+    user.userStatus.lastAccessTime = new Date(Date.now());
 
-    return user? true : false;
+    await this.saveUserStatus(user.userStatus);
+
+    return true;
   }
 
   /**
@@ -493,35 +490,35 @@ export class PrivateUserService {
   public async getAuthenticatedUser(
     userId: string
   ): Promise<string | null> {
-    let user: User = await this.findOneUserAuth({id: userId});
+    let user = await this.findOneUserAuth({id: userId});
 
-    if(user) {
-      const date = new Date(Date.now());;
-      user.lastSignInDate = date;
-      user.userStatus.lastAccessTime = date;
-      user.userAuth.countOfFailures = 0;
+    if(!user) return null;
 
-      const queryRunner = this.connection.createQueryRunner();
+    const date = new Date(Date.now());;
+    user.lastSignInDate = date;
+    user.userStatus.lastAccessTime = date;
+    user.userAuth.countOfFailures = 0;
 
-      await queryRunner.connect();
-      await queryRunner.startTransaction();
+    const queryRunner = this.connection.createQueryRunner();
 
-      try {
-        await queryRunner.manager.save(user.userStatus);
-        await queryRunner.manager.save(user.userAuth);
-        await queryRunner.manager.save(user);
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-        await queryRunner.commitTransaction();
+    try {
+      await queryRunner.manager.save(user.userStatus);
+      await queryRunner.manager.save(user.userAuth);
+      await queryRunner.manager.save(user);
 
-      } catch(e) {
-        Logger.error(e);
-        await queryRunner.rollbackTransaction();
+      await queryRunner.commitTransaction();
 
-        user = null;
+    } catch(e) {
+      Logger.error(e);
+      await queryRunner.rollbackTransaction();
 
-      } finally {
-        await queryRunner.release();
-      }
+      user = undefined;
+
+    } finally {
+      await queryRunner.release();
     }
     
     return user? user.id : null;
@@ -533,11 +530,9 @@ export class PrivateUserService {
    */
   public async withdrawalUser({id, email, password}: UserAuthInfo & { id: string }): Promise<ComposedResponseErrorType | null> {
 
-    const user: User = await this.findOneUserAuth({ id , email });
+    const user = await this.findOneUserAuth({ id , email });
 
-    if(!user) {
-      return AuthErrorMessage.failureSignIn();
-    }
+    if(!user) return AuthErrorMessage.failureSignIn();
 
     const comparedPassword = await Bcrypt.compare(
       password,
@@ -548,24 +543,28 @@ export class PrivateUserService {
       return AuthErrorMessage.failureSignIn();
     }
 
-    const userProfile: UserProfile = await this.userProfileRepository
+    const userProfile = await this.userProfileRepository
       .findOne({
         where: {
           id: user.userProfile.id
         }
       });
 
-    const { userPrivacy } = await this.userAuthRepository
-          .createQueryBuilder("userAuth")
-          .leftJoinAndSelect("userAuth.userPrivacy", "user-privacy")
-          .where({
-            id: user.userAuth.id
-          })
-          .getOne();
+    if(!userProfile) return AuthErrorMessage.notFound("userProfile");
 
-    if(!userProfile || !userPrivacy) {
-      return AuthErrorMessage.notFound("userProfile, userPrivacy");
-    }
+    const userAuth = await this.userAuthRepository
+      .createQueryBuilder("userAuth")
+      .leftJoinAndSelect("userAuth.userPrivacy", "user-privacy")
+      .where({
+        id: user.userAuth.id
+      })
+      .getOne();
+
+    if(!userAuth) return AuthErrorMessage.notFound("userAuth");
+
+    const { userPrivacy } = userAuth;
+
+    if(!userPrivacy) return AuthErrorMessage.notFound("userProfile, userPrivacy");
 
     user.userProfile = userProfile;
     user.userAuth.userPrivacy = userPrivacy;
@@ -584,17 +583,20 @@ export class PrivateUserService {
   }
 
   public async testDeleteUser(email: string): Promise<ComposedResponseErrorType | null> {
-    const user: User = await this.findOneUserAuth({ email });
-    if(!user) return AuthErrorMessage.notFound("not user");
+    const user = await this.findOneUserAuth({ email });
 
-    const { userAuth } = user;
+    if(!user) return AuthErrorMessage.notFound("user");
 
-    const { userPrivacy }: UserAuth = await this.userAuthRepository.findOne({
+    const userAuth = await this.userAuthRepository.findOne({
       where: {
-        id: userAuth.id
+        id: user.userAuth.id
       },
       relations: ["userPrivacy"]
     });
+
+    if(!userAuth) return AuthErrorMessage.notFound("userAuth");
+
+    const { userPrivacy } = userAuth;
 
     user.userAuth.userPrivacy = userPrivacy;
 
@@ -602,18 +604,30 @@ export class PrivateUserService {
   }
 
   public async changeActivationUser(email: string, isActive: boolean) {
-    const result = {
+    const result: {
+      success: boolean;
+      error: {
+        emailValid: boolean;
+        dataBase: string | null;
+      }
+    } = {
       success: false,
       error: {
         emailValid: false,
         dataBase: null
       }
     }
-    const { userStatus }: User = await this.userRepository
+
+
+    const user = await this.userRepository
       .createQueryBuilder("user")
       .leftJoinAndSelect("user.userStatus", "user-status")
       .where({ email })
       .getOne();
+
+    if(!user) return result;
+
+    const { userStatus } = user;
 
     if(userStatus) {
       result.error.emailValid = true;
@@ -624,7 +638,7 @@ export class PrivateUserService {
 
         result.success = true;
       } catch(e) {
-        result.error.dataBase = e;
+        result.error.dataBase = e as string;
       }
 
     }
@@ -666,8 +680,8 @@ export class PrivateUserService {
 
   }
   
-  public async getUserIdNProfileId(userId: string): Promise<UserIdList> {
-    const user: User = await this.findOneUserProfileUserId(userId);
+  public async getUserIdNProfileId(userId: string): Promise<UserIdList | null> {
+    const user = await this.findOneUserProfileUserId(userId);
 
     return user? {
       userId: user.id,
@@ -675,8 +689,8 @@ export class PrivateUserService {
     } : null;
   }
 
-  public async getUserIdNPenName(userId: string): Promise<UserIdNPenName> {
-    const user: User = await this.findOneUserProfileUserId(userId);
+  public async getUserIdNPenName(userId: string): Promise<UserIdNPenName | null> {
+    const user = await this.findOneUserProfileUserId(userId);
 
     return user? {
       userId: user.id,

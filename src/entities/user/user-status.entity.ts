@@ -10,7 +10,7 @@ export class UserStatus extends ChildTable {
     nullable: true,
     default: null
   })
-  lastAccessTime: Date;
+  lastAccessTime!: Date;
 
   @Column({
     name: "is-not-dormant",
@@ -18,7 +18,7 @@ export class UserStatus extends ChildTable {
     width: 1,
     default: 1
   })
-  isNotDormant: boolean;
+  isNotDormant!: boolean;
 
   @Column({
     name: "is-active",
@@ -26,6 +26,6 @@ export class UserStatus extends ChildTable {
     width: 1,
     default: 1
   })
-  isActive: boolean;
+  isActive!: boolean;
 
 }

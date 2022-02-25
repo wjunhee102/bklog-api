@@ -15,6 +15,9 @@ async function bootstrap() {
     whitelist: true,
     forbidNonWhitelisted: true,
     transform: true,
+    transformOptions: {
+      enableImplicitConversion: true
+    }
   }))
   .use(cookieParser(cookieConstants))
   .use(session({
@@ -23,8 +26,8 @@ async function bootstrap() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.ENV === "prod"? false : false,
-      sameSite: process.env.ENV === "prod"? 'none' : false
+      secure: process.env.ENV === 'prod'? false : false,
+      sameSite: process.env.ENV === 'prod'? 'none' : false
     }
   }))
   .setGlobalPrefix('/v2')
@@ -33,12 +36,12 @@ async function bootstrap() {
       if (whitelist.indexOf(origin) !== -1) {
         callback(null, true);
       } else {
-        Logger.error("blocked cors for:", origin);
+        Logger.error('blocked cors for:', origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
     allowedHeaders: 'X-Requested-With, X-HTTP-Method-Override, Content-Type, Accept, Observe',
-    methods: "GET,PUT,POST,DELETE,UPDATE,OPTIONS",
+    methods: 'GET,PUT,POST,DELETE,UPDATE,OPTIONS',
     credentials: true
   });
 

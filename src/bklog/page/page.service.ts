@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PageRepository } from './repositories/page.repository';
-import { InfoToFindPage, RequiredPageInfo, PageInfoList, PageUserInfo, InfoToFindPageEditor } from './page.type';
+import { InfoToFindPage, RequiredPageInfo, PageInfoList, PageUserInfo } from './page.type';
 import { Page } from 'src/entities/bklog/page.entity';
 import { Token } from 'src/utils/common/token.util';
 import { Any, Brackets, Connection, In, QueryRunner } from 'typeorm';
@@ -9,15 +9,15 @@ import { PageCommentRepository } from './repositories/page-comment.repository';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
 import { PageComment } from 'src/entities/bklog/page-comment.entity';
 import { UserProfile } from 'src/entities/user/user-profile.entity';
-import { InfoToFindPageVersion, ModifyBklogDataType, ModifyPageInfoType, PageVersions, RequiredPageVersionIdList } from '../bklog.type';
-import { AuthErrorMessage, ComposedResponseErrorType, Response, ResponseError, SystemErrorMessage } from 'src/utils/common/response.util';
+import { InfoToFindPageVersion, ModifyBklogData, PageInfoProps, PageVersions, RequiredPageVersionIdList } from '../bklog.type';
+import { ComposedResponseErrorType, Response, SystemErrorMessage } from 'src/utils/common/response.util';
 import { BklogErrorMessage } from '../utils';
 import { PageEditorRepository } from './repositories/page-editor.repository';
 import { PageEditor } from 'src/entities/bklog/page-editor.entity';
 import { Block } from 'src/entities/bklog/block.entity';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { PageStar } from 'src/entities/bklog/page-star.entity';
-
+import { LogError } from 'src/common/decorator';
 @Injectable()
 export class PageService {
   constructor(
@@ -28,6 +28,16 @@ export class PageService {
     private readonly pageEditorRespository: PageEditorRepository
   ){}
 
+  private async logError(callback: Function) {
+    try {
+      await callback();
+
+      return true;
+    } catch(e) {
+      return false;
+    }
+  }
+
   // create
 
   /**
@@ -35,8 +45,9 @@ export class PageService {
    * @param requiredPageInfo 
    */
   public createPage(requiredPageInfo: RequiredPageInfo): Page {
-    requiredPageInfo.profileId = undefined;
-    const page: Page = this.pageRepository.create(requiredPageInfo);
+    const page = this.pageRepository.create(Object.assign({}, requiredPageInfo, {
+      profileId: undefined
+    }) as RequiredPageInfo);
 
     page.id = Token.getUUID();
 
@@ -52,7 +63,7 @@ export class PageService {
    */
   public createPageVersion(
     page: Page, 
-    data: ModifyBklogDataType, 
+    data: ModifyBklogData, 
     requiredIdList?: RequiredPageVersionIdList
   ): PageVersion {
     const pageVersion: PageVersion = this.pageVersionRepository.create({
@@ -96,7 +107,7 @@ export class PageService {
    */
   public preCreateBklog(
     requiredPageInfo: RequiredPageInfo, 
-    data: ModifyBklogDataType,  
+    data: ModifyBklogData,  
   ): [Page, PageVersion, PageEditor] {
     const page: Page = this.createPage(requiredPageInfo);
     const pageVersion: PageVersion = this.createPageVersion(page, data);
@@ -111,7 +122,7 @@ export class PageService {
    * pageVersion id
    * @param id 
    */
-  public async findOnePageVersion(infoToFindPageVersion: InfoToFindPageVersion): Promise<PageVersion> {
+  public async findOnePageVersion(infoToFindPageVersion: InfoToFindPageVersion): Promise<PageVersion | undefined> {
     return this.pageVersionRepository.findOne({
       where: infoToFindPageVersion
     });
@@ -166,7 +177,7 @@ export class PageService {
    * page 정보 찾기
    * @param pageInfo 
    */
-  public async findOnePage(pageInfo: InfoToFindPage): Promise<Page> {
+  public async findOnePage(pageInfo: InfoToFindPage) {
     return await this.pageRepository.findOne({
       where: pageInfo
     });
@@ -309,7 +320,7 @@ export class PageService {
    * @param id 
    */
   public async checkCurrentPageVersion(id: string, pageId: string): Promise<string | null> {
-    const pageVersion: PageVersion = await this.findOneCurrentPageVersion(pageId);
+    const pageVersion = await this.findOneCurrentPageVersion(pageId);
 
     if(!pageVersion || pageVersion.id !== id) {
       return null;
@@ -324,7 +335,7 @@ export class PageService {
    * @param profileId 
    */
   public async checkPageEditor(pageId: string, profileId: string, authorized: number = 2): Promise<ComposedResponseErrorType | null> {
-    const pageEditor: PageEditor | null = await this.findOnePageEditor(pageId, profileId);
+    const pageEditor = await this.findOnePageEditor(pageId, profileId);
 
     if(pageEditor && pageEditor.authority <= authorized) return null;
 
@@ -335,19 +346,20 @@ export class PageService {
    * scope 추가해야함.
    * @param id 
    */
-  public async getPage(id: string): Promise<Page> {
-    const page: Page = await this.pageRepository
+  public async getPage(id: string): Promise<Page | null> {
+    try {
+      const page: Page | undefined = await this.pageRepository
       .createQueryBuilder("page")
       .where({ id })
       .leftJoinAndSelect("page.userProfile", "user-profile")
       .leftJoinAndSelect("page.blockList", "block")
       .getOne();
+      console.log("page", page);
 
-    if(!page) {
-      return null
-    }
+      if(!page) {
+        return null
+      }
 
-    try {
       page.lastAccessDate = new Date(Date.now());
       page.views = Number(page.views) + 1;
 
@@ -359,7 +371,6 @@ export class PageService {
 
       return null;
     }
-    
   }
 
   public async removePageVersion({
@@ -371,11 +382,12 @@ export class PageService {
     saveCount?: number;
     pageVersionList?: PageVersion[];
   }): Promise<ComposedResponseErrorType | null> {
-    if(!page && !pageVersionList) return null;
-    let targetPageVersionList: PageVersion[] = pageVersionList? pageVersionList : await this.findPageVeriosn(page);
+    if(!page) return null;
+
+    let targetPageVersionList = pageVersionList? pageVersionList : await this.findPageVeriosn(page);
 
     if(targetPageVersionList.length < saveCount + 1) {
-      console.log("!error");
+      Logger.log("not page version");
       return null;
     }
 
@@ -385,11 +397,9 @@ export class PageService {
   }
 
   public async removePageEditor(pageId: string, userProfileId: string): Promise<ComposedResponseErrorType | null> {
-    const pageEditor: PageEditor = await this.findOnePageEditor(pageId, userProfileId);
+    const pageEditor = await this.findOnePageEditor(pageId, userProfileId);
 
-    if(!pageEditor) {
-      return BklogErrorMessage.notFound;
-    } 
+    if(!pageEditor) return BklogErrorMessage.notFound;
 
     return await this.deletePageEditor([pageEditor.id])? 
       null : SystemErrorMessage.db;
@@ -402,40 +412,26 @@ export class PageService {
     await queryRunner.startTransaction();
 
     try {
-      const page: Page = await this.pageRepository.findOne({
+      const page = await this.pageRepository.findOne({
         where: {
           id: pageId
         },
         relations: ["versionList", "pageStar", "pageComments", "blockList", "blockComments", "editorList"]
       });
 
-      if(!page) {
-        return BklogErrorMessage.notFound;
-      }
+      if(!page) return BklogErrorMessage.notFound;
 
-      if(page.blockComments[0]) {
-        await queryRunner.manager.delete(BlockComment, page.blockComments.map(com => com.id));
-      }
+      if(page.blockCommentList[0]) await queryRunner.manager.delete(BlockComment, page.blockCommentList.map(com => com.id));
 
-      if(page.blockList[0]) {
-        await queryRunner.manager.delete(Block, page.blockList.map(block => block.id));
-      }
+      if(page.blockList[0]) await queryRunner.manager.delete(Block, page.blockList.map(block => block.id));
 
-      if(page.editorList[0]) {
-        await queryRunner.manager.delete(PageEditor, page.editorList.map(edi => edi.id));
-      }
+      if(page.editorList[0]) await queryRunner.manager.delete(PageEditor, page.editorList.map(edi => edi.id));
 
-      if(page.versionList[0]) {
-        await queryRunner.manager.delete(PageVersion, page.versionList.map(ver => ver.id));
-      }
+      if(page.versionList[0]) await queryRunner.manager.delete(PageVersion, page.versionList.map(ver => ver.id));
 
-      if(page.pageStar[0]) {
-        await queryRunner.manager.delete(PageStar, page.pageStar.map(star => star.id));
-      }
+      if(page.pageStar[0]) await queryRunner.manager.delete(PageStar, page.pageStar.map(star => star.id));
 
-      if(page.pageComments[0]) {
-        await queryRunner.manager.delete(PageComment, page.pageComments.map(com => com.id));
-      }
+      if(page.pageCommentList[0]) await queryRunner.manager.delete(PageComment, page.pageCommentList.map(com => com.id));
 
       await queryRunner.manager.delete(Page, pageId);
 
@@ -459,7 +455,7 @@ export class PageService {
    * @param userProfile 
    */
   public async removeAllPage(queryRunner: QueryRunner, userProfile: UserProfile): Promise<null> {
-    const pageList: Page[] = await queryRunner.manager
+    const pageList = await queryRunner.manager
       .find(Page, {
         where: {
           userProfile
@@ -467,13 +463,11 @@ export class PageService {
         select: ["id"]
       });
 
-    if(!pageList[0]) {
-      return Promise.reject("not found page");
-    }
+    if(!pageList[0]) throw new Error("not found Page");
 
     const pageIdList = pageList.map(page => page.id);
 
-    const pageVersionIdList: PageVersion[] = await queryRunner.manager
+    const pageVersionIdList = await queryRunner.manager
       .find(PageVersion, {
         where: {
           page: {
@@ -483,7 +477,7 @@ export class PageService {
         select: ["id"]
       });
 
-    const pageCommentIdList: PageComment[] = await queryRunner.manager
+    const pageCommentIdList = await queryRunner.manager
       .find(PageComment, {
         where: [
           {page: {
@@ -494,7 +488,7 @@ export class PageService {
         select: ["id"]
       });
 
-    const pageEditorIdList: PageEditor[] = await queryRunner.manager
+    const pageEditorIdList = await queryRunner.manager
       .find(PageEditor, {
         where: [
           {page: {
@@ -504,7 +498,7 @@ export class PageService {
         ]
       });
 
-    const pageStarList: PageStar[] = await queryRunner.manager
+    const pageStarList = await queryRunner.manager
       .find(PageStar, {
         where: [
           {page: {
@@ -515,7 +509,7 @@ export class PageService {
         select: ["id"]
       });
 
-    const blockList: Block[] = await queryRunner.manager
+    const blockList = await queryRunner.manager
       .find(Block, {
         where: {
           page: {
@@ -529,7 +523,7 @@ export class PageService {
 
     if(blockList[0]) {
       console.log(blockList);
-      const blockCommentList: BlockComment[] = await queryRunner.manager
+      const blockCommentList = await queryRunner.manager
         .find(BlockComment, {
           where: [
             {page: {
@@ -540,9 +534,7 @@ export class PageService {
           select: ["id"]
         });
     
-      if(blockCommentList[0]) {
-        await queryRunner.manager.delete(BlockComment, blockCommentList.map(com => com.id));
-      }
+      if(blockCommentList[0]) await queryRunner.manager.delete(BlockComment, blockCommentList.map(com => com.id));
 
       await queryRunner.manager.delete(Block, blockList.map(block => block.id));
     }
@@ -551,6 +543,7 @@ export class PageService {
     if(pageCommentIdList[0]) await queryRunner.manager.delete(PageComment, pageCommentIdList.map(com => com.id));
     if(pageEditorIdList[0]) await queryRunner.manager.delete(PageEditor, pageEditorIdList.map(edi => edi.id));
     if(pageStarList[0]) await queryRunner.manager.delete(PageStar, pageStarList.map(star => star.id));
+
     await queryRunner.manager.delete(Page, pageList.map(page => page.id));
 
     return null;
@@ -561,9 +554,9 @@ export class PageService {
   public async updateModfiyPageInfo(
     queryRunner: QueryRunner,
     page: Page,
-    modifyPageInfo: ModifyPageInfoType
+    modifyPageInfo: PageInfoProps
   ): Promise<null> {
-    const updatedPage: Page = Object.assign(page, modifyPageInfo);
+    const updatedPage = Object.assign(page, modifyPageInfo);
 
     await queryRunner.manager.save(updatedPage);
 
@@ -571,26 +564,24 @@ export class PageService {
   }
 
   public async updatePageInfo(
-    modifyPageInfo: ModifyPageInfoType,
+    modifyPageInfo: PageInfoProps,
     pageId: string,
     userId: string,
     profileId?: string
   ): Promise<Response> {
-    const page: Page = await this.findOnePage({id: pageId});
+    const page = await this.findOnePage({id: pageId});
+
+    if(!page) return new Response().error(...BklogErrorMessage.notFound);
 
     const resCheckPage = this.checkPage(page);
 
-    if(resCheckPage) {
-      return new Response().error(...resCheckPage);
-    }
+    if(resCheckPage) return new Response().error(...resCheckPage);
 
     if(page.userId !== userId) {
       if(profileId) {
         const checkPageEditor = await this.checkPageEditor(pageId, profileId, 1);
 
-        if(checkPageEditor) {
-          return new Response().error(...checkPageEditor);
-        }
+        if(checkPageEditor) return new Response().error(...checkPageEditor);
 
       } else {
         return new Response().error(...BklogErrorMessage.authorized);
@@ -618,31 +609,27 @@ export class PageService {
     userId: string,
     profileId: string, 
     pageVersions: PageVersions,
-    data: ModifyBklogDataType,
+    data: ModifyBklogData,
     callback?: (queryRunner: QueryRunner, page: Page) => Promise<ComposedResponseErrorType | null>
   ): Promise<Response> {
     console.log(pageVersions);
-    const page: Page = await this.findOnePage({id: pageId});
+    const page = await this.findOnePage({id: pageId});
+
+    if(!page) return new Response().error(...BklogErrorMessage.notFound);
 
     const resCheckPage = this.checkPage(page);
 
-    if(resCheckPage) {
-      return new Response().error(...resCheckPage);
-    }
+    if(resCheckPage) return new Response().error(...resCheckPage);
 
     if(page.userId !== userId) {
       const resCheckEditor = await this.checkPageEditor(page.id, profileId, page.editableScope === 0? 0 : 2);
 
-      if(resCheckEditor) {
-        return new Response().error(...resCheckEditor);
-      }
+      if(resCheckEditor) return new Response().error(...resCheckEditor);
     } 
 
     const resCheckCurrentVersion = await this.checkCurrentPageVersion(pageVersions.current, page.id);
 
-    if(!resCheckCurrentVersion) {
-      return new Response().error(...BklogErrorMessage.notFoundVersion);
-    }
+    if(!resCheckCurrentVersion) return new Response().error(...BklogErrorMessage.notFoundVersion);
 
     page.updating = true;
 
@@ -657,9 +644,7 @@ export class PageService {
       if(callback) {
         const result = await callback(queryRunner, page);
 
-        if(result) {
-          return new Response().error(...result);
-        }
+        if(result) return new Response().error(...result);
       }
 
       const pageVersion: PageVersion = queryRunner.manager.create(PageVersion, {
@@ -703,42 +688,37 @@ export class PageService {
     reqScope:number = 5,
     skip: number = 0,
     take: number = 50,
-  ): Promise<PageInfoList[]> {
+  ): Promise<PageInfoList[] | null> {
+    if(!id && !penName) return null;
 
-    if(id || penName) {
-      let scope = reqScope === 0? 5 : reqScope; 
+    let scope = reqScope === 0? 5 : reqScope; 
 
-      const pageList: Page[] = await this.pageRepository
-        .createQueryBuilder("page")
-        .leftJoinAndSelect(
-          "page.userProfile", 
-          "user-profile"
-        )
-        .where("page.disclosureScope >= :scope", { scope })
-        .andWhere(new Brackets(qb => {
-          qb.where("user-profile.id = :id", { id })
-            .orWhere("user-profile.penName = :penName", { penName })
-        }))
-        .select([
-          "page.id",
-          "page.title",
-          "page.disclosureScope",
-          "page.emoji",
-          "page.parentId"
-        ])
-        .orderBy("page.disclosureScope", "DESC")
-        .addOrderBy("page.title", "ASC")
-        .skip(skip)
-        .take(take)
-        .getMany();
+    const pageList = await this.pageRepository
+      .createQueryBuilder("page")
+      .leftJoinAndSelect(
+        "page.userProfile", 
+        "user-profile"
+      )
+      .where("page.disclosureScope >= :scope", { scope })
+      .andWhere(new Brackets(qb => {
+        qb.where("user-profile.id = :id", { id })
+          .orWhere("user-profile.penName = :penName", { penName })
+      }))
+      .select([
+        "page.id",
+        "page.title",
+        "page.disclosureScope",
+        "page.emoji",
+        "page.parentPageId"
+      ])
+      .orderBy("page.disclosureScope", "DESC")
+      .addOrderBy("page.title", "ASC")
+      .skip(skip)
+      .take(take)
+      .getMany();
 
-      if(pageList[0]) {
-        return pageList;
-      }
+    console.log("pagelist", pageList);
 
-    } 
-
-    return null;
+    return pageList[0]? pageList : null;
   }
-
 }

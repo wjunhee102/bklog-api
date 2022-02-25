@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes, Query } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes, Query, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './dto/auth.schema';
 import { UserJwtokens, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens, TokenVailtionType, ResValitionAccessToken } from './auth.type';
@@ -8,19 +8,21 @@ import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-use
 import { CommonErrorMessage, Response, AuthErrorMessage, SystemErrorMessage } from 'src/utils/common/response.util';
 import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
 import { ResTokenValidation } from 'src/auth/auth.type';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService){}
 
-  private validationError(res) {
+  private validationError(res: any) {
     new Response()
       .error(...CommonErrorMessage.validationError)
       .res(res)
       .send();
   }
 
-  private setUserJwtCookies(res, jwtTokens: UserJwtokens) {
+  private setUserJwtCookies(res: any, jwtTokens: UserJwtokens) {
     res.cookie(
       ACCESS_TOKEN, 
       jwtTokens.accessToken, 
@@ -207,7 +209,6 @@ export class AuthController {
       const { response, clearToken } = await this.authService.simpleSignInUser(accessToken, req.headers["user-agent"]);
       
       if(clearToken) this.clearUserJwtCookie(res);
-      console.log(response, clearToken);
       
       response.res(res).send();
     } else {

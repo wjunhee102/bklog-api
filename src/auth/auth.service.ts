@@ -307,7 +307,7 @@ export class AuthService {
     refreshToken: string,
     userAgent: string
   ): Promise<ResReissueTokens> {
-    const userJwtTokens: UserJwtokens | null = await this.reissueTokensToUser(refreshToken, userAgent);
+    const userJwtTokens = await this.reissueTokensToUser(refreshToken, userAgent);
 
     let response = new Response();
 
@@ -332,14 +332,12 @@ export class AuthService {
     refreshToken: string,
     userAgent: string
   ): Promise<boolean> {
-    const tokenVailtionRes: { id: string } | null = this.validationRefreshToken(
+    const tokenVailtionRes = this.validationRefreshToken(
         refreshToken,
         userAgent
       );
 
-    if(!tokenVailtionRes) {
-      return null;
-    }
+    if(!tokenVailtionRes) return false;
 
     const resUpdateAccessTime: boolean = 
       await this.privateUserService.updateAccessTime(tokenVailtionRes.id);
@@ -357,12 +355,9 @@ export class AuthService {
   public async withdrawalUser(
     userInfo: UserAuthInfo & { id: string }
   ): Promise<Response> {
-
     const resDeleteUser = await this.privateUserService.withdrawalUser(userInfo);
 
-    if(resDeleteUser) {
-      return new Response().error(...resDeleteUser);
-    }
+    if(resDeleteUser) return new Response().error(...resDeleteUser);
     
     return new Response().body("success");
   }
@@ -384,7 +379,7 @@ export class AuthService {
     userAgent: string, 
     targetEmail: string
   ) {
-    const decodingJwt: ResValitionAccessToken = this.validateAccessTokenReturnId(accessToken, userAgent);
+    const decodingJwt = this.validateAccessTokenReturnId(accessToken, userAgent);
 
     if(!decodingJwt.id) {
       return {
@@ -392,7 +387,7 @@ export class AuthService {
         error: decodingJwt.error
       }
     }
-    const checkedAdmin: boolean = await this.privateUserService.checkAdmin(decodingJwt.id);
+    const checkedAdmin = await this.privateUserService.checkAdmin(decodingJwt.id);
     
     if(!checkedAdmin) {
       return {
@@ -422,8 +417,18 @@ export class AuthService {
   ): Promise<ResCheckAccessToken> {
     const { id, error } = this.validateAccessTokenReturnId(accessToken, userAgent);
 
-    const response: Response = new Response();
+    const response = new Response();
     let clearToken = false;
+
+    if(!id) {
+      response.error(...AuthErrorMessage.info);
+      clearToken = true;
+
+      return {
+        response,
+        clearToken
+      }
+    }
 
     if(error) {
       if(error.expFalse) {
@@ -431,7 +436,6 @@ export class AuthService {
       } else {
         response.error(...AuthErrorMessage.info);
       }
-      response;
     }
 
     const result = await this.privateUserService.getUserInfo(id);
@@ -450,33 +454,29 @@ export class AuthService {
   }
 
   public async checkUserIdNProfileId(userId: string, profileId: string): Promise<boolean> {
-    const userInfo: UserIdList = await this.privateUserService.getUserIdNProfileId(userId);
+    const userInfo = await this.privateUserService.getUserIdNProfileId(userId);
 
-    if(userInfo) {
-      return userInfo.profileId === profileId? true : false;
-    }
-
-    return false;
+    if(!userInfo) return false;
+      
+    return userInfo.profileId === profileId? true : false;
   }
 
   public async checkUserIdNPenName(userId: string, penName: string): Promise<boolean> {
-    const userInfo: UserIdNPenName = await this.privateUserService.getUserIdNPenName(userId);
+    const userInfo = await this.privateUserService.getUserIdNPenName(userId);
 
-    if(userInfo) {
-      return userInfo.penName === penName? true : false;
-    }
-
-    return false;
+    if(!userInfo) return false;
+      
+    return userInfo.penName === penName? true : false;
   }
 
   public async checkPenNameUsed(penName: string): Promise<Response> {
-    const used: boolean = await this.privateUserService.checkPenName(penName);
+    const used = await this.privateUserService.checkPenName(penName);
 
     return new Response().body(used? "y" : "n");
   }
 
   public async checkEmailUsed(email: string): Promise<Response> {
-    const used: boolean = await this.privateUserService.checkUsedEmailAddress(email);
+    const used = await this.privateUserService.checkUsedEmailAddress(email);
 
     return new Response().body(used? "y": "n");
   }

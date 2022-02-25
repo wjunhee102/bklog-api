@@ -5,5 +5,5 @@ export abstract class ChildTable {
     type: "varchar",
     width: 255
   })
-  id: string;
+  id!: string;
 }

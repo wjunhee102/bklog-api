@@ -1,4 +1,19 @@
-export class ResponseErrorTypes {
+/**
+  
+  error code 규칙
+  
+  - 000: 정해지지 않은 error
+  - 001: 재시도
+  - 002: 인증 불일치
+  - 003: 권한이 없음
+  - 004: 정보를 찾을 수 없음
+  - 005: 새로 고침
+  - 006: 단순 error
+  - 007: System error
+  
+*/
+
+export interface ResponseErrorTypes {
   code: number | string;
   type: string;
   message: string;
@@ -13,15 +28,13 @@ export const FORBIDDEN    = 403;
 export const NOT_FOUND    = 404;
 export const SERVER_ERROR = 500;
 
-/**
- * 현재 sign-up 로직이 실패한 구간을 객체로 보내주는 데 그렇게 하지 말고
- * 전송 전에 각 항목이 true일 때만 전송 가능하도록 할 것.
- * 
- */
+export class ResponseError implements ResponseErrorTypes {
+  code!: number | string;
+  type!: string;
+  message!: string;
+  detail!: string;
 
- export class ResponseError extends ResponseErrorTypes {
   constructor() {
-    super();
   }
 
   public preBuild(
@@ -108,7 +121,7 @@ export class AuthErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "token이 존재하지 않습니다.",
       "token does not exist",
-      "003"
+      "002"
     ).get(), FORBIDDEN ];
   }
 
@@ -119,7 +132,7 @@ export class AuthErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "비활성화된 유저입니다.",
       "5 or more failures",
-      "004"
+      "006"
     ).get(), FORBIDDEN ];
   }
 
@@ -127,7 +140,7 @@ export class AuthErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "휴면 유저입니다.",
       "users who have not been connected for a long time",
-      "005"
+      "003"
     ).get(), FORBIDDEN ];
   }
 
@@ -135,7 +148,7 @@ export class AuthErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "정보를 찾을 수 없습니다.",
       detail,
-      "006"
+      "004"
     ).get(), NOT_FOUND];
   }
 
@@ -184,7 +197,7 @@ export class CommonErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "찾을 수 없습니다.",
       "not found",
-      "001"
+      "004"
     ).get(), NOT_FOUND ];
   }
 
@@ -192,7 +205,7 @@ export class CommonErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "형식에 맞지 않는 정보입니다.",
       "validation error",
-      "002"
+      "006"
     ).get(), BAD_REQ ];
   }
 }
@@ -208,20 +221,20 @@ export class SystemErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "잠시 후 다시 시도해주십쇼",
       "Database Error",
-      "001"
+      "007"
     ).get(), SERVER_ERROR ];
   }
 
 }
 
 export class Response<T = any> {
-  private data: T | { error: ResponseErrorTypes };
+  private data!: T | { error: ResponseErrorTypes };
   private code: number | string = 200;
-  private response: any;
+  private response!: any;
 
   constructor() {}
 
-  public res(res): Response {
+  public res(res: any): Response {
     this.response = res;
     return this;
   }

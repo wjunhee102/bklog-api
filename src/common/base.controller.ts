@@ -8,12 +8,12 @@ export class BaseController {
     private readonly authService: AuthService
   ){}
 
-  public clearUserJwtCookie(res) {
+  public clearUserJwtCookie(res: any) {
     res.clearCookie(ACCESS_TOKEN);
     res.clearCookie(REFRESH_TOKEN);
   }
 
-  public validationAccessToken(@Req() req): ResTokenValidation {
+  public validationAccessToken(@Req() req: any): ResTokenValidation {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
     const userAgent = req.headers["user-agent"];
 
@@ -33,7 +33,7 @@ export class BaseController {
     });
   }
 
-  public responseCheckToken({ infoFalse } : TokenVailtionType ,res): void {
+  public responseCheckToken({ infoFalse } : TokenVailtionType ,res: any): void {
     const response: Response = new Response();
 
     if(infoFalse) {

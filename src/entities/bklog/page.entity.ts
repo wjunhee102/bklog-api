@@ -18,13 +18,13 @@ export class Page extends MainTable {
     nullable: true,
     default: null
   })
-  parentPageId: string; 
+  parentPageId!: string; 
 
   @Column({
     type: "varchar",
     width: 100
   })
-  title: string;
+  title!: string;
 
   @Column({
     type: "varchar",
@@ -32,7 +32,7 @@ export class Page extends MainTable {
     nullable: true,
     default: null
   })
-  emoji: string;
+  emoji!: string;
 
   @Column({
     name: "cover_image",
@@ -41,7 +41,7 @@ export class Page extends MainTable {
     nullable: true,
     default: null
   })
-  coverImage: string;
+  coverImage!: string;
 
   @Column({
     name: "cover_color",
@@ -50,7 +50,7 @@ export class Page extends MainTable {
     nullable: true,
     default: null
   })
-  coverColor: string;
+  coverColor!: string;
 
   @Column({
     name: "last_access_date",
@@ -58,20 +58,20 @@ export class Page extends MainTable {
     nullable: true,
     default: null
   })
-  lastAccessDate: Date;
+  lastAccessDate!: Date;
 
   @Column({
     type: "bigint",
     default: 0
   })
-  views: number;
+  views!: number;
 
   @Column({
     name: "user_id",
     type: "varchar",
     width: 255
   })
-  userId: string;
+  userId!: string;
 
   // 0: 삭제 예정, 1: 생성자, 2: following, 3: org, 4: following || org, 5: public;
   @Column({
@@ -79,7 +79,7 @@ export class Page extends MainTable {
     type: "tinyint",
     default: 1
   })
-  disclosureScope: number;
+  disclosureScope!: number;
 
    // 0: 주 작성자, 1: master, 2: default;
   @Column({
@@ -87,43 +87,43 @@ export class Page extends MainTable {
     type: "tinyint",
     default: 0
   })
-  editableScope: number;
+  editableScope!: number;
 
   @Column({
     name: "edit_lock",
     type: "boolean",
     default: false
   })
-  editLock: boolean;
+  editLock!: boolean;
 
   @Column({
     name: "updating",
     type: "boolean",
     default: false
   })
-  updating: boolean;
+  updating!: boolean;
 
-  @ManyToOne(() => UserProfile, userProfile => userProfile.pages, {
+  @ManyToOne(() => UserProfile, userProfile => userProfile.pageList, {
     nullable: true
   })
-  userProfile: UserProfile;
+  userProfile!: UserProfile;
 
   @OneToMany(() => PageVersion, pageVersion => pageVersion.page)
-  versionList: PageVersion[];
+  versionList!: PageVersion[];
 
   @OneToMany(() => PageStar, pageStar => pageStar.page)
-  pageStar: PageStar[];
+  pageStar!: PageStar[];
 
   @OneToMany(() => PageComment, pageComments => pageComments.page)
-  pageComments: PageComment[];
+  pageCommentList!: PageComment[];
 
   @OneToMany(() => Block, block => block.page)
-  blockList: Block[];
+  blockList!: Block[];
   
   @OneToMany(() => BlockComment, blockComment => blockComment.page)
-  blockComments: BlockComment[];
+  blockCommentList!: BlockComment[];
 
   @OneToMany(() => PageEditor, pageEditor => pageEditor.page)
-  editorList: PageEditor[];
+  editorList!: PageEditor[];
 
 }

@@ -8,12 +8,12 @@ import { CommentTable } from "../base/comment-table";
 export class BlockComment extends CommentTable {
 
   @ManyToOne(() => Block, block => block.blockComments)
-  block: Block;
+  block!: Block;
 
   @ManyToOne(() => Page)
-  page: Page;
+  page!: Page;
 
-  @ManyToOne(() => UserProfile, userProfile => userProfile.blockComments)
-  userProfile: UserProfile;
+  @ManyToOne(() => UserProfile, userProfile => userProfile.blockCommentList)
+  userProfile!: UserProfile;
 
 }

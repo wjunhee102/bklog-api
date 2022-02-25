@@ -9,6 +9,8 @@ import { EventsModule } from './events/events.module';
 import ormConfig from './utils/database/orm-config';
 import { ConfigModule } from '@nestjs/config';
 import { AdminModule } from './admin/admin.module';
+import { SeederModule } from './seeder/seeder.module';
+import { FileManagerModule } from './filemanager/filemanager.module';
 
 @Module({
   imports: [
@@ -20,7 +22,9 @@ import { AdminModule } from './admin/admin.module';
     BklogModule,
     UserModule,
     EventsModule,
-    AdminModule
+    AdminModule,
+    SeederModule,
+    FileManagerModule
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -14,7 +14,7 @@ interface EditingUserInfo {
 export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   
   @WebSocketServer()
-  server: Server;
+  server!: Server;
 
   private logger: Logger = new Logger("socket");
 
@@ -38,7 +38,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   @SubscribeMessage('roomleave')
   handleLeave(client: Socket, roomId: string) {
     client.leave(roomId, () => { this.logger.log(`leave ${client.id}`) });
-    client.to(roomId, client.id);
+    client.to(roomId);
   }
   
   @SubscribeMessage('update')

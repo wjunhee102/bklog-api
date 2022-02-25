@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res, Body, Get, Param, Query, ParseIntPipe, UsePipes, Delete } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Get, Param, Query, ParseIntPipe, UsePipes, Delete, UseGuards, Request, Logger } from '@nestjs/common';
 import { BklogService } from './bklog.service';
 import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
@@ -8,6 +8,9 @@ import { Response, AuthErrorMessage } from 'src/utils/common/response.util';
 import { reqCreatePageSchema, reqDeletePageSchema, reqEditPageEditorSchema, reqUpdateBklogSchema, reqUpdatePageInfoSchema } from './dto/bklog.shema';
 import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
 import { BaseController } from 'src/common/base.controller';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { LocalAuthGuard } from 'src/auth/local-auth.guard';
+import { AuthGuard } from '@nestjs/passport';
 
 @Controller('bklog')
 export class BklogController extends BaseController {
@@ -17,14 +20,14 @@ export class BklogController extends BaseController {
   ){ super(authService) }
 
   private async getPageList(
-    res, 
-    req, 
+    res: any, 
+    req: any, 
     factorGetPageList: ParamGetPageList
   ): Promise<void> {
     const { id, error, accessToken } = this.validationAccessToken(req);
 
-    if(!id && accessToken) {
-      this.responseCheckToken(error, res);
+    if(!id) {
+      if(error && accessToken) this.responseCheckToken(error, res);
     } else {  
       const response = await this.bklogService.findPageList(factorGetPageList, id);
 
@@ -35,32 +38,27 @@ export class BklogController extends BaseController {
 
   @Get('list/penname/:penName')
   public async getPageListPenName(
-    @Res() res,
-    @Req() req, 
+    @Res() res: any,
+    @Req() req: any, 
     @Param('penName') penName: string, 
-    @Query('id') reqProfileId?, 
-    @Query('skip') skip?, 
-    @Query('take') take?
+    @Query('id') reqProfileId?: string
   ) {
+    console.log(req.user);
     await this.getPageList(res, req, {
       pageUserInfo: {
         penName
       },
-      reqProfileId,
-      skip,
-      take
+      reqProfileId
     });
   }
 
   // ? 없애야 함.
   @Get('list/id/:profileId')
   public async getPageListProfileId(
-    @Res() res,
-    @Req() req, 
-    @Param('profileId') id, 
-    @Query('id') reqProfileId?,
-    @Query('skip') skip?,
-    @Query('take') take?
+    @Res() res: any,
+    @Req() req: any, 
+    @Param('profileId') id: string, 
+    @Query('id') reqProfileId?: string
   ) {
     await this.getPageList(
       res,
@@ -68,23 +66,21 @@ export class BklogController extends BaseController {
       pageUserInfo: {
         id
       },
-      reqProfileId,
-      skip,
-      take
+      reqProfileId
     });
   }
 
   @Post('create-page')
   @UsePipes(new JoiValidationPipe(reqCreatePageSchema))
   public async createPage(
-    @Req() req, 
-    @Res() res,
+    @Req() req: any, 
+    @Res() res: any,
     @Body() requiredBklogInfo: ReqCreatePage
   ) {
     const { id, error }  = this.validationAccessToken(req);
 
     if(!id) {
-      this.responseCheckToken(error, res);
+      if(error) this.responseCheckToken(error, res);
     } else {
 
       const profileId: string | null = await this.getProfileId(id);
@@ -113,11 +109,12 @@ export class BklogController extends BaseController {
   }
 
   @Get('getpage')
-  public async getPage(@Res() res, @Req() req, @Query('id') pageId: string): Promise<void> {
+  public async getPage(@Res() res: any, @Req() req: any, @Query('id') pageId: string): Promise<void> {
+    console.log("pageId", pageId);
     const { id, error, accessToken } = this.validationAccessToken(req);
 
-    if(!id && accessToken) {
-      this.responseCheckToken(error, res);
+    if(!id) {
+      if(error && accessToken) this.responseCheckToken(error, res);
     } else {
       let response: Response;
       const profileId: string | null = await this.getProfileId(id);
@@ -134,14 +131,14 @@ export class BklogController extends BaseController {
   }
 
   @Get('t-getpage')
-  public async testGetPage(@Res() res, @Req() req, @Query('id') pageId: string) {
+  public async testGetPage(@Res() res: any, @Req() req: any, @Query('id') pageId: string) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
 
     if(accessToken) {
       const resCheckCookie = this.validationAccessToken(req);
 
       if(!resCheckCookie.id) {
-        this.responseCheckToken(resCheckCookie.error, res);
+        if(resCheckCookie.error) this.responseCheckToken(resCheckCookie.error, res);
       } else {
         const response: Response = await this.bklogService.getPage(pageId, "4e17660a0ea99a83845cbf3c90f62700"); 
         response.res(res).send();
@@ -155,11 +152,11 @@ export class BklogController extends BaseController {
 
   @Post('add-pageeditor')
   @UsePipes(new JoiValidationPipe(reqEditPageEditorSchema))
-  public async addPageEditor(@Req() req, @Res() res, @Body() { pageId, targetProfileId }: ReqEditPageEditor) {
+  public async addPageEditor(@Req() req: any, @Res() res: any, @Body() { pageId, targetProfileId }: ReqEditPageEditor) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      this.responseCheckToken(error, res);
+      if(error) this.responseCheckToken(error, res);
     } else {
       const profileId: string | null = await this.getProfileId(id);
       let response: Response;
@@ -183,11 +180,11 @@ export class BklogController extends BaseController {
 
   @Post('exclude-pageeditor')
   @UsePipes(new JoiValidationPipe(reqEditPageEditorSchema))
-  public async excludeFromPageEditorList(@Req() req, @Res() res, @Body() { pageId, targetProfileId }: ReqEditPageEditor) {
+  public async excludeFromPageEditorList(@Req() req: any, @Res() res: any, @Body() { pageId, targetProfileId }: ReqEditPageEditor) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      this.responseCheckToken(error, res);
+      if(error) this.responseCheckToken(error, res);
     } else {
       const profileId: string | null = await this.getProfileId(id);
       let response: Response;
@@ -209,7 +206,7 @@ export class BklogController extends BaseController {
   }
 
   @Get('release-updating/:pageId')
-  public async releaseUpdating(@Req() req, @Res() res, @Param('pageId') pageId: string) {
+  public async releaseUpdating(@Req() req: any, @Res() res: any, @Param('pageId') pageId: string) {
     const resCheckCookie = this.validationAccessToken(req);
 
     if(!resCheckCookie.id) {
@@ -229,11 +226,11 @@ export class BklogController extends BaseController {
 
   @Post('updatebklog')
   @UsePipes(new JoiValidationPipe(reqUpdateBklogSchema))
-  public async updateBklog(@Req() req, @Res() res, @Body() { data, pageId, pageVersions }: ReqUpdateBklog) {
+  public async updateBklog(@Req() req: any, @Res() res: any, @Body() { data, pageId, pageVersions }: ReqUpdateBklog) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      this.responseCheckToken(error, res);
+      if(error) this.responseCheckToken(error, res);
     } else {
       const profileId: string | null = await this.getProfileId(id);
       let response: Response;
@@ -252,7 +249,7 @@ export class BklogController extends BaseController {
   }
 
   @Get('getmodifydata')
-  public async getModifyData(@Res() res, @Query("id") id, @Query("preId") preId: string) {
+  public async getModifyData(@Res() res: any, @Query("id") id: any, @Query("preId") preId: string) {
     const response: Response = await this.bklogService.getModifyData(id, preId);
 
     response.res(res).send();
@@ -261,14 +258,14 @@ export class BklogController extends BaseController {
   @Post('updatepageinfo')
   @UsePipes(new JoiValidationPipe(reqUpdatePageInfoSchema))
   public async updatePageInfo(
-    @Req() req, 
-    @Res() res,
+    @Req() req: any, 
+    @Res() res: any,
     @Body() { data, pageId }: ReqUpdatePageInfo
   ) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      this.responseCheckToken(error, res);
+      if(error)this.responseCheckToken(error, res);
     } else {
 
       const profileId: string | null = await this.getProfileId(id);
@@ -296,14 +293,14 @@ export class BklogController extends BaseController {
   @Delete('delete-page')
   @UsePipes(new JoiValidationPipe(reqDeletePageSchema))
   public async deletePage(
-    @Req() req, 
-    @Res() res, 
+    @Req() req: any, 
+    @Res() res: any, 
     @Body() { pageId }: ReqDeletePage
   ) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      this.responseCheckToken(error, res);
+      if(error) this.responseCheckToken(error, res);
     } else {
       const profileId: string | null = await this.getProfileId(id);
       let response: Response;
@@ -320,15 +317,16 @@ export class BklogController extends BaseController {
 
   }
 
+  @UseGuards(AuthGuard('local'))
   @Get('test')
-  public async test(@Req() req) {
-    console.log(req.headers['X-FORWARDED-FOR'])
+  public async test(@Request() req: any) {
+    console.log(req.user);
     
     return "success";
   }
 
   @Get('test-remove-page')
-  public async testRemovePage(@Res() res, @Query('pageid') pageId: string) {
+  public async testRemovePage(@Res() res: any, @Query('pageid') pageId: string) {
     const response: Response = await this.bklogService.testRemovePage(pageId);
 
     response.res(res).send();

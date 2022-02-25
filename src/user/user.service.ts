@@ -7,8 +7,7 @@ import { UserFollow } from 'src/entities/user/user-follow.entity';
 import { UserFollowRepository } from './repositories/user-follow.repository';
 import { UserBlockingRepository } from './repositories/user-blocking.repository';
 import { Connection } from 'typeorm';
-import { Response, ResponseError, SystemErrorMessage, AuthErrorMessage, CommonErrorMessage } from 'src/utils/common/response.util';
-import { User } from 'src/auth/private-user/entities/user.entity';
+import { Response, CommonErrorMessage } from 'src/utils/common/response.util';
 
 
 @Injectable()
@@ -46,12 +45,10 @@ export class UserService {
    * profile 찾기
    * @param penName 
    */
-  public async findOneUserProfile(infoToFindUserProfile : InfoToFindUserProfile): Promise<UserProfile | null> {
-    const userProfile: UserProfile | null = await this.userProfileRepository.findOne({
+  public async findOneUserProfile(infoToFindUserProfile : InfoToFindUserProfile) {
+    return await this.userProfileRepository.findOne({
       where: infoToFindUserProfile
     });
-
-    return userProfile;
   }
 
   /**
@@ -60,13 +57,11 @@ export class UserService {
    * @param relativeId 
    */
 
-  private async findOneUserProfileStatus(InfoToFindUserProfile: InfoToFindUserProfile): Promise<UserProfile | null>{
-    const userProfile: UserProfile | null = await this.userProfileRepository.findOne({
+  private async findOneUserProfileStatus(InfoToFindUserProfile: InfoToFindUserProfile) {
+    return await this.userProfileRepository.findOne({
       where: InfoToFindUserProfile,
       relations: ["userStatus"]
     });
-
-    return userProfile;
   }
 
   /**
@@ -74,8 +69,8 @@ export class UserService {
    * @param profileId 
    * @param relativeId 
    */
-  private async findOneUserFollower(profileId: string, relativeId: string): Promise<UserFollow | null> {
-    const userFollower: UserFollow = await this.userFollowRepository.findOne({
+  private async findOneUserFollower(profileId: string, relativeId: string) {
+    return this.userFollowRepository.findOne({
       relations: ["userProfile", "relativeProfile"],
       where: {
         userProfile: {
@@ -86,16 +81,14 @@ export class UserService {
         }
       }
     });
-
-    return userFollower;
   }
 
   /**
    * follower List 찾기
    * @param profileId 
    */
-  private async findUserFollower(profileId: string): Promise<UserFollow[]> {
-    return await this.userFollowRepository
+  private async findUserFollower(profileId: string) {
+    return this.userFollowRepository
       .createQueryBuilder("user-follow")
       .leftJoinAndSelect(
         "userFollow.relativeProfile",
@@ -111,8 +104,8 @@ export class UserService {
    * @param profileId 
    * @param relativeId 
    */
-  private async findOneUserFollowing(profileId: string, relativeId: string): Promise<UserFollow> {
-    const userFollowing: UserFollow = await this.userFollowRepository.findOne({
+  private async findOneUserFollowing(profileId: string, relativeId: string) {
+    return this.userFollowRepository.findOne({
       relations: ["userProfile", "relativeProfile"],
       where: {
         userProfile: {
@@ -122,9 +115,7 @@ export class UserService {
           id: profileId
         }
       }
-    });
-
-    return userFollowing;
+    });;
   }
 
   /**
@@ -144,7 +135,7 @@ export class UserService {
   }
 
   public async getUserProfile(userInfo: { id?: string; penName?: string;}): Promise<Response> {
-    const userProfile: UserProfile | null = await this.findOneUserProfile(userInfo);
+    const userProfile = await this.findOneUserProfile(userInfo);
 
     return userProfile? new Response().body(userProfile)
       : new Response().error(...CommonErrorMessage.notFound).notFound();
@@ -155,7 +146,7 @@ export class UserService {
    * @param penName 
    */
   public async checkPenName(penName: string): Promise<boolean> {
-    const userProfile: UserProfile | null = await this.findOneUserProfile({ penName });
+    const userProfile = await this.findOneUserProfile({ penName });
 
     return userProfile? true : false;
   }
@@ -164,8 +155,8 @@ export class UserService {
    * profile id 찾기
    * @param penName 
    */
-  public async findUserProfileId(penName: string): Promise<string> {
-    const userProfile: UserProfile | null = await this.findOneUserProfile({ penName });
+  public async findUserProfileId(penName: string): Promise<string | null> {
+    const userProfile = await this.findOneUserProfile({ penName });
 
     return userProfile? userProfile.id : null;
   }
@@ -175,15 +166,19 @@ export class UserService {
    * @param infoToFindUserProfile 
    */
   public async findUserStatus(infoToFindUserProfile: InfoToFindUserProfile): Promise<UserStatusData | null> {
-    const userProfile: UserProfile | null = await this.findOneUserProfileStatus(infoToFindUserProfile); 
+    const userProfile = await this.findOneUserProfileStatus(infoToFindUserProfile); 
     
     if(!userProfile) {
       return null;
     }
+
     const userStatus = userProfile.userStatus;
-    delete userStatus.id;
     
-    return userStatus;
+    return {
+      lastAccessTime: userStatus.lastAccessTime,
+      isNotDormant: userStatus.isNotDormant,
+      isActive: userStatus.isActive
+    };
   }
 
   /**
@@ -192,7 +187,7 @@ export class UserService {
    * @param relativeId 
    */
   public async checkFollower(profileId: string, relativeId: string) {
-    const userFollower: UserFollow | null = await this.findOneUserFollower(profileId, relativeId);
+    const userFollower = await this.findOneUserFollower(profileId, relativeId);
 
     return userFollower? true : false;
   }
@@ -203,7 +198,7 @@ export class UserService {
    * @param relativeId 
    */
   public async checkFollowing(profileId: string, relativeId: string) {
-    const userFollowing: UserFollow | null = await this.findOneUserFollowing(profileId, relativeId);
+    const userFollowing = await this.findOneUserFollowing(profileId, relativeId);
 
     return userFollowing? true : false;
   }

@@ -7,7 +7,7 @@ export abstract class CommentTable extends DateTable {
     type: "varchar",
     width: 255
   })
-  id: string;
+  id!: string;
 
   @Column({
     type: "json"

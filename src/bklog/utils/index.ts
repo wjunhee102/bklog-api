@@ -12,7 +12,7 @@ export class BklogErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "페이지를 찾을 수 없습니다.",
       "The page does not exist or you entered an invalid page id.",
-      "001"
+      "004"
     ).get(), NOT_FOUND]
   }
 
@@ -20,7 +20,7 @@ export class BklogErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "현재 수정중입니다.",
       "The page is being edited, so please send your request again after a while.",
-      "002"
+      "001"
     ).get(), FORBIDDEN]
   }
 
@@ -36,7 +36,7 @@ export class BklogErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "새로 업데이트 해주세요.",
       "Version not found or out of date.",
-      "004"
+      "005"
     ).get(), FORBIDDEN]
   }
 
@@ -44,7 +44,7 @@ export class BklogErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "잘못된 요청입니다.",
       "check the request value",
-      "005"
+      "006"
     ).get(), BAD_REQ]
   }
 
@@ -52,7 +52,7 @@ export class BklogErrorMessage extends ResponseError {
     return [ new this().preBuild(
       "권한이 없습니다.",
       "It doesn't exist on the list of authors.",
-      "006"
+      "003"
     ).get(), FORBIDDEN]
   }
 }

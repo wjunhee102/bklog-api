@@ -5,10 +5,10 @@ import { UserProfile } from "./user-profile.entity";
 @Entity({ name: "user-blocking" })
 export class UserBlocking extends ChildTable {
   
-  @ManyToOne(() => UserProfile, userProfile => userProfile.blockedUsers)
-  userProfile: UserProfile;
+  @ManyToOne(() => UserProfile, userProfile => userProfile.blockedUserList)
+  userProfile!: UserProfile;
 
-  @ManyToOne(() => UserProfile, userProfile => userProfile.blockedMes)
-  blockedProfile: UserProfile;
+  @ManyToOne(() => UserProfile, userProfile => userProfile.blockedMeList)
+  blockedProfile!: UserProfile;
 
 }

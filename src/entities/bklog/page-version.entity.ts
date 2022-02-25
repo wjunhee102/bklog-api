@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryColumn, CreateDateColumn, ManyToOne} from "typeorm";
 import { Page } from "./page.entity";
-import { ModifyBklogDataType } from "src/bklog/bklog.type";
+import { ModifyBklogData } from "src/bklog/bklog.type";
 
 @Entity({name: "page-version"})
 export class PageVersion {
@@ -8,7 +8,7 @@ export class PageVersion {
     type: "varchar",
     width: 255
   })
-  id: string;
+  id!: string;
 
   @Column({
     name: "pre_version_id",
@@ -17,19 +17,19 @@ export class PageVersion {
     nullable: true,
     default: null
   })
-  preVersionId: string;
+  preVersionId!: string;
 
   @CreateDateColumn({
     name: "created_at"
   })
-  createdDate: Date;
+  createdDate!: Date;
 
   @Column({
     name: "data",
     type: "json"
   })
-  data: ModifyBklogDataType;
+  data!: ModifyBklogData;
 
   @ManyToOne(() => Page)
-  page: Page;
+  page!: Page;
 }

@@ -51,11 +51,6 @@ export interface BlockData<T = any, P = any> {
   contents: P;
 }
 
-export interface ModifyData {
-  block?: Block[],
-  comment?: BlockComment[]
-};
-
 export interface ResCreateBlockDate {
   blockData: BlockData;
   versionId: string;

@@ -2,6 +2,18 @@ import * as Joi from 'joi';
 import { ReqCreatePage } from 'src/bklog/page/page.type';
 import { ReqDeletePage, ReqEditPageEditor, ReqUpdateBklog, ReqUpdatePageInfo } from '../bklog.type';
 
+export interface modifyData<T = any> {
+  id: string;
+  type: string;
+  payload: T;
+}
+
+export interface ModifyBlockData {
+  create?: modifyData[];
+  update?: modifyData[];
+  delete?: string[];
+}
+
 export const reqCreatePageSchema: Joi.ObjectSchema<ReqCreatePage> = Joi.object({
   title: Joi.string().required(),
   disclosureScope: Joi.number().required()

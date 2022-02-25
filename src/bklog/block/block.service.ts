@@ -1,22 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BlockRepository } from './repositories/block.repository';
-import { RequiredBlock, BlockData, BlockUpdateProps, ModifyData } from './block.type';
+import { RequiredBlock, BlockData } from './block.type';
 import { Block } from 'src/entities/bklog/block.entity';
 import { Token } from 'src/utils/common/token.util';
 import { Page } from 'src/entities/bklog/page.entity';
-import { In, Connection, QueryRunner, Like, Any } from 'typeorm';
+import { In, Connection, QueryRunner } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
-import { ParamModifyBlock, ParamCreateModifyBlock, ParamCreateBlock, ParamCreateComment, ModifyBlockType } from '../bklog.type';
+import { CreateModifyBlockGenericType, DeleteModifyBlockData, ModifyBlockData, RawModifyData, UpdateModifyBlockGenericType } from '../bklog.type';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
-import { BAD_REQ, ComposedResponseErrorType, ResponseError, ResponseErrorTypes, SystemErrorMessage } from 'src/utils/common/response.util';
+import { BAD_REQ, ComposedResponseErrorType } from 'src/utils/common/response.util';
 import { BklogErrorMessage } from '../utils';
+import { BlockDataLength, BlockType } from './type';
 
 @Injectable()
 export class BlockService {
   constructor(
     private readonly blockRepository   : BlockRepository,
-    private readonly blockCommentRepository: BlockCommentRepository,
-    private connection: Connection
+    private readonly blockCommentRepository: BlockCommentRepository
   ){}
   
   public createBlock(requiredBlock: RequiredBlock): Block {
@@ -29,7 +29,7 @@ export class BlockService {
    * block id
    * @param id 
    */
-  private async findOneBlock(id: string): Promise<Block> {
+  private async findOneBlock(id: string) {
     return await this.blockRepository.findOne({ where: { id } });
   }
 
@@ -57,7 +57,7 @@ export class BlockService {
    * 
    * @param requiredBlock 
    */
-  private async insertBlock(requiredBlock: RequiredBlock): Promise<Block> {
+  private async insertBlock(requiredBlock: RequiredBlock) {
     const block: Block = await this.blockRepository.create(requiredBlock);
 
     await this.saveBlock([block]);
@@ -128,21 +128,19 @@ export class BlockService {
       }
     });
 
-    const data = {
-      commentList: []
-    };
+    const blockCommentList: string[] = [];
 
     for(const block of blockList) {
 
       if(block.blockComments[0]) {
         for(const comment of block.blockComments) {
-          data.commentList.push(comment.id);
+          blockCommentList.push(comment.id);
         }
       }
     }
 
     try {
-      await this.blockCommentRepository.delete(data.commentList);
+      await this.blockCommentRepository.delete(blockCommentList);
       await this.deleteBlock(blockIdList);
 
       return true;
@@ -158,49 +156,27 @@ export class BlockService {
    * @param paramModifyBlockList 
    * @param page 
    */
-  public async createData(paramModifyBlockList: ParamCreateModifyBlock[], page: Page): Promise<ModifyData | null> {
+  public async createBlockDataList(createModifyBlockDataList: RawModifyData<CreateModifyBlockGenericType>[], page: Page): Promise<Block[] | null> {
     try {
 
-      const modifyData = {
-        block: [],
-        comment: []
-      };
+      const blockList: Block[] = [];
 
-      for(const param of paramModifyBlockList) {
+      for(const data of createModifyBlockDataList) {
 
-        if(param.set === "block") {
-          const { payload } = param;
-        
-          const block: Block = await this.blockRepository
-            .create(Object.assign({}, payload, {
-              page
-            }));
+        const { payload } = data;
 
-          modifyData.block.push(block);
+        if(Object.keys(payload).length !== BlockDataLength) return null;
+      
+        const block: Block = this.blockRepository
+          .create({
+            ...payload,
+            page
+          });
 
-        } else if(param.set === "comment") {
-          const { blockId, payload } = param;
-
-          const block: Block = await this.findOneBlock(blockId);
-            
-          if(!block) {
-            return null;
-          }
-
-          const blockComment: BlockComment = await this.blockCommentRepository.create();
-          
-          blockComment.block = block;
-          blockComment.page = page;
-          blockComment.comments = payload;
-
-          modifyData.comment.push(blockComment);
-
-        } else {
-          return null;
-        }
+        blockList.push(block);
       }
 
-      return modifyData;
+      return blockList;
 
     } catch(e) {
       Logger.error(e);
@@ -209,18 +185,15 @@ export class BlockService {
     }
   }
 
-
   /**
    * 
    * @param paramModifyBlockList 
    */
-  public async updateData(paramModifyBlockList: ParamModifyBlock[]): Promise<ModifyData | null> {
-    const blockIdList = paramModifyBlockList
-      .filter(({ set }) => set === "block")
-      .map(({ blockId }) => blockId);
+  public async updateBlockDataList(updateModifyBlockDataList: RawModifyData<UpdateModifyBlockGenericType>[]): Promise<Block[] | null> {
+    const blockIdList = updateModifyBlockDataList.map(data => data.id);
 
     try {
-      const blockList: Block[] = await this.blockRepository.find({
+      const blockList = await this.blockRepository.find({
         where: {
           id: In(blockIdList)
         }
@@ -230,27 +203,19 @@ export class BlockService {
         return null;
       }
 
-      const modifyData: ModifyData = {
-        block: [],
-        comment: []
-      };
+      const newBlockList: Block[] = [];
 
-      for(const { blockId, set, payload } of paramModifyBlockList) {
-        const idx = blockList.findIndex((block) => block.id === blockId)
+      for(const data of updateModifyBlockDataList) {
+        const idx = blockList.findIndex((block) => block.id === data.id);
 
-        switch(set) {
-          case "block":
-            // update block과 기존 block이 싱크가 안맞을때가 있음.
-            modifyData.block.push(Object.assign(blockList[idx], payload));
-            
-          break;
-
-          default: 
-            return null;
-        }
+        if(idx === -1) return null;
+        blockList[idx].updateData(data);
+        newBlockList.push(blockList[idx]);
       }
 
-      return modifyData;
+      if(blockList.length !== newBlockList.length) return null;
+
+      return newBlockList;
     } catch(e) {
       Logger.error(e);
 
@@ -262,77 +227,73 @@ export class BlockService {
    * 
    * @param paramModifyBlockList 
    */
-  public async deleteData(paramModifyBlockList: ParamModifyBlock[]): Promise<boolean> {
-    const idList = paramModifyBlockList.map((param) => {
-      return param.blockId
+  public async deleteData(deleteModifyBlockDataList: DeleteModifyBlockData[]): Promise<boolean> {
+    const idList = deleteModifyBlockDataList.map((data) => {
+      return data.id
     });
 
     return await this.removeBlockData(idList);
   }
 
+
+  public async executeByTypeBeForeDeletion(queryRunner: QueryRunner, type: BlockType) {
+    
+  }
+
+  /**
+   * 
+   * @param queryRunner 
+   * @param page 
+   * @param modifyBlockData 
+   * @returns 
+   */
   public async updateModifyBlockData(
     queryRunner: QueryRunner, 
     page: Page,
-    modifyBlockDataList: ModifyBlockType
-  ): Promise<ComposedResponseErrorType> {
+    modifyBlockData: ModifyBlockData
+  ): Promise<ComposedResponseErrorType | null> {
 
-    const modifyData: ModifyData = {
-      block: [],
-      comment: []
+    const newBlockList: Block[] = [];
+
+    if(modifyBlockData.create) {
+      const blockList = await this.createBlockDataList(modifyBlockData.create, page);
+
+      if(!blockList) return [new BklogErrorMessage().preBuild("client error", "create data error", "005"), BAD_REQ];
+
+      newBlockList.push(...blockList);
     }
 
-    if(modifyBlockDataList.create) {
-      const resCreate: ModifyData | null = await this.createData(modifyBlockDataList.create, page);
+    if(modifyBlockData.update) {
+      const blockList = await this.updateBlockDataList(modifyBlockData.update);
 
-      if(!resCreate) {
-        return [new BklogErrorMessage().preBuild("client error", "create data error", "005"), BAD_REQ]
-      }
+      if(!blockList) return [new BklogErrorMessage().preBuild("client error", "update data error", "005"), BAD_REQ];
 
-      if(resCreate.block) {
-        modifyData.block = modifyData.block.concat(resCreate.block);
-      }
-
-      if(resCreate.comment) {
-        modifyData.comment = modifyData.comment.concat(resCreate.comment);
-      }
+      newBlockList.push(...blockList);
     }
+    
+    if(newBlockList[0]) await queryRunner.manager.save(newBlockList);
 
-    if(modifyBlockDataList.update) {
-      const resUpdate: ModifyData | null = await this.updateData(modifyBlockDataList.update);
+    if(modifyBlockData.delete) {
+      const blockIdList: string[] = [];
 
-      if(!resUpdate) {
-        return [new BklogErrorMessage().preBuild("client error", "update data error", "005"), BAD_REQ];
+      for(const { id, type } of modifyBlockData.delete) {
+        blockIdList.push(id);
+
+        await this.executeByTypeBeForeDeletion(queryRunner, type);
       }
 
-      if(resUpdate.block) {
-        modifyData.block = modifyData.block.concat(resUpdate.block);
-      }
+      if(!blockIdList[0]) return BklogErrorMessage.notFound;
 
-      if(resUpdate.comment) {
-        modifyData.comment = modifyData.comment.concat(resUpdate.comment);
-      }
-    }
-
-    if(modifyData.block[0]) await queryRunner.manager.save(modifyData.block);
-    if(modifyData.comment[0]) await queryRunner.manager.save(modifyData.comment);
-
-    if(modifyBlockDataList.delete) {
-      const { commentIdList, blockIdList } = modifyBlockDataList.delete;
-
-      if(blockIdList) {
-        await queryRunner.manager.delete(Block, blockIdList);
-        const blockCommentIdList = await queryRunner.manager.find(BlockComment, {
-          where: {
-            block: {
-              id: In(blockIdList)
-            }
+      const blockCommentIdList = await queryRunner.manager.find(BlockComment, {
+        where: {
+          block: {
+            id: In(blockIdList)
           }
-        });
-       
-        if(blockCommentIdList[0]) commentIdList.push(...blockCommentIdList.map(comment => comment.id));
-      }
+        }
+      });  
 
-      if(commentIdList) await queryRunner.manager.delete(BlockComment, commentIdList);
+      await queryRunner.manager.delete(Block, blockIdList);
+      if(blockCommentIdList[0]) await queryRunner.manager.delete(BlockComment, blockCommentIdList);
     }
 
     return null;

@@ -9,7 +9,7 @@ export class UserAuth extends ChildTable {
     type: 'varchar',
     length: 100
   })
-  password: string;
+  password!: string;
 
   @Column({
     name: 'count_of_failures',
@@ -17,10 +17,10 @@ export class UserAuth extends ChildTable {
     width: 10,
     default: 0
   })
-  countOfFailures: number;
+  countOfFailures!: number;
 
   @OneToOne(()=> UserPrivacy)
   @JoinColumn()
-  userPrivacy: UserPrivacy
+  userPrivacy!: UserPrivacy
   
 }

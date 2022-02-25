@@ -4,10 +4,10 @@ export abstract class DateTable {
   @CreateDateColumn({
     name: "created_at"
   })
-  createdDate: Date;
+  createdDate!: Date;
 
   @UpdateDateColumn({
     name: "updated_at"
   })
-  updatedDate: Date;
+  updatedDate!: Date;
 }

@@ -7,13 +7,13 @@ export abstract class MainTable extends DateTable {
     type: "varchar",
     width: 255
   })
-  id: string;
+  id!: string;
 
   @Column({
     name: "removed_at",
     type: "datetime",
     nullable: true
   })
-  removedDate: Date;
+  removedDate!: Date;
 
 }

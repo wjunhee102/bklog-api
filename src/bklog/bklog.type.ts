@@ -1,5 +1,146 @@
-import { BlockData } from "./block/block.type";
+import { BlockData, BlockDataProps, UnionBlockGenericType } from "./block/type";
 import { PageUserInfo } from "./page/page.type";
+
+/**
+ * modify 
+ */
+
+// command
+
+export const COMMAND_UPDATE = "update" as const;
+export const COMMAND_CREATE = "create" as const;
+export const COMMAND_DELETE = "delete" as const;
+
+export type ModifyALLCommand = typeof COMMAND_UPDATE 
+  | typeof COMMAND_CREATE 
+  | typeof COMMAND_DELETE;
+export type ModifyUpdateCommand  = typeof COMMAND_UPDATE; 
+
+// set
+
+export const SET_BLOCK   = "block" as const;
+export const SET_COMMENT = "comment" as const;
+export const SET_PAGE    = "page" as const;
+
+export type ModifySet = typeof SET_BLOCK 
+  | typeof SET_COMMENT 
+  | typeof SET_PAGE; 
+
+
+export interface PageInfo {
+  createdDate: Date;
+  updatedDate: Date;
+  id: string;
+  title: string;
+  coverImage: string;
+  coverColor: string;
+  lastAccessDate: Date;
+  views: number;
+  disclosureScope: number;
+  profileId: string;
+  editable: boolean;
+}  
+
+export type PageInfoProps = {
+  [Property in keyof PageInfo]?: PageInfo[Property];
+}
+
+type ModifyPayload = BlockDataProps<UnionBlockGenericType> | PageInfoProps;
+
+interface ModifyGenericType<T extends ModifyALLCommand, Y extends ModifySet, P extends ModifyPayload, K extends string> {
+  command: T;
+  set: Y;
+  payload: P;
+  type: K;
+}
+
+/*
+* block
+*/
+
+// modify
+
+export type CreateModifyBlockGenericType<T extends UnionBlockGenericType = UnionBlockGenericType> = ModifyGenericType<typeof COMMAND_CREATE, typeof SET_BLOCK, BlockData<T>, T["type"]>;
+
+export type UpdateModifyBlockGenericType<T extends UnionBlockGenericType = UnionBlockGenericType> = ModifyGenericType<typeof COMMAND_UPDATE, typeof SET_BLOCK, BlockDataProps<T>, T["type"]>;
+
+export type DeleteModifyBlockGenericType = ModifyGenericType<typeof COMMAND_DELETE, typeof SET_BLOCK, BlockDataProps<UnionBlockGenericType>, UnionBlockGenericType["type"]>;
+
+export type ModifyBlockGenericType<T extends UnionBlockGenericType = UnionBlockGenericType> = CreateModifyBlockGenericType<T> | UpdateModifyBlockGenericType<T> | DeleteModifyBlockGenericType;
+
+/**/
+
+// page
+
+export type ModifyPageGenericType = ModifyGenericType<ModifyUpdateCommand, typeof SET_PAGE, PageInfoProps, string>;
+
+// types
+
+export type UnionModifyGenericType = ModifyBlockGenericType<UnionBlockGenericType> 
+  | ModifyPageGenericType;
+
+
+/*
+* RawModifyData 
+*/ 
+export interface PartsModifyData<T extends UnionModifyGenericType = UnionModifyGenericType> {
+  id: string;
+  type: T["type"];
+}
+
+export interface RawModifyData<T extends UnionModifyGenericType = UnionModifyGenericType> extends PartsModifyData<T> {
+  payload: T["payload"];
+}
+
+// ModifyData
+export interface ModifyData<T extends UnionModifyGenericType> extends RawModifyData<T> {
+  set: T["set"];
+  command: T["command"];
+}
+
+export interface UpdateModifyBlockData<T extends UnionBlockGenericType = UnionBlockGenericType> {
+  id: string;
+  type: T["type"];
+  command: typeof COMMAND_UPDATE;
+  payload: BlockDataProps<T>;
+}
+
+export interface DeleteModifyBlockData {
+  id: string;
+  type: string;
+}
+
+export interface ModifyBlockDataProps<T extends UnionBlockGenericType = UnionBlockGenericType> {
+  id: string;
+  type: ModifyBlockGenericType<T>["type"];
+  command: ModifyBlockGenericType<T>["command"];
+  payload: ModifyBlockGenericType<T>["payload"];
+}
+
+export interface ModifyPageDataProps {
+  id: string;
+  payload: ModifyPageGenericType['payload'];
+}
+
+export interface ModifyBlockData {
+  create?: RawModifyData<CreateModifyBlockGenericType<UnionBlockGenericType>>[];
+  update?: RawModifyData<UpdateModifyBlockGenericType<UnionBlockGenericType>>[];
+  delete?: PartsModifyData<DeleteModifyBlockGenericType>[];
+}
+
+export type UnionModifyData = ModifyBlockData | PageInfoProps;
+
+export interface ModifyBklogData {
+  pageInfo?: PageInfoProps;
+  blockData?: ModifyBlockData;
+}
+
+//
+
+export interface PageVersions {
+  current: string;
+  next: string;
+}
 
 export interface RequiredPageListInfo {
   penName: string;
@@ -25,91 +166,11 @@ export interface ResCreateBklog {
   }
 }
 
-export interface ResGetPage {
-  id: string;
-  title: string;
-  coverImage: string | null;
-  coverColor: string | null;
-  createdDate: Date;
-  updatedDate: Date;
-  lastAccessDate: Date;
-  views: number;
-  disclosureScope: number;
-  blockList: BlockData[];
-  version: string;
-  profileId: string;
-  editable: boolean;
-}
-
 export interface ParamGetPageList {
   pageUserInfo: PageUserInfo,
   reqProfileId?: string;
   skip?: number;
   take?: number;
-}
-
-/**
- * modify 
- */
-export type ModifyCommand = "update" | "create" | "delete";
-export type ModifySet = "block" | "property" | "comment"; 
-
-export interface ParamModifyBlock {
-  blockId: string;
-  set: ModifySet;
-  payload: any;
-}
-
-export interface ParamCreateBlock {
-  blockId: string;
-  set: "block";
-  payload: BlockData;
-}
-
-export interface ParamCreateComment {
-  blockId: string;
-  set: "comment";
-  payload: any;
-}
-
-type Combine<T, K> = T & Omit<K, keyof T>;
-
-export type ParamCreateModifyBlock = ParamCreateBlock | ParamCreateComment;
-
-export class ParamDeleteModity {
-  blockIdList?: string[];
-  commentIdList?: string[];
-}
-
-export interface ModifyBlockType {
-  create?: ParamCreateModifyBlock[];
-  update?: ParamModifyBlock[];
-  delete?: ParamDeleteModity;
-}
-
-export interface ModifyPageInfoType {
-  createdDate?: Date;
-  updatedDate?: Date;
-  id?: string;
-  title?: string;
-  coverImage?: string;
-  coverColor?: string;
-  lastAccessDate?: Date;
-  views?: number;
-  disclosureScope?: number;
-  version?: string;
-  profileId?: string;
-  editable?: boolean;
-}
-
-export interface ModifyBklogDataType {
-  modifyPageInfo?: ModifyPageInfoType;
-  modifyBlockData?: ModifyBlockType;
-}
-
-export interface PageVersions {
-  current: string;
-  next: string;
 }
 
 export interface ReqUpdateBklog {
@@ -118,12 +179,12 @@ export interface ReqUpdateBklog {
     current: string;
     next: string;
   }
-  data: ModifyBklogDataType
+  data: ModifyBklogData
 }
 
 export interface ReqUpdatePageInfo {
   pageId: string;
-  data: ModifyPageInfoType
+  data: PageInfoProps;
 }
 
 export interface ResUpdateBklog {

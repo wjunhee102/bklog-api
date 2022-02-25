@@ -21,7 +21,7 @@ export class UserProfile extends ChildTable {
     type: "varchar",
     length: 100
   })
-  penName: string;
+  penName!: string;
 
   @Column({
     type: "varchar",
@@ -29,7 +29,7 @@ export class UserProfile extends ChildTable {
     nullable: true,
     default: null
   })
-  photo: string;
+  photo!: string;
 
   @Column({
     type: "varchar",
@@ -37,7 +37,7 @@ export class UserProfile extends ChildTable {
     nullable: true,
     default: null
   })
-  bio: string;
+  bio!: string;
 
   @Column({
     name: "cover-color",
@@ -46,7 +46,7 @@ export class UserProfile extends ChildTable {
     nullable: true,
     default: null
   })
-  coverColor: string;
+  coverColor!: string;
 
   @Column({
     name: "cover-image",
@@ -55,37 +55,37 @@ export class UserProfile extends ChildTable {
     nullable: true,
     default: null
   })
-  coverImage: string;
+  coverImage!: string;
 
   @OneToOne(() => UserStatus)
   @JoinColumn()
-  userStatus: UserStatus;
+  userStatus!: UserStatus;
 
   @OneToMany(() => UserFollow, userFollow => userFollow.userProfile)
-  followings: UserFollow[];
+  followingList!: UserFollow[];
 
   @OneToMany(() => UserFollow, userFollow => userFollow.relativeProfile)
-  followers: UserFollow[];
+  followerList!: UserFollow[];
 
   @OneToMany(()=> UserBlocking, userBlocking => userBlocking.userProfile)
-  blockedUsers: UserBlocking[];
+  blockedUserList!: UserBlocking[];
 
   @OneToMany(() => UserBlocking, userBlocking => userBlocking.blockedProfile)
-  blockedMes: UserBlocking[];
+  blockedMeList!: UserBlocking[];
 
   @OneToMany(() => Page, page => page.userProfile)
-  pages: Page[];
+  pageList!: Page[];
 
   @OneToMany(() => PageStar, pageStar => pageStar.userProfile)
-  pageStars: PageStar[];
+  pageStarList!: PageStar[];
 
   @OneToMany(() => PageComment, pageComment => pageComment.userProfile)
-  pageComments: PageComment[];
+  pageCommentList!: PageComment[];
 
   @OneToMany(() => BlockComment, blockComment => blockComment.userProfile)
-  blockComments: BlockComment[];
+  blockCommentList!: BlockComment[];
 
   @OneToMany(() => PageEditor, pageEditor => pageEditor.userProfile)
-  editableList: PageEditor[];
+  editableList!: PageEditor[];
 
 }
