@@ -354,7 +354,6 @@ export class PageService {
       .leftJoinAndSelect("page.userProfile", "user-profile")
       .leftJoinAndSelect("page.blockList", "block")
       .getOne();
-      console.log("page", page);
 
       if(!page) {
         return null

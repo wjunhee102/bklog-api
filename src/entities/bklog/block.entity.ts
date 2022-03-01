@@ -1,7 +1,7 @@
 import { Entity, Column, PrimaryColumn, ManyToOne, OneToMany } from "typeorm";
 import { Page } from "./page.entity";
 import { BlockComment } from "./block-comment.entity";
-import { BlockDataProps, UnionBlockGenericType } from "src/bklog/block/type";
+import { UnionBlockGenericType } from "src/bklog/block/type";
 import { RawModifyData, UpdateModifyBlockGenericType } from "src/bklog/bklog.type";
 
 @Entity({name: "block"})
@@ -52,8 +52,8 @@ export class Block<T extends UnionBlockGenericType = UnionBlockGenericType> {
   @OneToMany(() => BlockComment, blockComment => blockComment.block)
   blockComments!: BlockComment[];
 
-  updateData({ id, type, payload }: RawModifyData<UpdateModifyBlockGenericType<T>>) {
-    if(this.id !== id || this.type !== type) throw new Error("id or type does not match");
+  updateData({ id, payload }: RawModifyData<UpdateModifyBlockGenericType<T>>) {
+    if(this.id !== id) throw new Error("id does not match");
 
     const payloadKeyList: Array<keyof typeof payload> = Object.keys(payload) as Array<keyof typeof payload>;
 

@@ -267,8 +267,6 @@ export class BklogService {
       }
 
     }
-
-    console.log("page", page);
     
     return new Response<{
       pageInfo: PageInfo;

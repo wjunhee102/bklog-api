@@ -1,4 +1,4 @@
-import { Controller, Post, Req, Res, Body, Get, Param, Query, ParseIntPipe, UsePipes, Delete, UseGuards, Request, Logger } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Get, Param, Query, ParseIntPipe, UsePipes, Delete, UseGuards, Request, Logger, Patch } from '@nestjs/common';
 import { BklogService } from './bklog.service';
 import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
@@ -70,7 +70,7 @@ export class BklogController extends BaseController {
     });
   }
 
-  @Post('create-page')
+  @Post('page')
   @UsePipes(new JoiValidationPipe(reqCreatePageSchema))
   public async createPage(
     @Req() req: any, 
@@ -108,7 +108,7 @@ export class BklogController extends BaseController {
     
   }
 
-  @Get('getpage')
+  @Get('page')
   public async getPage(@Res() res: any, @Req() req: any, @Query('id') pageId: string): Promise<void> {
     console.log("pageId", pageId);
     const { id, error, accessToken } = this.validationAccessToken(req);
@@ -150,7 +150,7 @@ export class BklogController extends BaseController {
 
   }
 
-  @Post('add-pageeditor')
+  @Post('pageeditor')
   @UsePipes(new JoiValidationPipe(reqEditPageEditorSchema))
   public async addPageEditor(@Req() req: any, @Res() res: any, @Body() { pageId, targetProfileId }: ReqEditPageEditor) {
     const { id, error } = this.validationAccessToken(req);
@@ -178,7 +178,7 @@ export class BklogController extends BaseController {
 
   }
 
-  @Post('exclude-pageeditor')
+  @Delete('pageeditor')
   @UsePipes(new JoiValidationPipe(reqEditPageEditorSchema))
   public async excludeFromPageEditorList(@Req() req: any, @Res() res: any, @Body() { pageId, targetProfileId }: ReqEditPageEditor) {
     const { id, error } = this.validationAccessToken(req);
@@ -205,6 +205,10 @@ export class BklogController extends BaseController {
     }
   }
 
+  /**
+   * TODO: 
+   * 의미있는 리소스 이름으로 바꿀 것.
+   */
   @Get('release-updating/:pageId')
   public async releaseUpdating(@Req() req: any, @Res() res: any, @Param('pageId') pageId: string) {
     const resCheckCookie = this.validationAccessToken(req);
@@ -224,7 +228,7 @@ export class BklogController extends BaseController {
     }
   }
 
-  @Post('updatebklog')
+  @Post('bklog')
   @UsePipes(new JoiValidationPipe(reqUpdateBklogSchema))
   public async updateBklog(@Req() req: any, @Res() res: any, @Body() { data, pageId, pageVersions }: ReqUpdateBklog) {
     const { id, error } = this.validationAccessToken(req);
@@ -248,14 +252,14 @@ export class BklogController extends BaseController {
     }
   }
 
-  @Get('getmodifydata')
+  @Get('modifydata')
   public async getModifyData(@Res() res: any, @Query("id") id: any, @Query("preId") preId: string) {
     const response: Response = await this.bklogService.getModifyData(id, preId);
 
     response.res(res).send();
   }
 
-  @Post('updatepageinfo')
+  @Patch('pageinfo')
   @UsePipes(new JoiValidationPipe(reqUpdatePageInfoSchema))
   public async updatePageInfo(
     @Req() req: any, 
@@ -290,7 +294,7 @@ export class BklogController extends BaseController {
     }
   }
 
-  @Delete('delete-page')
+  @Delete('page')
   @UsePipes(new JoiValidationPipe(reqDeletePageSchema))
   public async deletePage(
     @Req() req: any, 
