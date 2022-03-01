@@ -12,9 +12,9 @@ export class AuthGuard implements CanActivate {
     const requsetToken = request.headers.authorization.replace("Bearer ", "");
 
     if (requsetToken === undefined) {
-      return;
+      return false;
     }
-    
+    return true;
     // const decodedToken = this.validateToken(requsetToken);
     // if (decodedToken) {
     //   request.user = decodedToken;

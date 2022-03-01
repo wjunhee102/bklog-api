@@ -9,7 +9,7 @@ export class AppController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  getHello(@Request() req): string {
+  getHello(@Request() req: any): string {
     console.log(req.user);
     // Redirect('http://localhost:3000');
     return this.appService.getHello();
@@ -18,13 +18,13 @@ export class AppController {
   // @SetCookies({name: 'test', value: 'test'})
   @Get("/test")
   @Redirect()
-  testRedirect(@Req() req) {
+  testRedirect(@Req() req: any) {
     console.log(req.url);
     return { url: `http://localhost:3000/auth/"asdadsda"`}
   }
 
   @Get("/co") 
-  public testCookie(@Res() res) {
+  public testCookie(@Res() res: any) {
     res.cookie("test", "test");
     res.send("sdsd");
   }

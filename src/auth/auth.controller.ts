@@ -1,7 +1,7 @@
 import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes, Query, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './dto/auth.schema';
-import { UserJwtokens, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens, TokenVailtionType, ResValitionAccessToken } from './auth.type';
+import { UserJwtokens, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens, TokenVailtionType, ResValitionAccessToken, CookieAuthenticationFailure } from './auth.type';
 import { ResponseMessage } from 'src/utils/common/response.util2';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
 import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-user.type';
@@ -35,16 +35,16 @@ export class AuthController {
     );
   }
 
-  private clearUserJwtCookie(res) {
+  private clearUserJwtCookie(res: any) {
     res.clearCookie(ACCESS_TOKEN);
     res.clearCookie(REFRESH_TOKEN);
   }
 
-  private clearUserJwtCookieAccess(res) {
+  private clearUserJwtCookieAccess(res: any) {
     res.clearCookie(ACCESS_TOKEN);
   }
 
-  private validationAccessToken(@Req() req): ResTokenValidation {
+  private validationAccessToken(@Req() req: any): ResTokenValidation {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
     const userAgent = req.headers["user-agent"];
 
@@ -64,7 +64,7 @@ export class AuthController {
     });
   }
 
-  private responseCheckToken({ infoFalse } : TokenVailtionType ,res): void {
+  private responseCheckToken({ infoFalse } : TokenVailtionType | CookieAuthenticationFailure ,res: any): void {
     const response: Response = new Response();
 
     if(infoFalse) {
@@ -79,7 +79,7 @@ export class AuthController {
 
   @Post('sign-up')
   @UsePipes(new JoiValidationPipe(requiredUserInfoSchema))
-  public async signUpUser(@Res() res, @Body() requiredUserInfo: RequiredUserInfo) {
+  public async signUpUser(@Res() res: any, @Body() requiredUserInfo: RequiredUserInfo) {
     const response: Response = await this.authService.signUpUser(requiredUserInfo);
 
     response.res(res).send();
@@ -88,8 +88,8 @@ export class AuthController {
   @Post('sign-in') 
   @UsePipes(new JoiValidationPipe(authInfoSchema))
   public async signInUser(
-    @Req() req, 
-    @Res() res, 
+    @Req() req: any, 
+    @Res() res: any, 
     @Body() userAuthInfo: UserAuthInfo
   ) {
     const response: Response = await this.authService.signInUser(userAuthInfo, req.headers["user-agent"]);
@@ -112,8 +112,8 @@ export class AuthController {
    */
   @Get('check-token')
   public async valudationAccessToken(
-    @Req() req,
-    @Res() res
+    @Req() req: any,
+    @Res() res: any
   ) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
 
@@ -139,8 +139,8 @@ export class AuthController {
 
   @Get('reissue-token') 
   public async reissueTokensToUser(
-    @Req() req, 
-    @Res() res
+    @Req() req: any, 
+    @Res() res: any
   ) {
     const { response, userJwt }: ResReissueTokens  = 
       await this.authService.reissueTokens(
@@ -158,7 +158,7 @@ export class AuthController {
   }
 
   @Get('sign-out')
-  public async signOutUser(@Req() req, @Res() res) {
+  public async signOutUser(@Req() req: any, @Res() res: any) {
     const refreshToken = req.signedCookies[REFRESH_TOKEN];
     const resSignOut = refreshToken? await this.authService.signOutUser(
       refreshToken,
@@ -178,8 +178,8 @@ export class AuthController {
   @Post('user-activation')
   @UsePipes(new JoiValidationPipe(activateUserSchema))
   public async activateUser(
-    @Req() req, 
-    @Res() res, 
+    @Req() req: any, 
+    @Res() res: any, 
     @Body() tagetUser: TargetUser
   ) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
@@ -202,7 +202,7 @@ export class AuthController {
   }
 
   @Get('resign-in')
-  public async reSignIn(@Req() req, @Res() res) {
+  public async reSignIn(@Req() req: any, @Res() res: any) {
     const accessToken = req.signedCookies[ACCESS_TOKEN];
 
     if(accessToken) {
@@ -217,7 +217,7 @@ export class AuthController {
   }
 
   @Get('check-email')
-  public async checkEmailAddress(@Res() res, @Query("email") email: string) {
+  public async checkEmailAddress(@Res() res: any, @Query("email") email: string) {
     if(!email) {
       new Response()
         .body("y")
@@ -231,7 +231,7 @@ export class AuthController {
   }
 
   @Get('check-penname')
-  public async checkPenName(@Res() res, @Query("penname") penName: string) {
+  public async checkPenName(@Res() res: any, @Query("penname") penName: string) {
     if(!penName) {
       new Response()
         .body("y")
@@ -245,7 +245,7 @@ export class AuthController {
   }
 
   @Get('test-delete-user')
-  public async testDeleteUser(@Res() res, @Query("email") email: string) {
+  public async testDeleteUser(@Res() res: any, @Query("email") email: string) {
     const response: Response = await this.authService.testDeleteUser(email);
 
     response.res(res).send();
@@ -253,11 +253,11 @@ export class AuthController {
 
   @Delete('withdrawal')
   @UsePipes(new JoiValidationPipe(authInfoSchema))
-  public async deleteUser(@Req() req, @Res() res, @Body() userInfo: UserAuthInfo) {
+  public async deleteUser(@Req() req: any, @Res() res: any, @Body() userInfo: UserAuthInfo) {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      this.responseCheckToken(error, res);
+      if(error) this.responseCheckToken(error, res);
     } else {
       const response: Response = await this.authService.withdrawalUser(Object.assign({}, {
         ...userInfo, 
