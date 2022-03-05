@@ -228,7 +228,7 @@ export class BklogController extends BaseController {
     }
   }
 
-  @Post("bklog/:pageId")
+  @Post("page/:pageId")
   @UsePipes(new JoiValidationMutiPipe({ paramName: "pageId", bodySchema: reqUpdateBklogSchema }))
   public async updateBklog(@Req() req: any, @Res() res: any, @Param("pageId") pageId: string, @Body() { data, pageVersions }: ReqUpdateBklog) {
     const { id, error } = this.validationAccessToken(req);
@@ -259,7 +259,7 @@ export class BklogController extends BaseController {
     response.res(res).send();
   }
 
-  @Patch("pageinfo/:pageId")
+  @Patch("page/:pageId")
   @UsePipes(new JoiValidationMutiPipe({ paramName: "pageId" , bodySchema: reqUpdatePageInfoSchema}))
   public async updatePageInfo(
     @Req() req: any, 
