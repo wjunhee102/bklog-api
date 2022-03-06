@@ -44,7 +44,7 @@ export class BklogController extends BaseController {
     @Param("penName") penName: string, 
     @Query("id") reqProfileId?: string
   ) {
-    console.log(req.user);
+ 
     await this.getPageList(res, req, {
       pageUserInfo: {
         penName
@@ -324,7 +324,6 @@ export class BklogController extends BaseController {
   @UseGuards(AuthGuard("local"))
   @Get("test")
   public async test(@Request() req: any) {
-    console.log(req.user);
     
     return "success";
   }

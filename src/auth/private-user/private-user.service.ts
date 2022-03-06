@@ -340,7 +340,7 @@ export class PrivateUserService {
 
       return SystemErrorMessage.db;
     } finally {
-      console.log("success");
+
       await queryRunner.release();
     }
   }

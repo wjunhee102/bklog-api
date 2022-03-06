@@ -339,7 +339,7 @@ export class BklogService {
    * @param preVersionId 
    */
   public async getModifyData(id: string, preVersionId: string): Promise<Response> {
-    console.log("getModify", id, preVersionId);
+
     if(id === preVersionId) {
       return new Response().body({ id: id, data: {}});
     }
@@ -425,7 +425,7 @@ export class BklogService {
     profileId: string,
     pageVersions: PageVersions
   ): Promise<Response<ResUpdateBklog | ResponseErrorTypes>> {
-    console.log("modifyBklogData", modifyBklogData);
+
     return await this.pageService.containerUpdateBklog(
       pageId, 
       userId, 

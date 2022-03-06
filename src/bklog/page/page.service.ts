@@ -518,10 +518,8 @@ export class PageService {
         select: ["id"]
       });
 
-    console.log(blockList);
-
     if(blockList[0]) {
-      console.log(blockList);
+
       const blockCommentList = await queryRunner.manager
         .find(BlockComment, {
           where: [
@@ -611,7 +609,7 @@ export class PageService {
     data: ModifyBklogData,
     callback?: (queryRunner: QueryRunner, page: Page) => Promise<ComposedResponseErrorType | null>
   ): Promise<Response> {
-    console.log(pageVersions);
+
     const page = await this.findOnePage({id: pageId});
 
     if(!page) return new Response().error(...BklogErrorMessage.notFound);
@@ -715,8 +713,6 @@ export class PageService {
       .skip(skip)
       .take(take)
       .getMany();
-
-    console.log("pagelist", pageList);
 
     return pageList[0]? pageList : null;
   }
