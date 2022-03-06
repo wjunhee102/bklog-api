@@ -42,8 +42,8 @@ export const createCookieOption = (domain: string = "localhost") => (expTime:num
     maxAge: expTime,
     signed: true,
     domain,
-    sameSite: "Lax",
-    secure: false
+    sameSite: "none",
+    secure: true
   }
 } 
 
