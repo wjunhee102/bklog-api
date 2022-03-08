@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { jwtExpTime, accessExpTime } from 'secret/constants';
 import { JwtUserPayload, TokenVailtionRes, UserJwtokens, ResValitionAccessToken, ACCESS, REFRESH, ResCheckAccessToken, ResReissueTokens } from './auth.type';
-import { ResIdentifyUser, UserAuthInfo, UserIdList, UserIdNPenName } from './private-user/types/private-user.type';
+import { ResIdentifyUser, UserAuthInfo } from './private-user/types/private-user.type';
 import { RequiredUserInfo, ResAuthenticatedUser } from './private-user/types/private-user.type';
 import { PrivateUserService } from './private-user/private-user.service';
 import { AuthErrorMessage, Response, SystemErrorMessage, CommonErrorMessage } from 'src/utils/common/response.util';
@@ -205,7 +205,7 @@ export class AuthService {
     userAgent: string
   ): ResValitionAccessToken {
     const decodingUserJwt: any = this.jwtService.decode(accessToken);
-    
+
     if(!decodingUserJwt || decodingUserJwt.type !== ACCESS) {
       return {
         id: null,
@@ -217,7 +217,7 @@ export class AuthService {
     }
 
     const checkAgent: boolean = decodingUserJwt.agent === userAgent;
-    const checkExpTime = decodingUserJwt.exp * 1000 > Date.now();
+    const checkExpTime = decodingUserJwt.exp * 1000 + accessExpTime > Date.now();
 
     if(!checkAgent || !checkExpTime) {
       return {
