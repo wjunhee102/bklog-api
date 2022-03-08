@@ -415,7 +415,7 @@ export class PageService {
         where: {
           id: pageId
         },
-        relations: ["versionList", "pageStar", "pageComments", "blockList", "blockComments", "editorList"]
+        relations: ["versionList", "pageStar", "pageCommentList", "blockList", "blockCommentList", "editorList"]
       });
 
       if(!page) return BklogErrorMessage.notFound;
