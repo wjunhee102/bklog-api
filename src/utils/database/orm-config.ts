@@ -17,7 +17,7 @@ const ormConfig: () => TypeOrmModuleOptions = () => {
       "auth/**/entities/*.entity{.ts,.js}"
     ],
     logging: process.env.ENV === 'prod'? false : true,
-    synchronize: process.env.ENV === 'prod'? false : true
+    synchronize: process.env.ENV === 'prod'? true : true
   };
 } 
 
