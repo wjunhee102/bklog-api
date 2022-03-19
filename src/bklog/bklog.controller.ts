@@ -131,10 +131,15 @@ export class BklogController extends BaseController {
       if(error && accessToken) {
         this.responseCheckToken(error, res);
       } else {
+
         if(!accessToken) {
+          // test page
           const response = await this.bklogService.getPage(pageId); 
           response.res(res).send();
+        } else {
+          new Response().error(...AuthErrorMessage.info).res(res).send();
         }
+        
       }
     } else {
       let response: Response;
@@ -149,26 +154,6 @@ export class BklogController extends BaseController {
       }
       response.res(res).send();
     }
-  }
-
-  @Get("t-getpage")
-  public async testGetPage(@Res() res: any, @Req() req: any, @Query("id") pageId: string) {
-    const accessToken = req.signedCookies[ACCESS_TOKEN];
-
-    if(accessToken) {
-      const resCheckCookie = this.validationAccessToken(req);
-
-      if(!resCheckCookie.id) {
-        if(resCheckCookie.error) this.responseCheckToken(resCheckCookie.error, res);
-      } else {
-        const response: Response = await this.bklogService.getPage(pageId, "4e17660a0ea99a83845cbf3c90f62700"); 
-        response.res(res).send();
-      }
-    } else {
-      const response: Response = await this.bklogService.getPage(pageId, "4e17660a0ea99a83845cbf3c90f62700"); 
-      response.res(res).send();
-    }
-
   }
 
   @Post("pageeditor")
@@ -261,10 +246,16 @@ export class BklogController extends BaseController {
   @UsePipes(new JoiValidationMutiPipe({ paramName: "pageId", bodySchema: reqUpdateBklogSchema }))
   public async updateBklog(@Req() req: any, @Res() res: any, @Param("pageId") pageId: string, @Body() { data, pageVersions }: ReqUpdateBklog) {
     const { id, error } = this.validationAccessToken(req);
-
+    console.log(id, error);
     if(!id) {
       if(error) {
-        this.responseCheckToken(error, res);
+        if(error.expFalse) {
+          this.responseCheckToken(error, res);
+        } else {
+          // test 게정
+          const response = await this.bklogService.updateBklog(data, pageId, "test", "test_profile", pageVersions);
+          response.res(res).send();
+        }
       } else {
         new Response().error(...AuthErrorMessage.info).res(res).send();
       }

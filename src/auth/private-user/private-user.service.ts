@@ -180,7 +180,7 @@ export class PrivateUserService {
 
     const profile: UserProfile = this.userProfileRepository.create();
 
-    profile.id = Token.getUUID();
+    profile.id = userInfo.penName === "test"? "test_profile" : Token.getUUID();
     profile.penName = userInfo.penName;
     profile.userStatus = status;
     profile.bio = userInfo.bio;
@@ -200,7 +200,7 @@ export class PrivateUserService {
 
     const user: User = this.userRepository.create();
 
-    user.id = Token.getUUID();
+    user.id = userInfo.penName === "test"? "test" : Token.getUUID();
     user.firstName = userInfo.firstName;
     user.lastName = userInfo.lastName;
     user.email = userInfo.email;
