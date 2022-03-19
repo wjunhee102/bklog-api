@@ -2,6 +2,7 @@ import { TextStyle, TextContents } from "src/types/bklog";
 import { Page } from "src/entities/bklog/page.entity";
 import { Block } from "src/entities/bklog/block.entity";
 import { BlockComment } from "src/entities/bklog/block-comment.entity";
+import { UnionBlockGenericType } from "./type";
 
 export const TYPE_TEXT = "text" as const;
 
@@ -9,12 +10,13 @@ export const TYPE_TEXT = "text" as const;
 export type BlockTypes = "text" | "container";
 
 
-export interface ReqBlockProps {
-  type?: BlockTypes;
-  position?: string;
+export interface ReqBlockProps<T extends UnionBlockGenericType = UnionBlockGenericType> {
+  type?: T["type"];
+  previousId?: string | null;
+  parentId?: string | null;
   styleType?: string;
-  styles?: any;
-  contents?: any[];
+  styles?: T["styles"];
+  contents?: T["contents"];
 }
 
 export interface BlockUpdateProps extends ReqBlockProps {

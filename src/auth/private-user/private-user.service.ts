@@ -19,8 +19,8 @@ import { UserFollow } from 'src/entities/user/user-follow.entity';
 import { PageService } from 'src/bklog/page/page.service';
 import { BlockService } from 'src/bklog/block/block.service';
 import { Block } from 'src/entities/bklog/block.entity';
-import { BlockData } from 'src/bklog/block/block.type';
 import { AuthErrorMessage, ComposedResponseErrorType, SystemErrorMessage } from 'src/utils/common/response.util';
+import { BlockData, UnionBlockGenericType } from 'src/bklog/block/type';
 
 @Injectable()
 export class PrivateUserService {
@@ -208,9 +208,12 @@ export class PrivateUserService {
     user.userProfile = profile;
     user.userStatus = status;
 
-    const blockData1: BlockData = {
-      id: Token.getUUID(),
-      position: "1",
+    const blockData1Id = Token.getUUID();
+
+    const blockData1: BlockData  = {
+      id: blockData1Id,
+      previousId: null,
+      parentId: null,
       type: "text",
       styleType: "bk-h1",
       contents: [["환영합니다."]],
@@ -220,9 +223,10 @@ export class PrivateUserService {
       }
     }
 
-    const blockData2: BlockData = {
+    const blockData2: BlockData<UnionBlockGenericType> = {
       id: Token.getUUID(),
-      position: "2",
+      previousId: blockData1Id,
+      parentId: null,
       type: "text",
       styleType: "bk-h1",
       contents: [["글을 작성해보세요."]],

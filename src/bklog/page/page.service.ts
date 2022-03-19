@@ -346,7 +346,7 @@ export class PageService {
    * scope 추가해야함.
    * @param id 
    */
-  public async getPage(id: string): Promise<Page | null> {
+  public async getPage(id: string, scope: number = 5): Promise<Page | null> {
     try {
       const page: Page | undefined = await this.pageRepository
       .createQueryBuilder("page")

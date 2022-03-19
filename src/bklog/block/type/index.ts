@@ -32,15 +32,16 @@ export type UnionBlockGenericType = TextGenericType
   | ImageGenericType;
 
 export interface BlockData<T extends UnionBlockGenericType = UnionBlockGenericType> {
-  position: string;
   id: string;
+  previousId: string | null;
+  parentId: string | null;
   type: T['type'];
   styleType: string;
   styles: T['styles'];
   contents: T['contents'];
 }
 
-export const BlockDataLength = 6;
+export const BlockDataLength = 7;
 
 // blockDataProps
 export type BlockDataProps<T extends UnionBlockGenericType> = {

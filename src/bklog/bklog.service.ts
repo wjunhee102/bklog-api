@@ -240,7 +240,23 @@ export class BklogService {
   } | { error: ResponseErrorTypes }>> {
     const page = await this.pageService.getPage(pageId);
 
-    if(!page) return new Response().error(...BklogErrorMessage.notFound)
+    if(!page) return new Response().error(...BklogErrorMessage.notFound);
+
+    let disclosureScope = 5;
+    let editable = false;
+
+    if(profileId) {
+
+      if(page.userProfile.id === profileId) {
+        disclosureScope = 1;
+        editable = true;
+      }
+     
+      //TODO
+      // scope 설정 하기
+    }
+
+    if(page.disclosureScope < disclosureScope) return new Response().error(...BklogErrorMessage.notFound);
 
     const pageVersionList = await this.pageService.findPageVeriosn(page);
 
@@ -249,30 +265,14 @@ export class BklogService {
     const pageVersion = pageVersionList[0];
 
     const result = await this.pageService.removePageVersion({ pageVersionList, saveCount: 5 });
-    
-    let editable = false;
-
+  
     if(result) return new Response().error(...result);
-
-    /**
-     * scope 확인?
-     */
-    if(profileId) {
-
-      if(profileId === page.userProfile.id) {
-        editable = true;
-      } else {
-        const disclosureScope = page.disclosureScope;
-        const editableScope   = page.editableScope;
-      }
-
-    }
     
     return new Response<{
       pageInfo: PageInfo;
       blockList: UnionBlockData[];
       version: string;
-    } >().body({
+    }>().body({
       pageInfo: Object.assign({}, page, {
         versionList: undefined,
         blockList: undefined,

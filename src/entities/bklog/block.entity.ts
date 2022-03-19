@@ -15,10 +15,19 @@ export class Block<T extends UnionBlockGenericType = UnionBlockGenericType> {
 
   @Column({
     type: "varchar",
-    width: 50,
-    default: "1"
+    width: 255,
+    nullable: true,
+    default: null
   })
-  position!: string;
+  previousId!: string | null;
+
+  @Column({
+    type: "varchar",
+    width: 255,
+    nullable: true,
+    default: null
+  })
+  parentId!: string | null;
 
   @Column({
     type: "varchar",

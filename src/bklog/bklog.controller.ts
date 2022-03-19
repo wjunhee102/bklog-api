@@ -25,12 +25,23 @@ export class BklogController extends BaseController {
     req: any, 
     factorGetPageList: ParamGetPageList
   ): Promise<void> {
-    const { id, error, accessToken } = this.validationAccessToken(req);
 
-    if(!id) {
-      if(error && accessToken) this.responseCheckToken(error, res);
-    } else {  
-      const response = await this.bklogService.findPageList(factorGetPageList, id);
+    if(factorGetPageList.reqProfileId) {
+      const { id, error, accessToken } = this.validationAccessToken(req);
+
+      if(!id) {
+        if(error && accessToken) {
+          this.responseCheckToken(error, res);
+        } else {
+          new Response().error(...AuthErrorMessage.info).res(res).send();
+        }
+      } else {  
+        const response = await this.bklogService.findPageList(factorGetPageList, id);
+
+        response.res(res).send();
+      }
+    } else {
+      const response = await this.bklogService.findPageList(factorGetPageList);
 
       response.res(res).send();
     }
@@ -44,7 +55,6 @@ export class BklogController extends BaseController {
     @Param("penName") penName: string, 
     @Query("id") reqProfileId?: string
   ) {
- 
     await this.getPageList(res, req, {
       pageUserInfo: {
         penName
@@ -81,7 +91,11 @@ export class BklogController extends BaseController {
     const { id, error }  = this.validationAccessToken(req);
 
     if(!id) {
-      if(error) this.responseCheckToken(error, res);
+      if(error) {
+        this.responseCheckToken(error, res);
+      } else {
+        new Response().error(...AuthErrorMessage.info).res(res).send();
+      }
     } else {
 
       const profileId: string | null = await this.getProfileId(id);
@@ -114,7 +128,14 @@ export class BklogController extends BaseController {
     const { id, error, accessToken } = this.validationAccessToken(req);
 
     if(!id) {
-      if(error && accessToken) this.responseCheckToken(error, res);
+      if(error && accessToken) {
+        this.responseCheckToken(error, res);
+      } else {
+        if(!accessToken) {
+          const response = await this.bklogService.getPage(pageId); 
+          response.res(res).send();
+        }
+      }
     } else {
       let response: Response;
       const profileId: string | null = await this.getProfileId(id);
@@ -156,7 +177,11 @@ export class BklogController extends BaseController {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      if(error) this.responseCheckToken(error, res);
+      if(error) {
+        this.responseCheckToken(error, res);
+      } else {
+        new Response().error(...AuthErrorMessage.info).res(res).send();
+      }
     } else {
       const profileId: string | null = await this.getProfileId(id);
       let response: Response;
@@ -184,7 +209,11 @@ export class BklogController extends BaseController {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      if(error) this.responseCheckToken(error, res);
+      if(error) {
+        this.responseCheckToken(error, res);
+      } else {
+        new Response().error(...AuthErrorMessage.info).res(res).send();
+      }
     } else {
       const profileId: string | null = await this.getProfileId(id);
       let response: Response;
@@ -234,7 +263,11 @@ export class BklogController extends BaseController {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      if(error) this.responseCheckToken(error, res);
+      if(error) {
+        this.responseCheckToken(error, res);
+      } else {
+        new Response().error(...AuthErrorMessage.info).res(res).send();
+      }
     } else {
       const profileId: string | null = await this.getProfileId(id);
       let response: Response;
@@ -270,7 +303,11 @@ export class BklogController extends BaseController {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      if(error)this.responseCheckToken(error, res);
+      if(error){
+        this.responseCheckToken(error, res);
+      } else {
+        new Response().error(...AuthErrorMessage.info).res(res).send();
+      }
     } else {
 
       const profileId: string | null = await this.getProfileId(id);
@@ -304,7 +341,11 @@ export class BklogController extends BaseController {
     const { id, error } = this.validationAccessToken(req);
 
     if(!id) {
-      if(error) this.responseCheckToken(error, res);
+      if(error) {
+        this.responseCheckToken(error, res);
+      } else {
+        new Response().error(...AuthErrorMessage.info).res(res).send();
+      }
     } else {
       const profileId: string | null = await this.getProfileId(id);
       let response: Response;
