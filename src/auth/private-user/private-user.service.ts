@@ -18,7 +18,6 @@ import { Connection } from 'typeorm';
 import { UserFollow } from 'src/entities/user/user-follow.entity';
 import { PageService } from 'src/bklog/page/page.service';
 import { BlockService } from 'src/bklog/block/block.service';
-import { Block } from 'src/entities/bklog/block.entity';
 import { AuthErrorMessage, ComposedResponseErrorType, SystemErrorMessage } from 'src/utils/common/response.util';
 import { BlockData, UnionBlockGenericType } from 'src/bklog/block/type';
 
@@ -543,7 +542,7 @@ export class PrivateUserService {
       user.userAuth.password
     );
 
-    if(comparedPassword) {
+    if(!comparedPassword) {
       return AuthErrorMessage.failureSignIn();
     }
 

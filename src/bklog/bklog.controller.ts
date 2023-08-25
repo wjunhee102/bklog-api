@@ -1,15 +1,12 @@
-import { Controller, Post, Req, Res, Body, Get, Param, Query, ParseIntPipe, UsePipes, Delete, UseGuards, Request, Logger, Patch } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Get, Param, Query, UsePipes, Delete, UseGuards, Patch } from '@nestjs/common';
 import { BklogService } from './bklog.service';
 import { ReqCreatePage } from './page/page.type';
 import { AuthService } from 'src/auth/auth.service';
-import { ACCESS_TOKEN } from 'src/auth/auth.type';
-import { ParamGetPageList, ReqDeletePage, ReqEditPageEditor, ReqUpdateBklog, ReqUpdatePageInfo } from './bklog.type';
+import { ParamGetPageList, ReqEditPageEditor, ReqUpdateBklog, ReqUpdatePageInfo } from './bklog.type';
 import { Response, AuthErrorMessage } from 'src/utils/common/response.util';
-import { reqCreatePageSchema, reqDeletePageSchema, reqEditPageEditorSchema, reqUpdateBklogSchema, reqUpdatePageInfoSchema } from './dto/bklog.shema';
+import { reqCreatePageSchema, reqEditPageEditorSchema, reqUpdateBklogSchema, reqUpdatePageInfoSchema } from './dto/bklog.shema';
 import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
 import { BaseController } from 'src/common/base.controller';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
-import { LocalAuthGuard } from 'src/auth/local-auth.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { JoiValidationMutiPipe } from 'src/pipes/joi-validationMulti.pipe';
 
@@ -355,8 +352,7 @@ export class BklogController extends BaseController {
 
   @UseGuards(AuthGuard("local"))
   @Get("test")
-  public async test(@Request() req: any) {
-    
+  public async test() {
     return "success";
   }
 

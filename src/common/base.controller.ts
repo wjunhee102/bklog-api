@@ -9,6 +9,7 @@ export class BaseController {
   ){}
 
   public clearUserJwtCookie(res: any) {
+    //TODO cookie 삭제되게 수정할 것.
     res.clearCookie(ACCESS_TOKEN);
     res.clearCookie(REFRESH_TOKEN);
   }

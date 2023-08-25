@@ -38,8 +38,8 @@ export class ResponseError implements ResponseErrorTypes {
   }
 
   public preBuild(
-    message: string = "알 수 없는 error가 발생했습니다.",
-    detail: string = "unknown error",
+    message = "알 수 없는 error가 발생했습니다.",
+    detail = "unknown error",
     code: number | string = "000",
   ): ResponseError {
     this.code = code;
@@ -50,10 +50,10 @@ export class ResponseError implements ResponseErrorTypes {
   }
 
   public build(
-    message: string = "알 수 없는 error가 발생했습니다.",
-    detail: string = "unknown error",
+    message = "알 수 없는 error가 발생했습니다.",
+    detail = "unknown error",
     code: number | string = "000",
-    type: string = "unknown"
+    type = "unknown"
   ): ResponseError {
 
     this.preBuild(message, detail, code);
@@ -144,7 +144,7 @@ export class AuthErrorMessage extends ResponseError {
     ).get(), FORBIDDEN ];
   }
 
-  static notFound(detail: string = "not found"): ComposedResponseErrorType {
+  static notFound(detail = "not found"): ComposedResponseErrorType {
     return [ new this().preBuild(
       "정보를 찾을 수 없습니다.",
       detail,
@@ -152,7 +152,7 @@ export class AuthErrorMessage extends ResponseError {
     ).get(), NOT_FOUND];
   }
 
-  static failureSignIn(count: number = 0): ComposedResponseErrorType {
+  static failureSignIn(count = 0): ComposedResponseErrorType {
     let message = "가입하지 않은 아이디이거나, 잘못된 비밀번호입니다.";
     let detail = "non-existent user";
 

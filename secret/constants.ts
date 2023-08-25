@@ -36,7 +36,7 @@ export const cookieExpTime =  {
  * @param expTime 
  * secure 설정시 safari에는 쿠키 설정이 안됨
  */
-export const createCookieOption = (domain: string = "localhost") => (expTime:number) => {
+export const createCookieOption = (domain = "localhost") => (expTime:number) => {
   return {
     httpOnly: true,
     maxAge: expTime,

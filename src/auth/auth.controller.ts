@@ -1,15 +1,13 @@
-import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Req, Res, Body, Logger, Get, Delete, UsePipes, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { authInfoSchema, requiredUserInfoSchema, activateUserSchema } from './dto/auth.schema';
-import { UserJwtokens, ResWithdrawalUser, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens, TokenVailtionType, ResValitionAccessToken, CookieAuthenticationFailure } from './auth.type';
+import { UserJwtokens, TargetUser, ACCESS_TOKEN, REFRESH_TOKEN, ResCheckAccessToken, ResReissueTokens, TokenVailtionType, CookieAuthenticationFailure } from './auth.type';
 import { ResponseMessage } from 'src/utils/common/response.util2';
 import { createCookieOption, cookieExpTime } from 'secret/constants';
 import { UserAuthInfo, RequiredUserInfo } from './private-user/types/private-user.type';
-import { CommonErrorMessage, Response, AuthErrorMessage, SystemErrorMessage } from 'src/utils/common/response.util';
+import { CommonErrorMessage, Response, AuthErrorMessage } from 'src/utils/common/response.util';
 import { JoiValidationPipe } from 'src/pipes/joi-validation.pipe';
 import { ResTokenValidation } from 'src/auth/auth.type';
-import { JwtAuthGuard } from './jwt-auth.guard';
-import { AuthGuard } from '@nestjs/passport';
 
 @Controller('auth')
 export class AuthController {

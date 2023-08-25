@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToOne, JoinColumn } from "typeorm";
+import { Entity, Column, OneToOne, JoinColumn } from "typeorm";
 import { UserPrivacy } from "./user-privacy.entity";
 import { ChildTable } from "src/entities/base/child-table";
 

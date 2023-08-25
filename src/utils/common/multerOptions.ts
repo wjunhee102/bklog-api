@@ -10,7 +10,7 @@ function getFileName(file: Express.Multer.File) {
 }
 
 export const multerOptions = {
-  fileFilter: (request: any, file: Express.Multer.File, callback: Function) => {
+  fileFilter: (request: any, file: Express.Multer.File, callback: (prop: any, prop2: any) => void) => {
     if(file.mimetype.match(/\/(jpg|jpeg|png)$/)) {
       callback(null, true);
     } else {
@@ -19,8 +19,8 @@ export const multerOptions = {
   },
 
   storage: diskStorage({
-    destination: (request: any, file: any, callback: Function) => {
-      const uploadPath: string = 'public';
+    destination: (request: any, file: any, callback: (prop: any, prop2: any) => void) => {
+      const uploadPath = 'public';
 
       if(!existsSync(uploadPath)) {
         mkdirSync(uploadPath);

@@ -1,4 +1,4 @@
-import { Entity, PrimaryColumn, Column, CreateDateColumn, UpdateDateColumn, OneToOne, JoinColumn } from "typeorm";
+import { Entity, Column, OneToOne, JoinColumn } from "typeorm";
 import { UserAuth } from "./user-auth.entity";
 import { UserProfile } from "src/entities/user/user-profile.entity";
 import { UserStatus } from "src/entities/user/user-status.entity";

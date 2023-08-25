@@ -245,8 +245,8 @@ export class AuthService {
   ): ResCheckAccessToken {
     const result = this.validationAccessToken(accessToken, userAgent);
 
-    let clearToken: boolean = true;
-    let response: Response = new Response();
+    let clearToken = true;
+    const response: Response = new Response();
 
     if(result) {
       clearToken = true;
@@ -309,7 +309,7 @@ export class AuthService {
   ): Promise<ResReissueTokens> {
     const userJwtTokens = await this.reissueTokensToUser(refreshToken, userAgent);
 
-    let response = new Response();
+    const response = new Response();
 
     if(userJwtTokens) {
       response.body("success");

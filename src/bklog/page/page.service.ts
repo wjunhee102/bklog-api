@@ -3,7 +3,7 @@ import { PageRepository } from './repositories/page.repository';
 import { InfoToFindPage, RequiredPageInfo, PageInfoList, PageUserInfo } from './page.type';
 import { Page } from 'src/entities/bklog/page.entity';
 import { Token } from 'src/utils/common/token.util';
-import { Any, Brackets, Connection, In, QueryRunner } from 'typeorm';
+import { Brackets, Connection, In, QueryRunner } from 'typeorm';
 import { PageVersionRepository } from '../repositories/page-version.repository';
 import { PageCommentRepository } from './repositories/page-comment.repository';
 import { PageVersion } from 'src/entities/bklog/page-version.entity';
@@ -17,7 +17,7 @@ import { PageEditor } from 'src/entities/bklog/page-editor.entity';
 import { Block } from 'src/entities/bklog/block.entity';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { PageStar } from 'src/entities/bklog/page-star.entity';
-import { LogError } from 'src/common/decorator';
+
 @Injectable()
 export class PageService {
   constructor(
@@ -28,7 +28,7 @@ export class PageService {
     private readonly pageEditorRespository: PageEditorRepository
   ){}
 
-  private async logError(callback: Function) {
+  private async logError(callback: () => void) {
     try {
       await callback();
 
@@ -89,7 +89,7 @@ export class PageService {
   public createPageEditor(
     page: Page,
     userProfile: UserProfile,
-    authority: number = 2
+    authority = 2
   ) {
     const pageEditor: PageEditor = this.pageEditorRespository.create({
       page,
@@ -334,7 +334,7 @@ export class PageService {
    * @param pageId 
    * @param profileId 
    */
-  public async checkPageEditor(pageId: string, profileId: string, authorized: number = 2): Promise<ComposedResponseErrorType | null> {
+  public async checkPageEditor(pageId: string, profileId: string, authorized = 2): Promise<ComposedResponseErrorType | null> {
     const pageEditor = await this.findOnePageEditor(pageId, profileId);
 
     if(pageEditor && pageEditor.authority <= authorized) return null;
@@ -346,7 +346,7 @@ export class PageService {
    * scope 추가해야함.
    * @param id 
    */
-  public async getPage(id: string, scope: number = 5): Promise<Page | null> {
+  public async getPage(id: string, scope = 5): Promise<Page | null> {
     try {
       const page: Page | undefined = await this.pageRepository
       .createQueryBuilder("page")
@@ -358,7 +358,7 @@ export class PageService {
       if(!page) {
         return null
       }
-
+      console.log(scope);
       page.lastAccessDate = new Date(Date.now());
       page.views = Number(page.views) + 1;
 
@@ -383,7 +383,7 @@ export class PageService {
   }): Promise<ComposedResponseErrorType | null> {
     if(!page) return null;
 
-    let targetPageVersionList = pageVersionList? pageVersionList : await this.findPageVeriosn(page);
+    const targetPageVersionList = pageVersionList? pageVersionList : await this.findPageVeriosn(page);
 
     if(targetPageVersionList.length < saveCount + 1) {
       Logger.log("not page version");
@@ -682,13 +682,13 @@ export class PageService {
    */
   public async findPublicPageList(
     { id, penName }: PageUserInfo, 
-    reqScope:number = 5,
-    skip: number = 0,
-    take: number = 50,
+    reqScope = 5,
+    skip = 0,
+    take = 50,
   ): Promise<PageInfoList[] | null> {
     if(!id && !penName) return null;
 
-    let scope = reqScope === 0? 5 : reqScope; 
+    const scope = reqScope === 0? 5 : reqScope; 
 
     const pageList = await this.pageRepository
       .createQueryBuilder("page")

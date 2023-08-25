@@ -4,13 +4,13 @@ import { RequiredBlock, BlockData } from './block.type';
 import { Block } from 'src/entities/bklog/block.entity';
 import { Token } from 'src/utils/common/token.util';
 import { Page } from 'src/entities/bklog/page.entity';
-import { In, Connection, QueryRunner } from 'typeorm';
+import { In, QueryRunner } from 'typeorm';
 import { BlockCommentRepository } from './repositories/block-comment.repository';
 import { CreateModifyBlockGenericType, DeleteModifyBlockData, ModifyBlockData, RawModifyData, UpdateModifyBlockGenericType } from '../bklog.type';
 import { BlockComment } from 'src/entities/bklog/block-comment.entity';
 import { BAD_REQ, ComposedResponseErrorType } from 'src/utils/common/response.util';
 import { BklogErrorMessage } from '../utils';
-import { BlockDataLength, BlockType } from './type';
+import { BlockDataLength } from './type';
 
 @Injectable()
 export class BlockService {
@@ -121,12 +121,7 @@ export class BlockService {
    * @param blockIdList 
    */
   public async removeBlockData(blockIdList: string[]): Promise<boolean> {
-    const blockList = await this.blockRepository.find({
-      relations: ["blockComment"],
-      where: {
-        id: In(blockIdList)
-      }
-    });
+    const blockList = await this.findBlockList(blockIdList);
 
     const blockCommentList: string[] = [];
 
@@ -235,11 +230,6 @@ export class BlockService {
     return await this.removeBlockData(idList);
   }
 
-
-  public async executeByTypeBeForeDeletion(queryRunner: QueryRunner, type: BlockType) {
-    
-  }
-
   /**
    * 
    * @param queryRunner 
@@ -276,10 +266,8 @@ export class BlockService {
     if(modifyBlockData.delete) {
       const blockIdList: string[] = [];
 
-      for(const { id, type } of modifyBlockData.delete) {
+      for(const { id } of modifyBlockData.delete) {
         blockIdList.push(id);
-
-        await this.executeByTypeBeForeDeletion(queryRunner, type);
       }
 
       if(!blockIdList[0]) return BklogErrorMessage.notFound;
